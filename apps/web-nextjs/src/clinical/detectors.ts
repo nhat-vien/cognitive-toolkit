@@ -241,10 +241,10 @@ export interface FourLayerSafetyAssessment {
 }
 
 const CRISIS_SUICIDE_REGEX =
-  /(tự tử|tự sát|muốn chết|kết liễu|cắt tay|tự hại|không muốn sống nữa|\bsuicide\b|kill myself|end my life|self-harm|cut myself|better off dead)/i;
+  /(tự tử|tự sát|muốn chết|kết liễu|cắt tay|tự hại|không muốn sống nữa|\bsuicide\b|\bsuicidal\b|kill myself|end my life|self-harm|cut myself|cutting myself|better off dead)/i;
 
 const REAL_WORLD_DANGER_REGEX =
-  /(bạo hành|đánh đập|đe dọa giết|xâm hại|bắt cóc|domestic violence|hitting me|threatened to kill me|abusing me|unsafe at home)/i;
+  /(bạo hành|đánh đập|đe dọa giết|xâm hại|bắt cóc|domestic violence|hitting me|threatened to kill me|abusing me|abusive partner|unsafe at home)/i;
 
 export function runFourLayerSafetyGate(params: {
   text: string;

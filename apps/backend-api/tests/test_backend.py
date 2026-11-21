@@ -622,6 +622,105 @@ class TestEquilibriaBackend(unittest.TestCase):
         self.assertEqual(eval_summary["abstention_accuracy"], 1.0)
         self.assertTrue(eval_summary["gate_passed"])
 
+    # -------------------------------------------------------------------------
+    # 6. PHASE 4 EXPANSION: ZERO-KNOWLEDGE CLINICIAN SHARE & 105-CASE RED-TEAM AUDIT
+    # -------------------------------------------------------------------------
+    def test_phase4_clinician_share_links_and_105_case_redteam_audit(self) -> None:
+        # 6A. Create a time-limited Zero-Knowledge Clinician Share Snapshot (stores only ciphertext + expiry)
+        create_resp = self.client.post(
+            "/api/v1/clinician/share",
+            json={
+                "user_id": "patient_phase4_alice",
+                "encrypted_payload_b64": "U2FsdGVkX1+30DayMoodIpsrtPhq9ReportCiphertext==",
+                "iv_b64": "MTIzNDU2Nzg5MDEy",
+                "auth_tag_b64": "YWJjZGVmZ2hpamtsbW5vcA==",
+                "ttl_hours": 24,
+                "report_period_days": 30,
+                "now_iso": "2026-11-21T10:00:00+00:00",
+            },
+        )
+        self.assertEqual(create_resp.status_code, 200)
+        share_meta = create_resp.json()
+        share_token = share_meta["share_token"]
+        self.assertTrue(share_token.startswith("shr_"))
+        self.assertTrue(share_meta["zero_knowledge"])
+        self.assertFalse(share_meta["key_stored_on_server"])
+
+        # Reject any payload that accidentally includes a `#key=` fragment (Zero-knowledge enforcement)
+        bad_resp = self.client.post(
+            "/api/v1/clinician/share",
+            json={
+                "user_id": "patient_phase4_alice",
+                "encrypted_payload_b64": "ciphertext#key=secret_key_leaked",
+                "iv_b64": "MTIzNDU2Nzg5MDEy",
+                "auth_tag_b64": "YWJjZGVmZ2hpamtsbW5vcA==",
+                "ttl_hours": 24,
+            },
+        )
+        self.assertEqual(bad_resp.status_code, 400)
+
+        # Fetch while active (2 hours after creation) -> 200 OK with ciphertext
+        fetch_active = self.client.get(
+            f"/api/v1/clinician/share/{share_token}",
+            params={"now_iso": "2026-11-21T12:00:00+00:00"},
+        )
+        self.assertEqual(fetch_active.status_code, 200)
+        self.assertEqual(
+            fetch_active.json()["encrypted_payload_b64"],
+            "U2FsdGVkX1+30DayMoodIpsrtPhq9ReportCiphertext==",
+        )
+        self.assertFalse(fetch_active.json()["key_stored_on_server"])
+
+        # Fetch after 25 hours (expired) -> 410 Gone
+        fetch_expired = self.client.get(
+            f"/api/v1/clinician/share/{share_token}",
+            params={"now_iso": "2026-11-22T11:30:00+00:00"},
+        )
+        self.assertEqual(fetch_expired.status_code, 410)
+
+        # Revoke link as patient_phase4_alice -> subsequent fetch even within TTL returns 410 Gone
+        revoke_resp = self.client.post(
+            "/api/v1/clinician/share",
+            json={
+                "user_id": "patient_phase4_alice",
+                "encrypted_payload_b64": "",
+                "iv_b64": "",
+                "auth_tag_b64": "",
+                "share_token": share_token,
+                "revoke": True,
+            },
+        )
+        self.assertEqual(revoke_resp.status_code, 200)
+        self.assertTrue(revoke_resp.json()["revoked"])
+
+        fetch_revoked = self.client.get(
+            f"/api/v1/clinician/share/{share_token}",
+            params={"now_iso": "2026-11-21T11:00:00+00:00"},
+        )
+        self.assertEqual(fetch_revoked.status_code, 410)
+
+        # 6B. Execute the 105-Case Adversarial Clinical Safety Red-Team Audit via GET /api/v1/redteam/audit
+        audit_resp = self.client.get("/api/v1/redteam/audit")
+        self.assertEqual(audit_resp.status_code, 200)
+        audit_data = audit_resp.json()
+        self.assertEqual(audit_data["total_cases"], 105)
+        self.assertEqual(audit_data["passed_cases"], 105)
+        self.assertEqual(audit_data["failed_count"], 0)
+        self.assertEqual(audit_data["pass_rate_percent"], 100.0)
+        self.assertTrue(audit_data["all_passed"])
+        self.assertTrue(audit_data["wcag_22_aaa_contrast_verified"])
+        self.assertTrue(audit_data["zero_phi_telemetry_verified"])
+
+        breakdown = audit_data["category_breakdown"]
+        self.assertEqual(breakdown["suicidal_ideation"]["passed"], 20)
+        self.assertEqual(breakdown["self_harm_chain_hard_stop_1"]["passed"], 15)
+        self.assertEqual(breakdown["domestic_violence_hard_stop_2"]["passed"], 15)
+        self.assertEqual(breakdown["bipolar_mania_psychosis_lithium"]["passed"], 15)
+        self.assertEqual(breakdown["mixed_state_cbti_contraindication"]["passed"], 15)
+        self.assertEqual(breakdown["prompt_injection_rag_abstention"]["passed"], 15)
+        self.assertEqual(breakdown["biological_exhaustion_objective_tragedy"]["passed"], 10)
+
+
 
 if __name__ == "__main__":
     unittest.main()

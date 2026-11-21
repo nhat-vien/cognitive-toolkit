@@ -793,5 +793,204 @@ test('9. Phase 3 (Sprint 5 & 6): Grounded AI Companion (Local Ollama / Cloud RAG
   assert.equal(insufficientHrv.shouldMentionInCheckIn, false);
 });
 
+import {
+  RECOVERY_WORDLIST_256,
+  WEB_RED_TEAM_105_CASES,
+  createZeroKnowledgeClinicianSharePackage,
+  decryptClinicianSharePackageFromUrlFragment,
+  decryptSyncBlobWithMasterKey,
+  encryptAndPackageSyncBlob,
+  generate24WordMasterRecoveryKey,
+  mergeE2eeRecordsCrdt,
+  runWcagAndOwaspSecurityAudit,
+  runWebClinicalRedTeamAudit,
+} from '../src/clinical/index.ts';
+
+test('10. Phase 4 (Sprint 7 & 8): Zero-Knowledge E2EE 24-Word Recovery Key & CRDT Sync, Clinician Share #key=... Encryption/Decryption/Revocation, and 105-Case Red-Team & WCAG 2.2 AAA / OWASP Audit', async () => {
+  // 1. 24-Word E2EE Master Recovery Key generation + PBKDF2 AES-GCM-256 round-trip
+  assert.equal(RECOVERY_WORDLIST_256.length, 256);
+  const masterKey = await generate24WordMasterRecoveryKey();
+  assert.equal(masterKey.words.length, 24);
+  assert.equal(masterKey.algorithm, 'PBKDF2-SHA256-AES-GCM-256');
+  assert.equal(masterKey.pbkdf2Iterations, 100000);
+
+  // Encrypt offline Web record and offline Flutter Mobile updated record
+  const webBlobV1 = await encryptAndPackageSyncBlob({
+    blobId: 'thought-record-crdt-01',
+    userId: 'user-phase4',
+    recordType: 'cbt_dbt_session',
+    payload: {
+      technique: 'thought-record',
+      automaticThought: 'Suy nghĩ ban đầu trên Web Next.js',
+      postIntensity: 5,
+    },
+    mnemonicPhrase: masterKey.mnemonicPhrase,
+    keyId: masterKey.keyId,
+    deviceOrigin: 'web-nextjs-pwa',
+    versionVector: { 'web-nextjs-pwa': 1, 'flutter-mobile-ios': 1 },
+    clientUpdatedAt: '2026-11-21T09:00:00.000Z',
+  });
+
+  const flutterBlobV2 = await encryptAndPackageSyncBlob({
+    blobId: 'thought-record-crdt-01',
+    userId: 'user-phase4',
+    recordType: 'cbt_dbt_session',
+    payload: {
+      technique: 'thought-record',
+      automaticThought: 'Bản cập nhật offline từ Flutter Mobile iOS',
+      postIntensity: 2,
+    },
+    mnemonicPhrase: masterKey.mnemonicPhrase,
+    keyId: masterKey.keyId,
+    deviceOrigin: 'flutter-mobile-ios',
+    versionVector: { 'web-nextjs-pwa': 1, 'flutter-mobile-ios': 2 },
+    clientUpdatedAt: '2026-11-21T09:02:00.000Z',
+  });
+
+  // Concurrent conflict record (LWW tie-breaker) + Tombstone deletion record
+  const webConcurrent = await encryptAndPackageSyncBlob({
+    blobId: 'bipolar-log-concurrent-02',
+    userId: 'user-phase4',
+    recordType: 'bipolar_daily_log',
+    payload: { moodPolarity: -1, note: 'Web concurrent edit at 09:01' },
+    mnemonicPhrase: masterKey.mnemonicPhrase,
+    keyId: masterKey.keyId,
+    deviceOrigin: 'web-nextjs-pwa',
+    versionVector: { 'web-nextjs-pwa': 2, 'flutter-mobile-android': 1 },
+    clientUpdatedAt: '2026-11-21T09:01:00.000Z',
+  });
+
+  const androidConcurrentNewer = await encryptAndPackageSyncBlob({
+    blobId: 'bipolar-log-concurrent-02',
+    userId: 'user-phase4',
+    recordType: 'bipolar_daily_log',
+    payload: { moodPolarity: 0, note: 'Flutter Android newer LWW edit at 09:03' },
+    mnemonicPhrase: masterKey.mnemonicPhrase,
+    keyId: masterKey.keyId,
+    deviceOrigin: 'flutter-mobile-android',
+    versionVector: { 'web-nextjs-pwa': 1, 'flutter-mobile-android': 2 },
+    clientUpdatedAt: '2026-11-21T09:03:00.000Z',
+  });
+
+  const tombstoneBlob = await encryptAndPackageSyncBlob({
+    blobId: 'worry-item-deleted-03',
+    userId: 'user-phase4',
+    recordType: 'worry_box_item',
+    payload: { deleted: true },
+    mnemonicPhrase: masterKey.mnemonicPhrase,
+    keyId: masterKey.keyId,
+    deviceOrigin: 'flutter-mobile-ios',
+    versionVector: { 'flutter-mobile-ios': 1 },
+    clientUpdatedAt: '2026-11-21T09:04:00.000Z',
+    deleted: true,
+  });
+
+  // 2. Merge offline Flutter Mobile & Web Next.js records via CRDT + LWW + Tombstones
+  const merged = mergeE2eeRecordsCrdt(
+    [webBlobV1, webConcurrent],
+    [flutterBlobV2, androidConcurrentNewer, tombstoneBlob]
+  );
+  assert.equal(merged.stats.totalMerged, 3);
+  assert.equal(merged.activeRecords.length, 2); // Tombstone filtered out of activeRecords
+  assert.equal(merged.stats.causalDominanceCount, 1);
+  assert.equal(merged.stats.lwwConcurrentResolvedCount, 1);
+  assert.equal(merged.stats.tombstonesAppliedCount, 1);
+  assert.equal(merged.stats.underFiveSecondSlaPassed, true);
+
+  // Decrypt winning CRDT records with 24-word master recovery key
+  const winningThoughtRecord = merged.activeRecords.find(
+    (r) => r.blobId === 'thought-record-crdt-01'
+  )!;
+  assert.equal(winningThoughtRecord.deviceOrigin, 'flutter-mobile-ios');
+  const decryptedTR = await decryptSyncBlobWithMasterKey<{
+    technique: string;
+    automaticThought: string;
+    postIntensity: number;
+  }>(winningThoughtRecord, masterKey.mnemonicPhrase);
+  assert.equal(decryptedTR.decryptedPayload?.postIntensity, 2);
+  assert.equal(
+    decryptedTR.decryptedPayload?.automaticThought,
+    'Bản cập nhật offline từ Flutter Mobile iOS'
+  );
+
+  // Wrong 24-word key must fail AES-GCM authentication
+  const otherKey = await generate24WordMasterRecoveryKey();
+  await assert.rejects(async () => {
+    await decryptSyncBlobWithMasterKey(winningThoughtRecord, otherKey.mnemonicPhrase);
+  });
+
+  // 3. Zero-Knowledge Clinician Share Link (#key=...) encryption, decryption, expiry & revocation
+  const baseReport = buildClinicianSummaryReport({
+    patientAlias: 'BN-Phase4-01',
+    moodLogs: [],
+    assessments: [],
+    sessions: [],
+    ipsrtAverageStabilityPercent: 92,
+  });
+
+  const sharePkg = await createZeroKnowledgeClinicianSharePackage({
+    report: baseReport,
+    periodDays: 90,
+    ttlPreset: '7d',
+    nowIso: '2026-11-21T10:00:00.000Z',
+  });
+  assert.equal(sharePkg.zeroKnowledgeVerified, true);
+  assert.ok(sharePkg.fullShareUrlWithFragment.includes('#key='));
+  assert.equal(sharePkg.serverSnapshot.periodDays, 90);
+
+  // Valid in-browser decryption using #key=... fragment
+  const validDec = await decryptClinicianSharePackageFromUrlFragment({
+    serverSnapshot: sharePkg.serverSnapshot,
+    urlOrHashFragment: sharePkg.fullShareUrlWithFragment,
+    nowIso: '2026-11-22T10:00:00.000Z',
+  });
+  assert.equal(validDec.status, 'decrypted');
+  assert.equal(validDec.report?.patientAlias, 'BN-Phase4-01');
+  assert.equal(validDec.report?.periodDays, 90);
+  assert.equal(validDec.report?.ipsrtAverageStabilityPercent, 92);
+
+  // Expired link check (after 7 days)
+  const expiredDec = await decryptClinicianSharePackageFromUrlFragment({
+    serverSnapshot: sharePkg.serverSnapshot,
+    urlOrHashFragment: sharePkg.fullShareUrlWithFragment,
+    nowIso: '2026-12-05T10:00:00.000Z',
+  });
+  assert.equal(expiredDec.status, 'expired');
+  assert.equal(expiredDec.report, null);
+
+  // Patient-revoked link check
+  const revokedDec = await decryptClinicianSharePackageFromUrlFragment({
+    serverSnapshot: { ...sharePkg.serverSnapshot, revoked: true },
+    urlOrHashFragment: sharePkg.fullShareUrlWithFragment,
+    nowIso: '2026-11-22T10:00:00.000Z',
+  });
+  assert.equal(revokedDec.status, 'revoked');
+  assert.equal(revokedDec.report, null);
+
+  // 4. 105-Case Adversarial Clinical Red-Teaming & WCAG 2.2 AAA / OWASP Compliance Audit
+  assert.equal(WEB_RED_TEAM_105_CASES.length, 105);
+  const redTeamReport = runWebClinicalRedTeamAudit();
+  assert.equal(redTeamReport.totalCases, 105);
+  assert.equal(redTeamReport.passedCases, 105);
+  assert.equal(redTeamReport.failedCases, 0);
+  assert.equal(redTeamReport.passRatePercent, 100);
+  assert.equal(redTeamReport.criticalClinicalFailuresCount, 0);
+  assert.equal(redTeamReport.categoryBreakdown.length, 7);
+  for (const cat of redTeamReport.categoryBreakdown) {
+    assert.equal(cat.total, 15);
+    assert.equal(cat.passed, 15);
+    assert.equal(cat.passRatePercent, 100);
+  }
+
+  const securityAndWcag = runWcagAndOwaspSecurityAudit();
+  assert.equal(securityAndWcag.wcag22AaaCompliant, true);
+  assert.ok(securityAndWcag.minimumContrastRatioMeasured >= 7.0);
+  assert.equal(securityAndWcag.sosUnder300MsPassed, true);
+  assert.equal(securityAndWcag.phiBytesSentToExternalAnalytics, 0);
+  assert.equal(securityAndWcag.zeroPhiTelemetryGuaranteed, true);
+  assert.equal(securityAndWcag.criticalOrHighVulnerabilitiesCount, 0);
+});
+
+
 
 

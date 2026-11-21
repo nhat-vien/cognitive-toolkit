@@ -19,6 +19,7 @@ import '../../domain/models/clinical_models.dart';
 import '../theme/adaptive_clinical_theme.dart';
 import 'ai_companion_biometrics_screen.dart';
 import 'bipolar_hub_screen.dart';
+import 'e2ee_clinician_qa_screen.dart';
 import 'session_player_screen.dart';
 import 'sos_portal_screen.dart';
 import 'tools_36_and_team_cbt_screen.dart';
@@ -772,6 +773,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
               subtitle: Text(a.interpretationVi),
             ),
           ),
+        const SizedBox(height: 12),
+        E2eeClinicianQaScreen(
+          moodLogs: widget.moodLogs,
+          sessions: widget.sessions,
+          assessments: widget.assessments,
+          onExportClinicianPdf: _generateAndShareClinicianPdfReport,
+        ),
       ],
     );
   }

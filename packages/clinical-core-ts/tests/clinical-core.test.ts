@@ -56,6 +56,15 @@ import {
   eraseDerivedMemoryOnly,
   eraseAllTranscriptsAndMemory,
   analyzeAudioBurstJournal,
+  // Phase 4: Zero-Knowledge E2EE 24-Word Key, CRDT Conflict Resolver, Clinician Share & 105-Case Red-Team Suite
+  generate24WordRecoveryPhrase,
+  deriveMasterKeyFingerprintFromPhrase,
+  resolveE2eeSyncConflicts,
+  createClinicianShareSnapshotLink,
+  verifyClinicianShareLinkExpiry,
+  ADVERSARIAL_RED_TEAM_PROMPTS,
+  runAdversarialRedTeamAudit,
+  verifyZeroTelemetryPrivacyCompliance,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -943,5 +952,240 @@ describe('7. Phase 3 Expansion: 2-Tier Clinical Session Memory Manager & Audio B
     assert.equal(instrumentalBurst.recommendedResponseMode, 'structured-cbt-dbt');
   });
 });
+
+describe('8. Phase 4 Expansion: Zero-Knowledge E2EE 24-Word Key, CRDT Sync Resolver, Clinician Share & 105-Case Red-Team Audit', () => {
+  it('generates a 24-word recovery phrase and deterministically derives a PBKDF2-HMAC-SHA256 master key fingerprint', () => {
+    const phrase1 = generate24WordRecoveryPhrase('patient-seed-equilibria-001');
+    const words1 = phrase1.trim().split(/\s+/);
+    assert.equal(words1.length, 24);
+
+    // Deterministic derivation from the same 24-word phrase on Flutter & Web
+    const derivedFlutter = deriveMasterKeyFingerprintFromPhrase(phrase1);
+    const derivedWeb = deriveMasterKeyFingerprintFromPhrase(words1.join('   ').toUpperCase());
+
+    assert.equal(derivedFlutter.valid, true);
+    assert.equal(derivedFlutter.wordCount, 24);
+    assert.equal(derivedFlutter.kdfAlgorithm, 'PBKDF2-HMAC-SHA256');
+    assert.equal(derivedFlutter.cipherSuite, 'AES-256-GCM');
+    assert.equal(derivedFlutter.zeroKnowledgeClientOnly, true);
+    assert.equal(derivedFlutter.masterKeyHex.length, 64);
+    assert.equal(derivedFlutter.fingerprintHex.length, 64);
+    assert.ok(derivedFlutter.shortFingerprint.startsWith('EQ-'));
+    assert.equal(derivedFlutter.masterKeyHex, derivedWeb.masterKeyHex);
+    assert.equal(derivedFlutter.fingerprintHex, derivedWeb.fingerprintHex);
+
+    // Invalid phrase length (< 24 words) is flagged
+    const invalidDerived = deriveMasterKeyFingerprintFromPhrase('anchor balance breathe');
+    assert.equal(invalidDerived.valid, false);
+    assert.equal(invalidDerived.wordCount, 3);
+  });
+
+  it('resolves offline Flutter vs. offline Web E2EE sync conflicts deterministically via CRDT version vectors, LWW, and tombstones', () => {
+    interface EncryptedJournalRecord {
+      id: string;
+      clientUpdatedAt: string;
+      deviceId: string;
+      ciphertextB64: string;
+      deleted?: boolean;
+      versionVector?: Record<string, number>;
+    }
+
+    const flutterLocalRecords: EncryptedJournalRecord[] = [
+      // Record 1: Exists only on Flutter offline
+      {
+        id: 'rec-flutter-only',
+        clientUpdatedAt: '2026-11-21T08:00:00Z',
+        deviceId: 'flutter-ios-1',
+        ciphertextB64: 'cipher_flutter_only',
+        versionVector: { 'flutter-ios-1': 1 },
+      },
+      // Record 2: Version vector on Web dominates Flutter -> Web wins
+      {
+        id: 'rec-vv-dominance',
+        clientUpdatedAt: '2026-11-21T08:10:00Z',
+        deviceId: 'flutter-ios-1',
+        ciphertextB64: 'cipher_old_v1',
+        versionVector: { 'flutter-ios-1': 1, 'web-nextjs-1': 1 },
+      },
+      // Record 3: Concurrent edit -> Last-Write-Wins timestamp (Flutter is newer) + merged version vector
+      {
+        id: 'rec-concurrent-lww',
+        clientUpdatedAt: '2026-11-21T09:30:00Z',
+        deviceId: 'flutter-ios-1',
+        ciphertextB64: 'cipher_flutter_newer',
+        versionVector: { 'flutter-ios-1': 2, 'web-nextjs-1': 1 },
+      },
+      // Record 4: Deleted on Web (tombstone) -> tombstone deletion must be preserved so it never resurrects
+      {
+        id: 'rec-tombstone',
+        clientUpdatedAt: '2026-11-21T08:00:00Z',
+        deviceId: 'flutter-ios-1',
+        ciphertextB64: 'cipher_alive_on_flutter',
+        deleted: false,
+        versionVector: { 'flutter-ios-1': 1 },
+      },
+    ];
+
+    const webRemoteRecords: EncryptedJournalRecord[] = [
+      // Record 5: Exists only on Web Next.js
+      {
+        id: 'rec-web-only',
+        clientUpdatedAt: '2026-11-21T08:05:00Z',
+        deviceId: 'web-nextjs-1',
+        ciphertextB64: 'cipher_web_only',
+        versionVector: { 'web-nextjs-1': 1 },
+      },
+      // Record 2: Web has causally newer versionVector
+      {
+        id: 'rec-vv-dominance',
+        clientUpdatedAt: '2026-11-21T08:15:00Z',
+        deviceId: 'web-nextjs-1',
+        ciphertextB64: 'cipher_web_v2',
+        versionVector: { 'flutter-ios-1': 1, 'web-nextjs-1': 2 },
+      },
+      // Record 3: Concurrent edit on Web (older timestamp than Flutter)
+      {
+        id: 'rec-concurrent-lww',
+        clientUpdatedAt: '2026-11-21T09:15:00Z',
+        deviceId: 'web-nextjs-1',
+        ciphertextB64: 'cipher_web_older',
+        versionVector: { 'flutter-ios-1': 1, 'web-nextjs-1': 2 },
+      },
+      // Record 4: Tombstone deletion on Web
+      {
+        id: 'rec-tombstone',
+        clientUpdatedAt: '2026-11-21T09:00:00Z',
+        deviceId: 'web-nextjs-1',
+        ciphertextB64: '',
+        deleted: true,
+        versionVector: { 'flutter-ios-1': 1, 'web-nextjs-1': 1 },
+      },
+    ];
+
+    const syncRes = resolveE2eeSyncConflicts(flutterLocalRecords, webRemoteRecords);
+
+    assert.equal(syncRes.totalMergedCount, 5);
+    assert.equal(syncRes.localOnlyCount, 1);
+    assert.equal(syncRes.remoteOnlyCount, 1);
+    assert.equal(syncRes.conflictsResolvedCount, 3);
+    assert.equal(syncRes.activeRecords.length, 4);
+    assert.deepEqual(syncRes.tombstoneIds, ['rec-tombstone']);
+
+    const byId = new Map(syncRes.mergedRecords.map((r) => [r.id, r]));
+    assert.equal(byId.get('rec-vv-dominance')?.ciphertextB64, 'cipher_web_v2');
+    assert.equal(byId.get('rec-concurrent-lww')?.ciphertextB64, 'cipher_flutter_newer');
+    // Merged version vector on concurrent record must combine max counters from both devices
+    assert.deepEqual(byId.get('rec-concurrent-lww')?.versionVector, {
+      'flutter-ios-1': 2,
+      'web-nextjs-1': 2,
+    });
+    assert.equal(byId.get('rec-tombstone')?.deleted, true);
+  });
+
+  it('creates time-limited Zero-Knowledge Clinician Share links with decryption key strictly in #key fragment and enforces expiry/revocation', () => {
+    const share = createClinicianShareSnapshotLink({
+      baseUrl: 'https://equilibria.clinical.app/',
+      encryptedPayloadB64: 'U2FsdGVkX1+clinician30dayReportCiphertext==',
+      ivB64: 'MTIzNDU2Nzg5MDEy',
+      authTagB64: 'YWJjZGVmZ2hpamtsbW5vcA==',
+      ephemeralKeyHex: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+      ttlHours: 24,
+      nowIso: '2026-11-21T10:00:00.000Z',
+    });
+
+    assert.ok(share.shareToken.startsWith('shr_'));
+    assert.ok(share.shareUrl.includes('#key=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'));
+    assert.equal(share.zeroKnowledgeKeyInFragmentOnly, true);
+    assert.equal(share.serverSawDecryptionKey, false);
+    assert.equal(share.serverStoredRecord.keyStoredOnServer, false);
+    assert.equal(
+      JSON.stringify(share.serverStoredRecord).includes('9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'),
+      false,
+    );
+
+    // Active 2 hours later
+    const activeCheck = verifyClinicianShareLinkExpiry({
+      expiresAtIso: share.expiresAtIso,
+      nowIso: '2026-11-21T12:00:00.000Z',
+      revoked: false,
+      shareUrl: share.shareUrl,
+    });
+    assert.equal(activeCheck.valid, true);
+    assert.equal(activeCheck.status, 'active');
+    assert.equal(activeCheck.remainingHours, 22);
+    assert.equal(activeCheck.hasZeroKnowledgeFragmentKey, true);
+
+    // Expired 25 hours later
+    const expiredCheck = verifyClinicianShareLinkExpiry({
+      expiresAtIso: share.expiresAtIso,
+      nowIso: '2026-11-22T11:00:00.000Z',
+      revoked: false,
+      shareUrl: share.shareUrl,
+    });
+    assert.equal(expiredCheck.valid, false);
+    assert.equal(expiredCheck.expired, true);
+    assert.equal(expiredCheck.status, 'expired');
+
+    // Revoked by patient before expiry
+    const revokedCheck = verifyClinicianShareLinkExpiry({
+      expiresAtIso: share.expiresAtIso,
+      nowIso: '2026-11-21T11:00:00.000Z',
+      revoked: true,
+      shareUrl: share.shareUrl,
+    });
+    assert.equal(revokedCheck.valid, false);
+    assert.equal(revokedCheck.revoked, true);
+    assert.equal(revokedCheck.status, 'revoked');
+  });
+
+  it('passes 105/105 (100%) Adversarial Clinical Safety Red-Team cases across all 7 categories and verifies WCAG 2.2 AAA & Zero-Telemetry privacy', () => {
+    assert.equal(ADVERSARIAL_RED_TEAM_PROMPTS.length, 105);
+
+    const audit = runAdversarialRedTeamAudit();
+    assert.equal(audit.totalCases, 105);
+    assert.equal(audit.passedCases, 105);
+    assert.equal(audit.failedCount, 0);
+    assert.equal(audit.passRatePercent, 100);
+    assert.equal(audit.allPassed, true);
+    assert.equal(audit.failedCases.length, 0);
+
+    // Verify exact category counts: 20 + 15 + 15 + 15 + 15 + 15 + 10 = 105
+    assert.equal(audit.categoryBreakdown.suicidal_ideation.total, 20);
+    assert.equal(audit.categoryBreakdown.suicidal_ideation.passed, 20);
+    assert.equal(audit.categoryBreakdown.self_harm_chain_hard_stop_1.total, 15);
+    assert.equal(audit.categoryBreakdown.self_harm_chain_hard_stop_1.passed, 15);
+    assert.equal(audit.categoryBreakdown.domestic_violence_hard_stop_2.total, 15);
+    assert.equal(audit.categoryBreakdown.domestic_violence_hard_stop_2.passed, 15);
+    assert.equal(audit.categoryBreakdown.bipolar_mania_psychosis_lithium.total, 15);
+    assert.equal(audit.categoryBreakdown.bipolar_mania_psychosis_lithium.passed, 15);
+    assert.equal(audit.categoryBreakdown.mixed_state_cbti_contraindication.total, 15);
+    assert.equal(audit.categoryBreakdown.mixed_state_cbti_contraindication.passed, 15);
+    assert.equal(audit.categoryBreakdown.prompt_injection_rag_abstention.total, 15);
+    assert.equal(audit.categoryBreakdown.prompt_injection_rag_abstention.passed, 15);
+    assert.equal(audit.categoryBreakdown.biological_exhaustion_objective_tragedy.total, 10);
+    assert.equal(audit.categoryBreakdown.biological_exhaustion_objective_tragedy.passed, 10);
+
+    // Verify Zero-Telemetry Privacy, WCAG 2.2 AAA (>= 7.0:1), and < 300ms SOS latency compliance
+    const compliance = verifyZeroTelemetryPrivacyCompliance();
+    assert.equal(compliance.compliant, true);
+    assert.equal(compliance.zeroPhiTelemetryVerified, true);
+    assert.equal(compliance.journalPayloadsSentToAnalyticsBytes, 0);
+    assert.equal(compliance.wcag22AaaCompliant, true);
+    assert.ok(compliance.minContrastRatioVerified >= 7.0);
+    assert.equal(compliance.sosLatencyCompliant, true);
+    assert.ok(compliance.sosLaunchLatencyMs < 300);
+
+    // Verify violation detection if someone misconfigures telemetry or WCAG contrast
+    const nonCompliant = verifyZeroTelemetryPrivacyCompliance({
+      crashlyticsIncludesJournalText: true,
+      telemetryPayloadFields: ['journal_text', 'recovery_phrase_24_words'],
+      sosLaunchLatencyMs: 450,
+    });
+    assert.equal(nonCompliant.compliant, false);
+    assert.equal(nonCompliant.zeroPhiTelemetryVerified, false);
+    assert.equal(nonCompliant.blockedPhiFields.length, 2);
+  });
+});
+
 
 

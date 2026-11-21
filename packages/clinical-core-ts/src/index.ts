@@ -10,5 +10,7 @@ export * from './assessments/assessments.ts';
 export * from './bipolar/bipolar-engine.ts';
 export * from './tools/cbt-36-toolkit.ts';
 export * from './memory/memory-and-voice-engine.ts';
+export * from './security/e2ee-crdt-and-redteam.ts';
+
 
 

@@ -83,11 +83,24 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     entry_hash TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS clinician_share_links (
+    share_token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    encrypted_payload_b64 TEXT NOT NULL,
+    iv_b64 TEXT NOT NULL,
+    auth_tag_b64 TEXT NOT NULL,
+    report_period_days INTEGER NOT NULL DEFAULT 30,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    revoked INTEGER NOT NULL DEFAULT 0
+);
+
 -- Enable Row-Level Security (RLS) on all patient-scoped tables
 ALTER TABLE session_checkpoints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE e2ee_sync_blobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outbox_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clinician_share_links ENABLE ROW LEVEL SECURITY;
 
 -- Tenant Isolation Policies using app.current_user_id session setting
 CREATE POLICY tenant_isolation_checkpoints ON session_checkpoints
@@ -222,6 +235,18 @@ class ClinicalDatabase:
                     created_at TEXT NOT NULL,
                     prev_hash TEXT NOT NULL,
                     entry_hash TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS clinician_share_links (
+                    share_token TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    encrypted_payload_b64 TEXT NOT NULL,
+                    iv_b64 TEXT NOT NULL,
+                    auth_tag_b64 TEXT NOT NULL,
+                    report_period_days INTEGER NOT NULL DEFAULT 30,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    revoked INTEGER NOT NULL DEFAULT 0
                 );
                 """
             )
@@ -601,3 +626,169 @@ class ClinicalDatabase:
                     (user_id,),
                 ).fetchall()
         return [dict(r) for r in rows]
+
+    # -------------------------------------------------------------------------
+    # 5. TIME-LIMITED ZERO-KNOWLEDGE CLINICIAN SHARE SNAPSHOTS
+    # -------------------------------------------------------------------------
+    def create_clinician_share_link(
+        self,
+        user_id: str,
+        encrypted_payload_b64: str,
+        iv_b64: str,
+        auth_tag_b64: str,
+        ttl_hours: int = 24,
+        report_period_days: int = 30,
+        share_token: Optional[str] = None,
+        now_iso: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Store an encrypted Clinician Share Snapshot (ciphertext + IV + auth_tag + expiry only).
+        Never accepts or stores the `#key=...` decryption fragment.
+        """
+        if "#key=" in encrypted_payload_b64:
+            raise ValueError("Zero-knowledge violation: decryption key fragment must never be sent to server.")
+
+        created_dt = (
+            datetime.fromisoformat(now_iso.replace("Z", "+00:00"))
+            if now_iso
+            else datetime.now(timezone.utc)
+        )
+        from datetime import timedelta
+
+        expires_dt = created_dt + timedelta(hours=max(1, int(ttl_hours)))
+        created_at = created_dt.isoformat()
+        expires_at = expires_dt.isoformat()
+        token = share_token or f"shr_{uuid.uuid4().hex[:20]}"
+
+        with self.connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO clinician_share_links (
+                    share_token, user_id, encrypted_payload_b64, iv_b64,
+                    auth_tag_b64, report_period_days, created_at, expires_at, revoked
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+                ON CONFLICT(share_token) DO UPDATE SET
+                    encrypted_payload_b64 = excluded.encrypted_payload_b64,
+                    iv_b64 = excluded.iv_b64,
+                    auth_tag_b64 = excluded.auth_tag_b64,
+                    report_period_days = excluded.report_period_days,
+                    created_at = excluded.created_at,
+                    expires_at = excluded.expires_at,
+                    revoked = 0
+                """,
+                (
+                    token,
+                    user_id,
+                    encrypted_payload_b64,
+                    iv_b64,
+                    auth_tag_b64,
+                    int(report_period_days),
+                    created_at,
+                    expires_at,
+                ),
+            )
+            self._append_audit_in_tx(
+                conn=conn,
+                user_id=user_id,
+                event_type="CLINICIAN_SHARE_LINK_CREATED",
+                severity="LOW",
+                payload={
+                    "share_token": token,
+                    "report_period_days": int(report_period_days),
+                    "expires_at": expires_at,
+                    "zero_knowledge_fragment_only": True,
+                },
+            )
+
+        return {
+            "share_token": token,
+            "user_id": user_id,
+            "report_period_days": int(report_period_days),
+            "created_at": created_at,
+            "expires_at": expires_at,
+            "ttl_hours": int(ttl_hours),
+            "revoked": False,
+            "zero_knowledge": True,
+            "key_stored_on_server": False,
+        }
+
+    def revoke_clinician_share_link(
+        self, share_token: str, user_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Revoke an existing clinician share link immediately."""
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM clinician_share_links WHERE share_token = ?",
+                (share_token,),
+            ).fetchone()
+            if not row:
+                return {"found": False, "share_token": share_token, "revoked": False}
+            if user_id and row["user_id"] != user_id:
+                raise PermissionError("RLS violation: cannot revoke another user's clinician share link.")
+            conn.execute(
+                "UPDATE clinician_share_links SET revoked = 1 WHERE share_token = ?",
+                (share_token,),
+            )
+            self._append_audit_in_tx(
+                conn=conn,
+                user_id=row["user_id"],
+                event_type="CLINICIAN_SHARE_LINK_REVOKED",
+                severity="LOW",
+                payload={"share_token": share_token},
+            )
+        return {"found": True, "share_token": share_token, "revoked": True}
+
+    def get_clinician_share_link(
+        self, share_token: str, now_iso: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Retrieve an encrypted clinician share snapshot if and only if it exists,
+        is not revoked, and has not expired.
+        """
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM clinician_share_links WHERE share_token = ?",
+                (share_token,),
+            ).fetchone()
+        if not row:
+            return {"status": "not_found", "share_token": share_token}
+
+        if int(row["revoked"]) == 1:
+            return {
+                "status": "revoked",
+                "share_token": share_token,
+                "revoked": True,
+                "expired": False,
+            }
+
+        now_dt = (
+            datetime.fromisoformat(now_iso.replace("Z", "+00:00"))
+            if now_iso
+            else datetime.now(timezone.utc)
+        )
+        expires_dt = datetime.fromisoformat(str(row["expires_at"]).replace("Z", "+00:00"))
+        if now_dt >= expires_dt:
+            return {
+                "status": "expired",
+                "share_token": share_token,
+                "revoked": False,
+                "expired": True,
+                "expires_at": row["expires_at"],
+            }
+
+        return {
+            "status": "active",
+            "share_token": row["share_token"],
+            "user_id": row["user_id"],
+            "encrypted_payload_b64": row["encrypted_payload_b64"],
+            "iv_b64": row["iv_b64"],
+            "auth_tag_b64": row["auth_tag_b64"],
+            "report_period_days": int(row["report_period_days"]),
+            "created_at": row["created_at"],
+            "expires_at": row["expires_at"],
+            "revoked": False,
+            "expired": False,
+            "zero_knowledge": True,
+            "key_stored_on_server": False,
+        }
+

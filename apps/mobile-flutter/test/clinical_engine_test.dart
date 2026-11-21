@@ -19,6 +19,7 @@ import 'package:equilibria_mobile_flutter/domain/engine/clinical_assessments.dar
 import 'package:equilibria_mobile_flutter/domain/engine/distortion_detector.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/phase2_clinical_tools.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/phase3_memory_biometrics_voice.dart';
+import 'package:equilibria_mobile_flutter/domain/engine/phase4_e2ee_clinician_qa.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/session_state_machine.dart';
 import 'package:equilibria_mobile_flutter/domain/models/clinical_models.dart';
 import 'package:equilibria_mobile_flutter/presentation/theme/adaptive_clinical_theme.dart';
@@ -564,6 +565,253 @@ void main() {
       expect(crisisResp.safetyStopTriggered, isTrue);
       expect(crisisResp.replyTextVi, contains('SAFETY STOP'));
       expect(crisisResp.replyTextVi, contains('115'));
+    });
+  });
+
+  group('8. Phase 4 Clinical Expansion: Zero-Knowledge E2EE 24-Word Recovery Key, CRDT Sync Conflict Resolver, Clinician #key=... Share Link & 105-Case Red-Team Audit', () {
+    test('E2eeRecoveryKeyService generates & validates 24-word Master Recovery Key, derives 256-bit AES key, and encrypts/decrypts clinical payloads with tamper protection', () {
+      const keyService = E2eeRecoveryKeyService();
+      final masterKey = keyService.generate24WordRecoveryKey(
+        accountSeed: 'user-vault-seed-2026',
+      );
+
+      expect(masterKey.hasExact24Words, isTrue);
+      expect(masterKey.recoveryWords24.length, equals(24));
+      expect(keyService.validate24WordPhrase(masterKey.recoveryPhrase), isTrue);
+      expect(keyService.validate24WordPhrase('invalid short phrase'), isFalse);
+      expect(masterKey.aes256KeyHex.length, equals(64)); // 256-bit hex
+      expect(masterKey.keyFingerprint, startsWith('EQ-E2EE-'));
+
+      final envelope = keyService.encryptClinicalPayload(
+        entityId: 'tr-offline-01',
+        entityType: 'thought_record',
+        plaintextJson: const {
+          'technique': 'thought-record',
+          'automaticThought': 'Một lỗi nhỏ làm hỏng hết',
+          'outcome': 'completed',
+        },
+        masterKey: masterKey,
+      );
+
+      // Ciphertext does not leak plaintext
+      expect(envelope.ciphertextBase64, isNot(contains('Một lỗi nhỏ')));
+
+      final decrypted = keyService.decryptClinicalPayload(
+        envelope: envelope,
+        masterKey: masterKey,
+      );
+      expect(decrypted['technique'], equals('thought-record'));
+      expect(decrypted['automaticThought'], equals('Một lỗi nhỏ làm hỏng hết'));
+
+      // Wrong key or tampered ciphertext fails integrity verification
+      final otherKey = keyService.generate24WordRecoveryKey(
+        accountSeed: 'different-user-seed',
+      );
+      expect(
+        () => keyService.decryptClinicalPayload(
+          envelope: envelope,
+          masterKey: otherKey,
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('CrdtSyncConflictResolver merges offline Flutter Mobile and Next.js Web batches using Version Vectors, LWW timestamps, and deletion tombstones', () {
+      const resolver = CrdtSyncConflictResolver();
+
+      final mobileBatch = <CrdtSyncRecord>[
+        // 1. Mobile-only new record created offline
+        const CrdtSyncRecord(
+          entityId: 'tr-mobile-only-1',
+          entityType: 'thought_record',
+          originDeviceId: 'flutter-mobile-ios',
+          updatedAtEpochMs: 1000,
+          versionVector: {'flutter-mobile-ios': 1},
+          decryptedPreviewPayload: {'note': 'Created offline on iPhone'},
+          ciphertextChecksum: 'chk-m1',
+        ),
+        // 2. Concurrent conflict on mood-shared-2 (Mobile has newer LWW timestamp 5000 vs Web 3000)
+        const CrdtSyncRecord(
+          entityId: 'mood-shared-2',
+          entityType: 'mood_log',
+          originDeviceId: 'flutter-mobile-ios',
+          updatedAtEpochMs: 5000,
+          versionVector: {'flutter-mobile-ios': 2, 'nextjs-web-pwa': 1},
+          decryptedPreviewPayload: {'moodPolarity': 1},
+          ciphertextChecksum: 'chk-m2',
+        ),
+        // 3. Causal dominance on vault-shared-3 (Web has newer causal vector {mob:1, web:3} + deletion tombstone)
+        const CrdtSyncRecord(
+          entityId: 'vault-shared-3',
+          entityType: 'impulse_vault',
+          originDeviceId: 'flutter-mobile-ios',
+          updatedAtEpochMs: 2000,
+          versionVector: {'flutter-mobile-ios': 1, 'nextjs-web-pwa': 1},
+          isDeletedTombstone: false,
+          decryptedPreviewPayload: {'item': 'Laptop'},
+          ciphertextChecksum: 'chk-m3',
+        ),
+      ];
+
+      final webBatch = <CrdtSyncRecord>[
+        const CrdtSyncRecord(
+          entityId: 'mood-shared-2',
+          entityType: 'mood_log',
+          originDeviceId: 'nextjs-web-pwa',
+          updatedAtEpochMs: 3000,
+          versionVector: {'flutter-mobile-ios': 1, 'nextjs-web-pwa': 2},
+          decryptedPreviewPayload: {'moodPolarity': -2},
+          ciphertextChecksum: 'chk-w2',
+        ),
+        const CrdtSyncRecord(
+          entityId: 'vault-shared-3',
+          entityType: 'impulse_vault',
+          originDeviceId: 'nextjs-web-pwa',
+          updatedAtEpochMs: 4000,
+          versionVector: {'flutter-mobile-ios': 1, 'nextjs-web-pwa': 3},
+          isDeletedTombstone: true,
+          decryptedPreviewPayload: {},
+          ciphertextChecksum: 'chk-w3',
+        ),
+      ];
+
+      final merged = resolver.mergeDeviceBatches(
+        localMobileRecords: mobileBatch,
+        remoteWebRecords: webBatch,
+      );
+
+      expect(merged.mergedRecords.length, equals(3));
+      expect(merged.localOnlyCount, equals(1));
+      expect(merged.concurrentConflictCount, equals(1));
+      expect(merged.tombstoneResolvedCount, equals(1));
+
+      final moodResolved = merged.mergedRecords.firstWhere(
+        (r) => r.entityId == 'mood-shared-2',
+      );
+      expect(moodResolved.originDeviceId, equals('flutter-mobile-ios'));
+      expect(moodResolved.decryptedPreviewPayload['moodPolarity'], equals(1));
+      expect(
+        moodResolved.versionVector,
+        equals({'flutter-mobile-ios': 2, 'nextjs-web-pwa': 2}),
+      );
+
+      final vaultResolved = merged.mergedRecords.firstWhere(
+        (r) => r.entityId == 'vault-shared-3',
+      );
+      expect(vaultResolved.isDeletedTombstone, isTrue);
+      expect(vaultResolved.originDeviceId, equals('nextjs-web-pwa'));
+    });
+
+    test('ClinicianShareSnapshotService builds 30/90-day summary, embeds ephemeral key strictly in #key=... fragment, and enforces expiration & instant revocation', () {
+      final shareService = ClinicianShareSnapshotService();
+      final now = DateTime.utc(2026, 7, 20, 10, 0);
+
+      final log = DailyMoodAndRhythmLog.createValidated(
+        id: 'log-1',
+        userId: 'u1',
+        loggedAt: now.subtract(const Duration(days: 2)),
+        moodPolarity: -2,
+        energyLevel: 2,
+        irritabilityIntensity: 7,
+        anxietyIntensity: 6,
+        sleepDurationHours: 4.5,
+        feltNeedForSleep: FeltNeedForSleep.reducedNeed,
+        ipsrtAnchors: const IpsrtAnchors(
+          outOfBedTime: '06:30',
+          firstSocialContactTime: '08:00',
+          workOrStudyStartTime: '09:00',
+          dinnerTime: '19:00',
+          bedTime: '23:00',
+        ),
+        medicationsTaken: const [
+          MedicationIntakeRecord(
+            medicationId: 'med-1',
+            name: 'Lithium Carbonate',
+            dosage: '600mg',
+            takenAt: '21:00',
+          ),
+        ],
+      );
+
+      final summary = shareService.buildClinicalReportSummary(
+        windowDays: 30,
+        moodLogs: [log],
+        sessions: const [],
+        assessments: const [],
+        now: now,
+      );
+
+      expect(summary.windowDays, equals(30));
+      expect(summary.mixedStateAlertDays, equals(1));
+      expect(summary.maniaProdromeAlertDays, equals(1));
+      expect(summary.ipsrtAnchorCompletionPct, equals(100));
+      expect(summary.medicationAdherencePct, equals(100));
+      expect(summary.mandatoryMedicalDisclaimerVi, contains('không thay thế chẩn đoán'));
+
+      final envelope = shareService.createZeroKnowledgeShareLink(
+        reportSummary: summary,
+        ttl: const Duration(hours: 24),
+        now: now,
+      );
+
+      // Server-visible path never contains #key=
+      expect(envelope.serverVisiblePathOnly, isNot(contains('#key=')));
+      expect(envelope.fullZeroKnowledgeShareUrl, contains('#key='));
+      expect(envelope.extractedFragmentKey?.length, equals(64));
+
+      // Valid in-browser decryption using #key=... fragment
+      final decrypted = shareService.decryptSnapshotFromUrlFragment(
+        shareTokenId: envelope.shareTokenId,
+        fullShareUrlOrFragmentKey: envelope.fullZeroKnowledgeShareUrl,
+        now: now.add(const Duration(hours: 2)),
+      );
+      expect(decrypted.windowDays, equals(30));
+      expect(decrypted.mixedStateAlertDays, equals(1));
+
+      // Expired link (> 24h) throws StateError
+      expect(
+        () => shareService.decryptSnapshotFromUrlFragment(
+          shareTokenId: envelope.shareTokenId,
+          fullShareUrlOrFragmentKey: envelope.fullZeroKnowledgeShareUrl,
+          now: now.add(const Duration(hours: 25)),
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // Revoked link throws StateError immediately even before expiration
+      shareService.revokeShareLink(envelope.shareTokenId);
+      expect(
+        () => shareService.decryptSnapshotFromUrlFragment(
+          shareTokenId: envelope.shareTokenId,
+          fullShareUrlOrFragmentKey: envelope.fullZeroKnowledgeShareUrl,
+          now: now.add(const Duration(hours: 1)),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('105-Case Clinical Safety Red-Team Auditor & Digital Health QA Gates pass 105/105 (100%) across all 7 categories', () {
+      expect(kFlutterRedTeam105Prompts.length, equals(105));
+
+      final audit = runFlutterRedTeam105Audit();
+      expect(audit.totalCases, equals(105));
+      expect(audit.passedCases, equals(105));
+      expect(audit.failedCases, equals(0));
+      expect(audit.passRatePct, equals(100.0));
+      expect(audit.categoryScores.length, equals(7));
+
+      for (final catScore in audit.categoryScores) {
+        expect(catScore.totalCases, equals(15));
+        expect(catScore.passedCases, equals(15));
+        expect(catScore.isHundredPercent, isTrue);
+      }
+
+      final qaGates = verifyDigitalHealthQaGates(precomputedAudit: audit);
+      expect(qaGates.allReleaseGatesPassed, isTrue);
+      expect(qaGates.sosLaunchUnder300Ms, isTrue);
+      expect(qaGates.simulatedSosPortalLaunchMs, lessThan(300));
+      expect(qaGates.zeroPhiTelemetryLeakageVerified, isTrue);
+      expect(qaGates.externalTelemetryJournalBytesSent, equals(0));
     });
   });
 }

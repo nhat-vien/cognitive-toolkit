@@ -102,6 +102,19 @@ class VoiceBurstAnalyzeRequest(BaseModel):
     recent_hrv_readings: Optional[List[Dict[str, Any]]] = Field(default=None)
 
 
+class ClinicianShareCreateRequest(BaseModel):
+    user_id: str = Field(default="user_default")
+    encrypted_payload_b64: str
+    iv_b64: str
+    auth_tag_b64: str
+    ttl_hours: int = Field(default=24, ge=1, le=720)
+    report_period_days: int = Field(default=30)
+    share_token: Optional[str] = Field(default=None)
+    now_iso: Optional[str] = Field(default=None)
+    revoke: bool = Field(default=False)
+
+
+
 # ---------------------------------------------------------------------------
 # APPLICATION FACTORY
 # ---------------------------------------------------------------------------
@@ -244,6 +257,50 @@ def create_app(sqlite_path: Optional[str] = None) -> FastAPI:
     @application.post("/api/v1/outbox/flush")
     def flush_outbox() -> Dict[str, Any]:
         return outbox_worker.poll_and_flush()
+
+    @application.post("/api/v1/clinician/share")
+    def create_or_revoke_clinician_share(req: ClinicianShareCreateRequest) -> Dict[str, Any]:
+        if req.revoke and req.share_token:
+            try:
+                return db.revoke_clinician_share_link(
+                    share_token=req.share_token, user_id=req.user_id
+                )
+            except PermissionError as exc:
+                raise HTTPException(status_code=403, detail=str(exc)) from exc
+        try:
+            return db.create_clinician_share_link(
+                user_id=req.user_id,
+                encrypted_payload_b64=req.encrypted_payload_b64,
+                iv_b64=req.iv_b64,
+                auth_tag_b64=req.auth_tag_b64,
+                ttl_hours=req.ttl_hours,
+                report_period_days=req.report_period_days,
+                share_token=req.share_token,
+                now_iso=req.now_iso,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @application.get("/api/v1/clinician/share/{share_token}")
+    def get_clinician_share(
+        share_token: str,
+        now_iso: Optional[str] = Query(default=None),
+    ) -> Dict[str, Any]:
+        record = db.get_clinician_share_link(share_token=share_token, now_iso=now_iso)
+        if record["status"] == "not_found":
+            raise HTTPException(status_code=404, detail="Clinician share snapshot not found.")
+        if record["status"] in ("revoked", "expired"):
+            raise HTTPException(
+                status_code=410,
+                detail=f"Clinician share link is {record['status']}.",
+            )
+        return record
+
+    @application.get("/api/v1/redteam/audit")
+    def get_redteam_audit() -> Dict[str, Any]:
+        from scripts.run_redteam_audit import run_redteam_audit
+
+        return run_redteam_audit()
 
     return application
 
