@@ -2148,7 +2148,7 @@ export function EquilibriaClinicalApp() {
                 </p>
               </div>
 
-              {/* Right Column: 1-Tap Quick Sanctuary Profiles & Anonymous Guest Mode */}
+              {/* Right Column: Instant Entry by Emotional Needs & Anonymous Mode */}
               <div
                 style={{
                   padding: '24px',
@@ -2163,69 +2163,87 @@ export function EquilibriaClinicalApp() {
                 <div>
                   <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: theme.palette.textPrimary }}>
                     {lang === 'vi'
-                      ? '⚡ Vào Nhanh 1-Chạm (Không cần gõ mật khẩu)'
-                      : '⚡ 1-Tap Instant Entry (No Password Needed)'}
+                      ? '⚡ Trải Nghiệm Nhanh Theo Nhu Cầu Của Bạn'
+                      : '⚡ Quick Start by Your Needs (No Password)'}
                   </h3>
                   <p style={{ margin: '0 0 14px 0', fontSize: '0.86rem', color: theme.palette.textSecondary }}>
                     {lang === 'vi'
-                      ? 'Nếu hôm nay bạn đang mệt mỏi hoặc muốn trải nghiệm ngay, hãy chạm vào một hồ sơ đồng hành phù hợp với tâm trạng của bạn:'
-                      : 'If you are feeling low on energy today or want to explore immediately, tap any companion profile below:'}
+                      ? 'Nếu hôm nay bạn đang cảm thấy mệt mỏi hoặc chưa muốn tạo tài khoản, hãy chọn không gian hỗ trợ phù hợp với cảm xúc hiện tại của bạn:'
+                      : 'If you feel low on energy today or want to try without creating an account, select the sanctuary space that fits your needs:'}
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {QUICK_DEMO_PROFILES.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleSelectQuickDemo(p.id)}
-                        style={{
-                          textAlign: 'left',
-                          padding: '12px 16px',
-                          borderRadius: '14px',
-                          border: `1px solid ${theme.palette.border}`,
-                          backgroundColor: theme.palette.surface,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                        }}
-                      >
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span
-                              style={{
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                backgroundColor: p.avatarMoodColor,
-                                display: 'inline-block',
-                              }}
-                            />
-                            <strong style={{ fontSize: '0.92rem', color: theme.palette.textPrimary }}>
-                              {lang === 'vi' ? p.displayNameVi : p.displayNameEn}
-                            </strong>
-                            <span
-                              style={{
-                                fontSize: '0.72rem',
-                                padding: '2px 8px',
-                                borderRadius: '10px',
-                                backgroundColor: 'rgba(121, 114, 152, 0.12)',
-                                color: theme.palette.primary,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {lang === 'vi' ? p.badgeVi : p.badgeEn}
-                            </span>
+                    {QUICK_DEMO_PROFILES.map((p) => {
+                      const icon =
+                        p.id === 'anxiety-calm'
+                          ? '🌊'
+                          : p.id === 'depression-gentle'
+                          ? '🌱'
+                          : p.id === 'bipolar-balance'
+                          ? '🌙'
+                          : '🔒';
+                      const titleVi =
+                        p.id === 'anxiety-calm'
+                          ? 'Hỗ Trợ Lo Âu & Căng Thẳng'
+                          : p.id === 'depression-gentle'
+                          ? 'Hỗ Trợ Vượt Qua Trầm Cảm'
+                          : p.id === 'bipolar-balance'
+                          ? 'Cân Bằng Cảm Xúc & Giấc Ngủ'
+                          : 'Trải Nghiệm Ẩn Danh Tại Chỗ';
+                      const titleEn =
+                        p.id === 'anxiety-calm'
+                          ? 'Anxiety & Stress Relief'
+                          : p.id === 'depression-gentle'
+                          ? 'Gentle Depression Recovery'
+                          : p.id === 'bipolar-balance'
+                          ? 'Mood & Sleep Rhythm Balance'
+                          : 'Local Anonymous Experience';
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleSelectQuickDemo(p.id)}
+                          style={{
+                            textAlign: 'left',
+                            padding: '12px 16px',
+                            borderRadius: '14px',
+                            border: `1px solid ${theme.palette.border}`,
+                            backgroundColor: theme.palette.surface,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '1.05rem' }}>{icon}</span>
+                              <strong style={{ fontSize: '0.92rem', color: theme.palette.textPrimary }}>
+                                {lang === 'vi' ? titleVi : titleEn}
+                              </strong>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  backgroundColor: 'rgba(121, 114, 152, 0.12)',
+                                  color: theme.palette.primary,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {lang === 'vi' ? p.badgeVi : p.badgeEn}
+                              </span>
+                            </div>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: theme.palette.textSecondary, lineHeight: 1.4 }}>
+                              {lang === 'vi' ? p.descriptionVi : p.descriptionEn}
+                            </p>
                           </div>
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: theme.palette.textSecondary }}>
-                            {lang === 'vi' ? p.descriptionVi : p.descriptionEn}
-                          </p>
-                        </div>
-                        <span style={{ fontSize: '1.1rem', color: theme.palette.primary, fontWeight: 700 }}>→</span>
-                      </button>
-                    ))}
+                          <span style={{ fontSize: '1.1rem', color: theme.palette.primary, fontWeight: 700 }}>→</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
