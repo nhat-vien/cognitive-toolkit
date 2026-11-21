@@ -202,6 +202,153 @@ export function scoreClinicalAssessment(params: {
   };
 }
 
+export interface ClinicalScaleQuestion {
+  id: number;
+  textVi: string;
+  textEn: string;
+}
+
+export interface ClinicalScaleDefinition {
+  type: AssessmentType;
+  titleVi: string;
+  titleEn: string;
+  shortCode: string;
+  timeframeVi: string;
+  timeframeEn: string;
+  optionsVi: string[];
+  optionsEn: string[];
+  questions: ClinicalScaleQuestion[];
+  scoreTransform?: (answers: number[]) => number[];
+}
+
+export const CLINICAL_SCALES_REGISTRY: Record<AssessmentType, ClinicalScaleDefinition> = {
+  'PHQ-9': {
+    type: 'PHQ-9',
+    titleVi: 'Kiểm tra Tâm trạng & Năng lượng (PHQ-9)',
+    titleEn: 'PHQ-9 Depression Symptom Screen',
+    shortCode: 'PHQ-9',
+    timeframeVi: 'Trong 2 tuần qua, bạn có thường xuyên bị làm phiền bởi những vấn đề sau đây không?',
+    timeframeEn: 'Over the last 2 weeks, how often have you been bothered by any of the following problems?',
+    optionsVi: ['0 — Không có ngày nào', '1 — Vài ngày', '2 — Hơn một nửa số ngày', '3 — Gần như mỗi ngày'],
+    optionsEn: ['0 — Not at all', '1 — Several days', '2 — More than half the days', '3 — Nearly every day'],
+    questions: [
+      { id: 1, textVi: 'Ít hứng thú hoặc không còn cảm nhận được niềm vui khi làm các công việc thường ngày.', textEn: 'Little interest or pleasure in doing things.' },
+      { id: 2, textVi: 'Cảm thấy chán nản, buồn bã, ủ rũ hoặc tuyệt vọng.', textEn: 'Feeling down, depressed, or hopeless.' },
+      { id: 3, textVi: 'Khó đi vào giấc ngủ, hay thức giấc giữa đêm, hoặc ngược lại ngủ quá nhiều.', textEn: 'Trouble falling or staying asleep, or sleeping too much.' },
+      { id: 4, textVi: 'Cảm thấy mệt mỏi, uể oải hoặc cơ thể thiếu năng lượng.', textEn: 'Feeling tired or having little energy.' },
+      { id: 5, textVi: 'Cảm giác chán ăn, ăn không ngon miệng, hoặc ngược lại ăn quá nhiều.', textEn: 'Poor appetite or overeating.' },
+      { id: 6, textVi: 'Cảm thấy thất vọng về bản thân — tự trách mình là kẻ thất bại hoặc làm gia đình thất vọng.', textEn: 'Feeling bad about yourself — or that you are a failure or have let yourself or your family down.' },
+      { id: 7, textVi: 'Khó tập trung vào công việc, học tập hoặc ngay cả khi đọc sách, xem tivi.', textEn: 'Trouble concentrating on things, such as reading the newspaper or watching television.' },
+      { id: 8, textVi: 'Di chuyển hoặc nói chuyện chậm chạp đến mức người khác nhận thấy; hoặc ngược lại bồn chồn, đứng ngồi không yên.', textEn: 'Moving or speaking so slowly that other people could have noticed? Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual.' },
+      { id: 9, textVi: 'Có suy nghĩ rằng thà biến mất, buông xuôi hoặc có ý nghĩ làm tổn thương bản thân.', textEn: 'Thoughts that you would be better off dead or of hurting yourself in some way.' },
+    ],
+  },
+  'GAD-7': {
+    type: 'GAD-7',
+    titleVi: 'Kiểm tra Mức độ Lo âu & Căng thẳng (GAD-7)',
+    titleEn: 'GAD-7 Generalized Anxiety Screen',
+    shortCode: 'GAD-7',
+    timeframeVi: 'Trong 2 tuần qua, bạn có thường xuyên bị làm phiền bởi những cảm giác sau đây không?',
+    timeframeEn: 'Over the last 2 weeks, how often have you been bothered by the following problems?',
+    optionsVi: ['0 — Không có ngày nào', '1 — Vài ngày', '2 — Hơn một nửa số ngày', '3 — Gần như mỗi ngày'],
+    optionsEn: ['0 — Not at all', '1 — Several days', '2 — More than half the days', '3 — Nearly every day'],
+    questions: [
+      { id: 1, textVi: 'Cảm thấy bồn chồn, lo lắng, căng thẳng hoặc đứng ngồi không yên.', textEn: 'Feeling nervous, anxious, or on edge.' },
+      { id: 2, textVi: 'Không thể ngừng lo lắng hoặc không kiểm soát được những suy nghĩ lo âu.', textEn: 'Not being able to stop or control worrying.' },
+      { id: 3, textVi: 'Lo lắng quá mức về nhiều chuyện khác nhau trong cuộc sống.', textEn: 'Worrying too much about different things.' },
+      { id: 4, textVi: 'Cảm thấy rất khó để thư giãn hoặc thả lỏng cơ thể.', textEn: 'Trouble relaxing.' },
+      { id: 5, textVi: 'Quá bồn chồn đến mức khó có thể ngồi yên một chỗ.', textEn: 'Being so restless that it is hard to sit still.' },
+      { id: 6, textVi: 'Dễ nổi nóng, dễ bực mình hoặc dễ cáu gắt với mọi người xung quanh.', textEn: 'Becoming easily annoyed or irritable.' },
+      { id: 7, textVi: 'Cảm thấy sợ hãi như thể có điều gì đó tồi tệ sắp xảy ra.', textEn: 'Feeling afraid, as if something awful might happen.' },
+    ],
+  },
+  'BMS': {
+    type: 'BMS',
+    titleVi: 'Khảo sát Cảm xúc Hôm nay (BMS)',
+    titleEn: 'Brief Mood Survey (BMS)',
+    shortCode: 'BMS',
+    timeframeVi: 'Ngay trong ngày hôm nay, bạn cảm nhận các sắc thái sau ở mức độ nào?',
+    timeframeEn: 'How are you feeling right now today across these emotional areas?',
+    optionsVi: ['0 — Hoàn toàn không', '1 — Một chút', '2 — Vừa phải', '3 — Khá nhiều', '4 — Rất nhiều'],
+    optionsEn: ['0 — Not at all', '1 — Somewhat', '2 — Moderately', '3 — A lot', '4 — Extremely'],
+    questions: [
+      { id: 1, textVi: 'Cảm giác buồn bã, chán nản, u uất hoặc mất tinh thần (Trầm cảm).', textEn: 'Sad, down, depressed, or discouraged.' },
+      { id: 2, textVi: 'Cảm giác tuyệt vọng hoặc có ý nghĩ buông xuôi, tự hại.', textEn: 'Hopeless or feeling life is not worth living.' },
+      { id: 3, textVi: 'Cảm giác căng thẳng, lo âu, bồn chồn hoặc lo sợ.', textEn: 'Anxious, worried, nervous, or on edge.' },
+      { id: 4, textVi: 'Cảm giác bực bội, tức giận, khó chịu hoặc bực mình.', textEn: 'Frustrated, annoyed, irritable, or angry.' },
+      { id: 5, textVi: 'Cảm xúc tích cực, vui vẻ, hài lòng hoặc bình yên trong tâm trí.', textEn: 'Positive, happy, peaceful, or content.' },
+    ],
+    scoreTransform: (ans: number[]) => [
+      (ans[0] ?? 0) * 5,
+      (ans[1] ?? 0) * 2,
+      (ans[2] ?? 0) * 5,
+      (ans[3] ?? 0) * 5,
+      (ans[4] ?? 0) * 5,
+    ],
+  },
+  'ISI': {
+    type: 'ISI',
+    titleVi: 'Kiểm tra Chất lượng Giấc ngủ (ISI)',
+    titleEn: 'Insomnia Severity Index (ISI)',
+    shortCode: 'ISI',
+    timeframeVi: 'Trong 2 tuần qua, hãy đánh giá mức độ nghiêm trọng của các vấn đề giấc ngủ của bạn:',
+    timeframeEn: 'Over the last 2 weeks, please rate the severity of your insomnia problems:',
+    optionsVi: ['0 — Không có', '1 — Nhẹ', '2 — Vừa phải', '3 — Nặng', '4 — Rất nặng'],
+    optionsEn: ['0 — None', '1 — Mild', '2 — Moderate', '3 — Severe', '4 — Very Severe'],
+    questions: [
+      { id: 1, textVi: 'Mức độ khó khăn khi bắt đầu vào giấc ngủ.', textEn: 'Difficulty falling asleep.' },
+      { id: 2, textVi: 'Mức độ khó khăn khi duy trì giấc ngủ (thường xuyên thức giấc giữa đêm).', textEn: 'Difficulty staying asleep.' },
+      { id: 3, textVi: 'Thức giấc quá sớm vào buổi sáng và không thể ngủ lại được.', textEn: 'Problems waking up too early.' },
+      { id: 4, textVi: 'Mức độ bạn hài lòng hay không hài lòng với giấc ngủ hiện tại của mình.', textEn: 'How satisfied/dissatisfied are you with your current sleep pattern?' },
+      { id: 5, textVi: 'Mức độ vấn đề giấc ngủ làm ảnh hưởng đến hoạt động ban ngày (mệt mỏi, hiệu suất làm việc, khả năng tập trung).', textEn: 'How noticeable to others do you think your sleep problem is in terms of impairing the quality of your life?' },
+      { id: 6, textVi: 'Mức độ người khác nhận thấy vấn đề giấc ngủ đang ảnh hưởng đến cuộc sống của bạn.', textEn: 'How noticeable to others do you think your sleep problem is?' },
+      { id: 7, textVi: 'Mức độ bạn cảm thấy lo lắng hoặc khổ sở vì các vấn đề về giấc ngủ của mình.', textEn: 'How worried/distressed are you about your current sleep problem?' },
+    ],
+  },
+  'ASRM': {
+    type: 'ASRM',
+    titleVi: 'Kiểm tra Mức độ Hưng phấn Năng lượng (ASRM)',
+    titleEn: 'Altman Self-Rating Mania Scale (ASRM)',
+    shortCode: 'ASRM',
+    timeframeVi: 'Trong 7 ngày qua, bạn có trải qua những biểu hiện năng lượng sau không?',
+    timeframeEn: 'Over the past 7 days, please rate your energy and mood levels:',
+    optionsVi: ['0 — Bình thường', '1 — Hơi nhiều hơn bình thường', '2 — Nhiều hơn rõ rệt', '3 — Rất nhiều', '4 — Cực kỳ cao / Mất kiểm soát'],
+    optionsEn: ['0 — Normal', '1 — Slightly more', '2 — Significantly more', '3 — Much more', '4 — Extremely elevated'],
+    questions: [
+      { id: 1, textVi: 'Cảm thấy vui vẻ, phấn khích hoặc hào hứng khác thường so với mọi người.', textEn: 'Feeling happier or more cheerful than usual.' },
+      { id: 2, textVi: 'Cảm thấy tự tin vượt bậc hoặc thấy mình có tài năng, sứ mệnh phi thường.', textEn: 'Feeling more self-confident than usual.' },
+      { id: 3, textVi: 'Cảm thấy ít cần ngủ hơn bình thường (ngủ rất ít nhưng vẫn tràn đầy năng lượng).', textEn: 'Needing less sleep than usual without feeling tired.' },
+      { id: 4, textVi: 'Nói nhiều hơn, nói nhanh hơn và khó ai ngắt lời được bạn.', textEn: 'Talking more or speaking much faster than usual.' },
+      { id: 5, textVi: 'Hoạt động cơ thể liên tục, làm nhiều việc cùng lúc và không thể ngồi yên.', textEn: 'Being much more active or constantly on the go.' },
+    ],
+  },
+  'MDQ': {
+    type: 'MDQ',
+    titleVi: 'Khảo sát Chu kỳ Khí sắc Hai cực (MDQ)',
+    titleEn: 'Mood Disorder Questionnaire (MDQ)',
+    shortCode: 'MDQ',
+    timeframeVi: 'Đã từng có thời gian nào trong đời mà bạn không phải là chính mình thường ngày và trải qua những điều sau:',
+    timeframeEn: 'Has there ever been a period of time when you were not your usual self and:',
+    optionsVi: ['0 — Không', '1 — Có'],
+    optionsEn: ['0 — No', '1 — Yes'],
+    questions: [
+      { id: 1, textVi: 'Cảm thấy hưng phấn, phấn chấn đến mức người khác nhận thấy bạn khác thường?', textEn: 'Felt so good or so hyper that other people thought you were not your normal self?' },
+      { id: 2, textVi: 'Dễ nổi nóng, cáu gắt và la hét hoặc gây gổ với người khác?', textEn: 'So irritable that you shouted at people or started fights or arguments?' },
+      { id: 3, textVi: 'Cảm thấy tự tin hơn bình thường rất nhiều?', textEn: 'Felt much more self-confident than usual?' },
+      { id: 4, textVi: 'Ngủ ít hơn bình thường rất nhiều mà vẫn không hề cảm thấy mệt mỏi?', textEn: 'Got much less sleep than usual and found you didn’t really miss it?' },
+      { id: 5, textVi: 'Nói nhiều hoặc nói nhanh hơn thường ngày rất nhiều?', textEn: 'Much more talkative or speaking faster than usual?' },
+      { id: 6, textVi: 'Suy nghĩ chạy dồn dập trong đầu, ý tưởng xuất hiện liên tục không ngừng?', textEn: 'Thoughts raced through your head or you couldn’t slow your mind down?' },
+      { id: 7, textVi: 'Rất dễ bị phân tâm bởi những thứ xung quanh đến mức khó tập trung?', textEn: 'So easily distracted by things around you that you had trouble concentrating?' },
+      { id: 8, textVi: 'Tràn đầy năng lượng hơn bình thường rất nhiều?', textEn: 'Had much more energy than usual?' },
+      { id: 9, textVi: 'Năng động hơn hoặc làm nhiều việc hơn thường lệ?', textEn: 'Much more active or did many more things than usual?' },
+      { id: 10, textVi: 'Giao tiếp xã hội nhiều hơn bình thường (gọi điện thoại, nhắn tin, gặp gỡ liên tục)?', textEn: 'Much more social or outgoing than usual?' },
+      { id: 11, textVi: 'Hứng thú tình dục tăng cao hơn bình thường nhiều?', textEn: 'Much more interested in sex than usual?' },
+      { id: 12, textVi: 'Làm những việc bất cẩn, liều lĩnh hoặc tiêu xài tiền không tính toán?', textEn: 'Did things that were unusual for you or that other people might have thought were excessive, foolish, or risky?' },
+      { id: 13, textVi: 'Việc tiêu tiền hoặc quyết định liều lĩnh gây rắc rối tài chính cho bạn hoặc gia đình?', textEn: 'Spending money got you or your family into trouble?' },
+    ],
+  },
+};
+
 /**
  * Markdown Session Exporter (`YYYYMMDD-[technique]-NN.md`)
  * 100% compatible with glebis/claude-cognitive-toolkit & Obsidian/Notion
