@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata = {
-  title: 'Equilibria (Mind Anchor) — CBT, TEAM-CBT, DBT & IPSRT Clinical Web Companion',
+  title: 'Haven — Không Gian Bình Yên & Cân Bằng Tâm Trí',
   description:
-    'Evidence-based bilingual (Vietnamese/English) self-help & between-session companion for Anxiety, Depression, and Bipolar Disorder.',
+    'Không gian lắng nghe, xoa dịu lo âu, vượt qua trầm cảm và cân bằng giấc ngủ mỗi ngày.',
 };
 
 export default function RootLayout(props: { children: ReactNode }) {

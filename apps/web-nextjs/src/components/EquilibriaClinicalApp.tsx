@@ -149,20 +149,20 @@ function SanctuaryHeroBanner(props: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '20px',
-        padding: '20px 26px',
-        borderRadius: '22px',
+        gap: '16px',
+        padding: '14px 22px',
+        borderRadius: '18px',
         background: bgGradient,
         border: props.isDark ? '1px solid #38302A' : '1px solid #E5E2D9',
-        marginBottom: '18px',
+        marginBottom: '14px',
         flexWrap: 'wrap',
       }}
     >
       <div style={{ flex: '1 1 320px' }}>
-        <h2 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', color: props.isDark ? '#FAF3E0' : '#2F2F2B' }}>
+        <h2 style={{ margin: '0 0 4px 0', fontSize: '1.22rem', color: props.isDark ? '#FAF3E0' : '#2F2F2B' }}>
           {props.title}
         </h2>
-        <p style={{ margin: 0, fontSize: '0.92rem', color: props.isDark ? '#C8C2B8' : '#5E5E56', lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontSize: '0.92rem', color: props.isDark ? '#C8C2B8' : '#5E5E56', lineHeight: 1.5 }}>
           {props.subtitle}
         </p>
       </div>
@@ -170,7 +170,7 @@ function SanctuaryHeroBanner(props: {
       {/* Gentle Vector Artwork */}
       <div style={{ flexShrink: 0 }}>
         {props.scene === 'sunrise-hills' && (
-          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+          <svg width="132" height="68" viewBox="0 0 160 84" fill="none" aria-hidden="true">
             <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
             <circle cx="118" cy="28" r="16" fill="#F6D59E" />
             <circle cx="118" cy="28" r="22" fill="#F6D59E" fillOpacity="0.3" />
@@ -181,7 +181,7 @@ function SanctuaryHeroBanner(props: {
           </svg>
         )}
         {props.scene === 'calm-waves' && (
-          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+          <svg width="132" height="68" viewBox="0 0 160 84" fill="none" aria-hidden="true">
             <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
             <circle cx="44" cy="26" r="12" fill="#E2DCF2" />
             <path d="M75 26 C75 20 83 18 88 22 C92 16 104 17 106 24 C112 24 114 31 108 33 L76 33 C71 32 71 27 75 26 Z" fill="#FFFFFF" fillOpacity="0.9" />
@@ -190,7 +190,7 @@ function SanctuaryHeroBanner(props: {
           </svg>
         )}
         {props.scene === 'moon-stars' && (
-          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+          <svg width="132" height="68" viewBox="0 0 160 84" fill="none" aria-hidden="true">
             <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
             <path d="M88 18 A16 16 0 1 0 106 42 A13 13 0 1 1 88 18 Z" fill="#EAB308" fillOpacity="0.8" />
             <circle cx="42" cy="24" r="2" fill="#797298" />
@@ -200,7 +200,7 @@ function SanctuaryHeroBanner(props: {
           </svg>
         )}
         {props.scene === 'botanical-garden' && (
-          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+          <svg width="132" height="68" viewBox="0 0 160 84" fill="none" aria-hidden="true">
             <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
             <circle cx="80" cy="44" r="28" fill="#D5E8DC" fillOpacity="0.7" />
             <path d="M80 68 L80 28" stroke="#528767" strokeWidth="2.4" strokeLinecap="round" />
@@ -210,7 +210,7 @@ function SanctuaryHeroBanner(props: {
           </svg>
         )}
         {props.scene === 'care-notebook' && (
-          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+          <svg width="132" height="68" viewBox="0 0 160 84" fill="none" aria-hidden="true">
             <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
             <rect x="52" y="14" width="56" height="56" rx="10" fill="#FFFFFF" stroke="#797298" strokeWidth="2" />
             <line x1="64" y1="28" x2="96" y2="28" stroke="#B8B0D0" strokeWidth="2.5" strokeLinecap="round" />
@@ -513,9 +513,7 @@ export function EquilibriaClinicalApp() {
 
   // 3. DBT-First, CBT-Second Session Player State
   const [phase0Mode, setPhase0Mode] = useState<SessionPhase0Mode>('instrumental');
-  const [voiceBurstText, setVoiceBurstText] = useState<string>(
-    'Hôm nay tôi cảm thấy kiệt sức và lo sợ mình luôn luôn thất bại trong công việc.'
-  );
+  const [voiceBurstText, setVoiceBurstText] = useState<string>('');
   const [pushbackLevel, setPushbackLevel] = useState<PushbackLevel>('moderate');
   const [pushbackAttempt, setPushbackAttempt] = useState<number>(1);
   const [selectedProtocol, setSelectedProtocol] = useState<TechniqueSlug>('thought-record');
@@ -755,10 +753,8 @@ export function EquilibriaClinicalApp() {
   );
 
   // 4. Anxiety Gold-Standard Hub State
-  const [worryInput, setWorryInput] = useState<string>(
-    'Nhỡ đâu 3 năm nữa trí tuệ nhân tạo thay thế hoàn toàn công việc của mình thì sao?'
-  );
-  const worryItem = useMemo(() => createWorryBoxEntry({ rawWorryText: worryInput }), [worryInput]);
+  const [worryInput, setWorryInput] = useState<string>('');
+  const worryItem = useMemo(() => createWorryBoxEntry({ rawWorryText: worryInput || 'Lo lắng cần cất vào hộp' }), [worryInput]);
   const worryProcessed = useMemo(
     () =>
       sortAndProcessWorryItem(
@@ -921,6 +917,8 @@ export function EquilibriaClinicalApp() {
   // 6. Clinical Self-Assessments, Storage, Export & A4 Report
   const [aiMode, setAiMode] = useState<AIConnectionMode>(DEFAULT_AI_CONNECTION_CONFIG.mode);
   const [encryptedPreview, setEncryptedPreview] = useState<string>('AES-GCM-256 Ready');
+  const [completedScaleIds, setCompletedScaleIds] = useState<Record<string, boolean>>({});
+  const [showAdvancedBipolarScales, setShowAdvancedBipolarScales] = useState<boolean>(false);
 
   const assessments = useMemo(
     () => [
@@ -1025,9 +1023,8 @@ export function EquilibriaClinicalApp() {
   // 7. Interactive 36 Tools State: TEAM-CBT M/P & Anti-Procrastination, Downward Arrow SDBs, DBT ABC PLEASE / ACCEPTS / Urge Surfing & CBT-I
   const [selectedToolCategory, setSelectedToolCategory] = useState<Web36ToolCategory | 'ALL'>('ALL');
   const [selectedToolId, setSelectedToolId] = useState<string>('pleasure-predicting-mp-sheet');
-  const [toolUserInput, setToolUserInput] = useState<string>(
-    'Tôi sợ rằng nếu làm một mình thì sẽ chẳng có chút niềm vui nào và chắc chắn sẽ thất bại hoàn toàn.'
-  );
+  const [toolUserInput, setToolUserInput] = useState<string>('');
+  const [showAll36Tools, setShowAll36Tools] = useState<boolean>(false);
   const [urgeSurfSeconds, setUrgeSurfSeconds] = useState<number>(38);
   const [mpAloneCompanion, setMpAloneCompanion] = useState<CompanionContext>('alone_self');
   const [mpPredPleasure, setMpPredPleasure] = useState<number>(25);
@@ -1190,28 +1187,25 @@ export function EquilibriaClinicalApp() {
   const [phase3Provider, setPhase3Provider] =
     useState<Phase3CompanionProvider>('offline-deterministic');
   const [ollamaModelName, setOllamaModelName] = useState<string>('qwen3.5:9b');
-  const [phase3ChatInput, setPhase3ChatInput] = useState<string>(
-    'Tên mình là Minh, kỹ sư phần mềm. Làm sao dùng DBT TIPP nước lạnh khi hoảng loạn?'
-  );
+  const [phase3ChatInput, setPhase3ChatInput] = useState<string>('');
   const [phase3Memory, setPhase3Memory] = useState<ClinicalConversationMemoryState>(() =>
-    updateTwoTierClinicalMemory(createInitialClinicalMemoryState('patient-01', pushbackLevel), {
-      role: 'user',
-      content: 'Tên mình là Minh, kỹ sư phần mềm, người tin cậy là Trần Thu Hà. Mình luôn luôn sợ thất bại hoàn toàn.',
-      mode: 'instrumental',
-    })
+    createInitialClinicalMemoryState('patient-01', pushbackLevel)
   );
-  const [phase3LastCitations, setPhase3LastCitations] = useState<string[]>([
-    '[KB:tipp#medical-screening]',
-  ]);
+  const [phase3LastCitations, setPhase3LastCitations] = useState<string[]>([]);
   const [phase3LastAbstained, setPhase3LastAbstained] = useState<boolean>(false);
   const [phase3LastTopScore, setPhase3LastTopScore] = useState<number>(0.88);
-  const [phase3LastReply, setPhase3LastReply] = useState<string>(
-    'Theo phác đồ chuẩn [DBT TIPP > Mandatory Medical Exclusion Screen & Paced Breathing]: Trước khi áp nước mát 15-30s, bắt buộc sàng lọc bệnh tim mạch, nhịp tim chậm, beta-blockers, dị ứng lạnh và rối loạn ăn uống. [KB:tipp#medical-screening]'
-  );
+  const [phase3LastReply, setPhase3LastReply] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<Array<{ role: 'assistant' | 'user'; textVi: string; textEn: string }>>([
+    {
+      role: 'assistant',
+      textVi:
+        'Xin chào bạn, mình là người bạn đồng hành tại Haven. Hôm nay tâm trí bạn đang cảm thấy thế nào? Bạn có thể chia sẻ bất cứ điều gì đang làm bạn bận lòng nhé.',
+      textEn:
+        'Hello, I am your Haven companion. How is your mind feeling today? Feel free to share anything that is on your mind.',
+    },
+  ]);
 
-  const [vbStudioTranscript, setVbStudioTranscript] = useState<string>(
-    'Tôi có ý tưởng thiên tài chắc chắn thắng 100% không cần ngủ đêm nay phải đầu tư all-in ngay lập tức vì năng lượng đang tràn đầy không ai cản được tôi lúc này!'
-  );
+  const [vbStudioTranscript, setVbStudioTranscript] = useState<string>('');
   const [vbStudioDurationSec, setVbStudioDurationSec] = useState<number>(10);
   const [vbStudioBaselineWpm, setVbStudioBaselineWpm] = useState<number>(125);
 
@@ -1253,11 +1247,20 @@ export function EquilibriaClinicalApp() {
     });
   }, [hrvDeviceSource, hrvLatestMs, hrvAgeHours, sleepHours, feltNeedForSleep]);
 
-  const handleSendPhase3GroundedChat = async () => {
+  const cleanClinicalReplyText = (raw: string): string =>
+    raw
+      .replace(/\s*\[KB:[^\]]+\]/g, '')
+      .replace(/Theo phác đồ chuẩn\s*\[[^\]]+\]:\s*/gi, '')
+      .replace(/According to\s*\[[^\]]+\]:\s*/gi, '')
+      .trim();
+
+  const handleSendPhase3GroundedChat = async (overrideMessage?: string) => {
+    const msgToSend = (overrideMessage ?? phase3ChatInput).trim();
+    if (!msgToSend) return;
     const turn = await executePhase3GroundedChatTurn({
       provider: phase3Provider,
       ollamaModel: ollamaModelName,
-      userMessage: phase3ChatInput,
+      userMessage: msgToSend,
       mode: phase0Mode,
       distressIntensity,
       moodPolarity,
@@ -1267,22 +1270,37 @@ export function EquilibriaClinicalApp() {
       ragThreshold: 0.46,
       memoryState: phase3Memory,
     });
+    const cleanedVi = cleanClinicalReplyText(turn.replyVi);
+    const cleanedEn = cleanClinicalReplyText(turn.replyEn);
     setPhase3Memory(turn.updatedMemoryState);
     setPhase3LastCitations(turn.citations);
     setPhase3LastAbstained(turn.abstained);
     setPhase3LastTopScore(turn.topSimilarityScore);
-    setPhase3LastReply(lang === 'vi' ? turn.replyVi : turn.replyEn);
+    setPhase3LastReply(lang === 'vi' ? cleanedVi : cleanedEn);
+    setChatHistory((prev) => [
+      ...prev,
+      { role: 'user', textVi: msgToSend, textEn: msgToSend },
+      { role: 'assistant', textVi: cleanedVi, textEn: cleanedEn },
+    ]);
+    setPhase3ChatInput('');
   };
 
   const handleErasePhase3Memory = () => {
     setPhase3Memory((prev) => eraseDerivedProfileMemory(prev, true));
+    setChatHistory([
+      {
+        role: 'assistant',
+        textVi: 'Đã xóa lịch sử trò chuyện. Mình luôn ở đây lắng nghe bất cứ khi nào bạn cần.',
+        textEn: 'Conversation memory cleared. I am always here whenever you need a listening ear.',
+      },
+    ]);
   };
 
   // 9. Zero-Knowledge E2EE Sync State: 24-Word Key & CRDT, Clinician Portal (#key=... Decryptor) & 105-Case Red-Team / WCAG 2.2 AAA Audit
   const [masterKey24, setMasterKey24] = useState<MasterRecoveryKey24Words | null>(null);
   const [crdtSyncPreview, setCrdtSyncPreview] = useState<CrdtMergeResult<unknown> | null>(null);
   const [crdtDecryptedSampleText, setCrdtDecryptedSampleText] = useState<string>(
-    'Bấm "Sinh Khóa 24 Từ & Chạy Đồng Bộ CRDT Flutter <-> Web" để kiểm thử mã hóa E2EE và hợp nhất bản ghi offline.'
+    'Bấm nút bên trên để tạo cụm 24 từ khôi phục dữ liệu cá nhân khi bạn đổi điện thoại hoặc máy tính mới.'
   );
   const [shareTtlPreset, setShareTtlPreset] = useState<ClinicianShareTtlPreset>('7d');
   const [sharePeriodDays, setSharePeriodDays] = useState<30 | 90>(30);
@@ -1490,23 +1508,23 @@ export function EquilibriaClinicalApp() {
           <span style={{ fontSize: '1.7rem' }}>🌿</span>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <strong style={{ fontSize: '1.2rem', color: theme.palette.textPrimary, letterSpacing: '-0.01em' }}>
-                Equilibria Care
+              <strong style={{ fontSize: '1.25rem', color: theme.palette.textPrimary, letterSpacing: '-0.01em' }}>
+                Haven
               </strong>
               <span
                 style={{
-                  fontSize: '0.72rem',
-                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  padding: '2px 9px',
                   borderRadius: '12px',
                   backgroundColor: 'rgba(121, 114, 152, 0.12)',
                   color: theme.palette.primary,
                   fontWeight: 600,
                 }}
               >
-                {lang === 'vi' ? 'Trị Liệu Nhận Thức CBT & DBT' : 'Clinical CBT & DBT Sanctuary'}
+                {lang === 'vi' ? 'Không Gian Bình Yên & Cân Bằng Tâm Trí' : 'Gentle Mind & Emotional Sanctuary'}
               </span>
             </div>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+            <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
               {lang === 'vi' ? theme.titleVi : theme.titleEn}
             </p>
           </div>
@@ -1519,7 +1537,7 @@ export function EquilibriaClinicalApp() {
               <button
                 type="button"
                 onClick={() => setAccountModalOpen(true)}
-                title={lang === 'vi' ? 'Quản lý Tài khoản & Hồ sơ cá nhân' : 'Manage Account & Personal Profile'}
+                title={lang === 'vi' ? 'Mở Hồ sơ cá nhân & Cài đặt tài khoản' : 'Open Personal Profile & Account Settings'}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1534,66 +1552,55 @@ export function EquilibriaClinicalApp() {
               >
                 <span
                   style={{
-                    width: '26px',
-                    height: '26px',
+                    width: '28px',
+                    height: '28px',
                     borderRadius: '50%',
-                    backgroundColor: accountSession.user.avatarMoodColor || theme.palette.primary,
+                    backgroundColor:
+                      !accountSession.user.avatarMoodColor || accountSession.user.avatarMoodColor === '#4285F4'
+                        ? theme.palette.primary
+                        : accountSession.user.avatarMoodColor,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                   }}
                 >
                   {accountSession.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
                 </span>
-                <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: theme.palette.textPrimary }}>
+                <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: theme.palette.textPrimary }}>
                     {accountSession.user.displayName}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: theme.palette.accent }}>
+                  <div style={{ fontSize: '0.73rem', color: theme.palette.accent }}>
                     {accountSession.user.e2eeSyncEnabled
-                      ? (lang === 'vi' ? '🟢 Đã bật mã hóa E2EE' : '🟢 E2EE Sync Active')
+                      ? (lang === 'vi' ? '🟢 Đã bảo mật riêng tư' : '🟢 Private & Encrypted')
                       : (lang === 'vi' ? '🔒 Lưu riêng trên máy' : '🔒 Local Device Only')}
                   </div>
                 </div>
               </button>
 
-              <button
-                type="button"
-                onClick={handleSignOut}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: `1px solid ${theme.palette.border}`,
-                  backgroundColor: 'transparent',
-                  color: theme.palette.textSecondary,
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {lang === 'vi' ? 'Đăng xuất' : 'Sign Out'}
-              </button>
-
-              {/* Gentle 1-Tap Mood State Switcher (Replaces raw developer number input on Header) */}
+              {/* Gentle 1-Tap Ambiance / Energy Mode Switcher */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '3px',
+                  padding: '3px 6px',
                   borderRadius: '12px',
                   backgroundColor: theme.palette.background,
                   border: `1px solid ${theme.palette.border}`,
                 }}
               >
+                <span style={{ fontSize: '0.75rem', color: theme.palette.textSecondary, padding: '0 4px', fontWeight: 500 }}>
+                  {lang === 'vi' ? 'Chế độ:' : 'Mode:'}
+                </span>
                 {(
                   [
-                    [-3 as MoodPole, '🌱', lang === 'vi' ? 'Trầm mệt' : 'Low Energy'],
+                    [-3 as MoodPole, '🌱', lang === 'vi' ? 'Dịu nhẹ' : 'Low Energy'],
                     [0 as MoodPole, '🌿', lang === 'vi' ? 'Cân bằng' : 'Balanced'],
-                    [3 as MoodPole, '🌙', lang === 'vi' ? 'Hạ nhiệt' : 'Wind-Down'],
+                    [3 as MoodPole, '🌙', lang === 'vi' ? 'Ban đêm' : 'Wind-Down'],
                   ] as const
                 ).map(([poleVal, icon, label]) => {
                   const isCurrentMode =
@@ -1923,13 +1930,13 @@ export function EquilibriaClinicalApp() {
               </div>
               <h1 style={{ margin: '0 0 10px 0', fontSize: '1.75rem', color: theme.palette.textPrimary }}>
                 {lang === 'vi'
-                  ? 'Chào mừng bạn đến với Không gian Bình yên Equilibria Care'
-                  : 'Welcome to Your Equilibria Care Serene Sanctuary'}
+                  ? 'Chào mừng bạn đến với Không gian Bình yên Haven'
+                  : 'Welcome to Haven — Your Serene Mind Sanctuary'}
               </h1>
               <p style={{ margin: 0, fontSize: '1rem', color: theme.palette.textSecondary, lineHeight: 1.6 }}>
                 {lang === 'vi'
-                  ? 'Không gian trị liệu nhận thức hành vi (CBT & DBT) ấm áp, an toàn và không phán xét dành cho người trầm cảm, rối loạn lo âu và cân bằng nhịp sinh học. Vui lòng đăng nhập tài khoản cá nhân hoặc chọn chế độ vào nhanh bên dưới để bắt đầu.'
-                  : 'A warm, judgment-free CBT & DBT therapeutic space designed for depression recovery, anxiety relief, and circadian rhythm balance. Please sign in to your account or choose a 1-tap sanctuary profile below to begin.'}
+                  ? 'Không gian lắng nghe, xoa dịu lo âu, vượt qua trầm cảm và cân bằng giấc ngủ ấm áp, an toàn và không phán xét. Hãy đăng nhập hoặc chọn không gian hỗ trợ bên dưới để bắt đầu.'
+                  : 'A warm, judgment-free sanctuary designed for depression recovery, anxiety relief, and restful sleep. Sign in or select a support space below to begin.'}
               </p>
             </div>
 
@@ -2299,24 +2306,24 @@ export function EquilibriaClinicalApp() {
       <nav
         className="no-print"
         style={{
-          maxWidth: '940px',
-          margin: '18px auto 12px',
+          maxWidth: '1080px',
+          margin: '14px auto 12px',
           display: 'flex',
-          gap: '8px',
+          gap: '6px',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          padding: '0 16px',
+          padding: '0 12px',
         }}
       >
         {(
           [
             ['session-player', '🌿', lang === 'vi' ? 'Tâm sự & Nhật ký' : 'Journal & Practice'],
             ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
-            ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Khí sắc & Giấc ngủ' : 'Mood & Sleep'],
+            ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Tâm trạng & Giấc ngủ' : 'Mood & Sleep'],
             ['tools-36-team-cbt', '✨', lang === 'vi' ? 'Bài tập Tự lực' : 'Self-Care Tools'],
-            ['ai-companion-biometrics', '🤖', lang === 'vi' ? 'Trợ lý AI & HRV' : 'AI Companion'],
-            ['assessments-report', '📋', lang === 'vi' ? 'Trắc nghiệm & Bác sĩ' : 'Self-Checks'],
-            ['account-privacy-vault', '🔐', lang === 'vi' ? 'Hồ sơ & Bảo mật' : 'Account'],
+            ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý Đồng hành' : 'AI Companion'],
+            ['assessments-report', '📋', lang === 'vi' ? 'Tự đánh giá' : 'Self-Checks'],
+            ['account-privacy-vault', '👤', lang === 'vi' ? 'Hồ sơ' : 'Profile'],
           ] as const
         ).map(([tabId, icon, label]) => {
           const isSelected =
@@ -2332,13 +2339,14 @@ export function EquilibriaClinicalApp() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '9px 16px',
-                borderRadius: '14px',
+                padding: '8px 13px',
+                borderRadius: '13px',
                 border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
                 backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
                 color: isSelected ? '#ffffff' : theme.palette.textPrimary,
                 fontWeight: 600,
-                fontSize: '0.89rem',
+                fontSize: '0.88rem',
+                whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 boxShadow: isSelected ? '0 4px 12px rgba(121, 114, 152, 0.2)' : 'none',
                 transition: 'all 0.15s ease',
@@ -2373,9 +2381,9 @@ export function EquilibriaClinicalApp() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['companion', '💬', lang === 'vi' ? '1. Tâm sự & Giải tỏa Cảm xúc' : '1. Share & Emotional Relief'],
-                ['practice-7', '🌱', lang === 'vi' ? '2. Thực hành 7 Bài tập CBT/DBT' : '2. Guided CBT/DBT Practice'],
-                ['emotions', '🎨', lang === 'vi' ? '3. Gọi tên 5 Nhóm Cảm xúc' : '3. 5-Family Emotion Cards'],
+                ['companion', '💬', lang === 'vi' ? 'Tâm sự & Giải tỏa Cảm xúc' : 'Share & Emotional Relief'],
+                ['practice-7', '🌱', lang === 'vi' ? 'Thực hành Bài tập Hướng dẫn' : 'Guided Step-by-Step Practice'],
+                ['emotions', '🎨', lang === 'vi' ? 'Gọi tên 5 Nhóm Cảm xúc' : '5-Family Emotion Cards'],
               ] as const
             ).map(([viewId, icon, label]) => (
               <button
@@ -2389,7 +2397,7 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: tab1SubView === viewId ? theme.palette.surface : 'transparent',
                   color: tab1SubView === viewId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                 }}
               >
@@ -2425,7 +2433,7 @@ export function EquilibriaClinicalApp() {
                     color: phase0Mode === 'expressive' ? '#fff' : theme.palette.textSecondary,
                     border: `1px solid ${theme.palette.border}`,
                     cursor: 'pointer',
-                    fontSize: '0.82rem',
+                    fontSize: '0.85rem',
                     fontWeight: 600,
                   }}
                 >
@@ -2441,7 +2449,7 @@ export function EquilibriaClinicalApp() {
                     color: phase0Mode === 'instrumental' ? '#fff' : theme.palette.textSecondary,
                     border: `1px solid ${theme.palette.border}`,
                     cursor: 'pointer',
-                    fontSize: '0.82rem',
+                    fontSize: '0.85rem',
                     fontWeight: 600,
                   }}
                 >
@@ -2455,37 +2463,98 @@ export function EquilibriaClinicalApp() {
               value={voiceBurstText}
               onChange={(e) => setVoiceBurstText((e.target as HTMLTextAreaElement).value)}
               className="sanctuary-input"
-              placeholder={lang === 'vi' ? 'Viết ra điều đang làm bạn bận lòng...' : 'Write down what is on your mind...'}
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              placeholder={
+                lang === 'vi'
+                  ? 'Hãy viết ra điều đang làm bạn mệt mỏi, buồn phiền hay lo lắng hôm nay...'
+                  : 'Write down what is making you feel tired, sad, or anxious today...'
+              }
+              style={{ width: '100%', boxSizing: 'border-box', fontSize: '0.96rem', lineHeight: 1.55 }}
             />
 
-            {/* Generated Mood Palette */}
-            <div
-              style={{
-                marginTop: '12px',
-                padding: '14px 16px',
-                borderRadius: '14px',
-                background: voiceBurstAnalysis.moodPalette.gradientCss,
-                color: '#1e293b',
-              }}
-            >
-              <strong>{lang === 'vi' ? 'Sắc thái cảm xúc ghi nhận' : 'Detected Mood-Palette'} ({voiceBurstAnalysis.moodPalette.dominantEmotion}): </strong>
-              {lang === 'vi'
-                ? voiceBurstAnalysis.moodPalette.summaryVi
-                : voiceBurstAnalysis.moodPalette.summaryEn}
-            </div>
-
-            {phase0Mode === 'expressive' ? (
-              <p style={{ marginTop: '12px', padding: '12px 14px', borderLeft: `4px solid ${theme.palette.primary}`, backgroundColor: resultSurfaceBg, color: resultSurfaceText, borderRadius: '8px', marginBottom: 0 }}>
-                {lang === 'vi'
-                  ? voiceBurstAnalysis.earEmpathyReplyVi
-                  : voiceBurstAnalysis.earEmpathyReplyEn}
-              </p>
+            {/* Gentle Starter Prompt Chips when empty */}
+            {voiceBurstText.trim().length === 0 ? (
+              <div style={{ marginTop: '12px' }}>
+                <span style={{ fontSize: '0.84rem', color: theme.palette.textSecondary, display: 'block', marginBottom: '8px' }}>
+                  {lang === 'vi'
+                    ? '💡 Hoặc chạm nhẹ vào một cảm giác gần với bạn lúc này:'
+                    : '💡 Or tap a feeling close to yours right now:'}
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(lang === 'vi'
+                    ? [
+                        'Hôm nay mình cảm thấy kiệt sức và áp lực với công việc.',
+                        'Mình cứ lo nghĩ mãi về những chuyện chưa xảy ra.',
+                        'Mình thấy trống rỗng, buồn và không có động lực làm gì cả.',
+                      ]
+                    : [
+                        'I feel exhausted and overwhelmed by work today.',
+                        'I keep worrying about things that might go wrong.',
+                        'I feel empty, sad, and lacking motivation today.',
+                      ]
+                  ).map((sample) => (
+                    <button
+                      key={sample}
+                      type="button"
+                      onClick={() => setVoiceBurstText(sample)}
+                      style={{
+                        padding: '7px 13px',
+                        borderRadius: '18px',
+                        border: `1px solid ${theme.palette.border}`,
+                        backgroundColor: theme.palette.background,
+                        color: theme.palette.textPrimary,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <p style={{ marginTop: '12px', padding: '12px 14px', backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', fontSize: '0.9rem', marginBottom: 0 }}>
-                <strong>{lang === 'vi' ? 'Gợi ý bước tiếp theo: ' : 'Recommended Step: '}</strong>
-                {lang === 'vi' ? dbtFirstRouter.rationaleVi : dbtFirstRouter.rationaleEn}
-              </p>
+              <>
+                {/* Soft Pastel Mood Reflection Card (No harsh dark navy box!) */}
+                <div
+                  style={{
+                    marginTop: '14px',
+                    padding: '14px 16px',
+                    borderRadius: '14px',
+                    backgroundColor: resultSurfaceBg,
+                    border: `1px solid ${resultSurfaceBorder}`,
+                    color: resultSurfaceText,
+                    fontSize: '0.93rem',
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <strong style={{ color: resultAccentColor }}>
+                    {lang === 'vi' ? '🌿 Cảm xúc Haven lắng nghe được: ' : '🌿 What Haven hears in your words: '}
+                  </strong>
+                  {lang === 'vi'
+                    ? voiceBurstAnalysis.moodPalette.dominantEmotion === 'Sadness'
+                      ? 'Bạn đang mang nhiều cảm giác trầm lắng và mệt mỏi. Cơ thể và tâm trí bạn đang lên tiếng cần được vỗ về, nghỉ ngơi và bắt đầu từ những bước thật nhỏ.'
+                      : voiceBurstAnalysis.moodPalette.dominantEmotion === 'Anxiety'
+                        ? 'Tâm trí bạn đang căng lên vì nhiều nỗi lo. Hãy thả lỏng vai, hít thở chậm lại — bạn không cần phải giải quyết tất cả ngay trong một lúc.'
+                        : 'Cảm xúc của bạn đã được ghi nhận an toàn. Hãy cho phép mình dừng lại một nhịp để chăm sóc bản thân.'
+                    : voiceBurstAnalysis.moodPalette.summaryEn}
+                </div>
+
+                {phase0Mode === 'expressive' ? (
+                  <p style={{ marginTop: '12px', padding: '14px 16px', borderLeft: `4px solid ${theme.palette.primary}`, backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', marginBottom: 0, fontSize: '0.93rem', lineHeight: 1.55 }}>
+                    {lang === 'vi'
+                      ? voiceBurstAnalysis.earEmpathyReplyVi
+                      : voiceBurstAnalysis.earEmpathyReplyEn}
+                  </p>
+                ) : (
+                  <p style={{ marginTop: '12px', padding: '14px 16px', backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', fontSize: '0.93rem', lineHeight: 1.55, marginBottom: 0 }}>
+                    <strong>{lang === 'vi' ? '🌱 Gợi ý nhẹ nhàng cho bạn: ' : '🌱 Gentle Next Step: '}</strong>
+                    {lang === 'vi'
+                      ? distressIntensity >= 7
+                        ? 'Cảm xúc lúc này đang khá mạnh. Trước khi suy nghĩ tiếp, bạn hãy mở "Bình Tĩnh Ngay" ở góc trên hoặc tập thở chậm 1 phút để làm dịu cơ thể nhé.'
+                        : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang mục "Thực hành Bài tập Hướng dẫn" bên trên để viết lại suy nghĩ cân bằng hơn.'
+                      : dbtFirstRouter.rationaleEn}
+                  </p>
+                )}
+              </>
             )}
           </section>
           )}
@@ -2943,10 +3012,10 @@ export function EquilibriaClinicalApp() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['worry-box', '📦', lang === 'vi' ? '1. Chiếc hộp gác lại âu lo' : '1. Worry Box'],
-                ['wave-90s', '🌊', lang === 'vi' ? '2. Lướt sóng cảm xúc 90 giây' : '2. 90-Second Wave Surfing'],
-                ['exposure', '🪜', lang === 'vi' ? '3. Thang đối diện từng bước' : '3. Gentle Exposure Ladder'],
-                ['prediction', '🔍', lang === 'vi' ? '4. Kiểm chứng dự đoán' : '4. Prediction Calibration'],
+                ['worry-box', '📦', lang === 'vi' ? 'Chiếc hộp gác lại âu lo' : 'Worry Box'],
+                ['wave-90s', '🌊', lang === 'vi' ? 'Lướt sóng cảm xúc 90 giây' : '90s Wave Surfing'],
+                ['exposure', '🪜', lang === 'vi' ? 'Tập đối diện từng bước' : 'Gentle Exposure Steps'],
+                ['prediction', '🔍', lang === 'vi' ? 'Kiểm chứng điều lo sợ' : 'Prediction Check'],
               ] as const
             ).map(([subId, icon, label]) => (
               <button
@@ -2954,13 +3023,13 @@ export function EquilibriaClinicalApp() {
                 type="button"
                 onClick={() => setTab2SubView(subId)}
                 style={{
-                  padding: '8px 16px',
+                  padding: '8px 15px',
                   borderRadius: '12px',
                   border: tab2SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
                   backgroundColor: tab2SubView === subId ? theme.palette.surface : 'transparent',
                   color: tab2SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.89rem',
                   cursor: 'pointer',
                 }}
               >
@@ -2974,33 +3043,90 @@ export function EquilibriaClinicalApp() {
             {tab2SubView === 'worry-box' && (
             <section
               style={{
-                padding: '16px',
-                borderRadius: '10px',
+                padding: '20px',
+                borderRadius: '16px',
                 backgroundColor: theme.palette.surface,
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3 style={{ marginTop: 0 }}>
+              <h3 style={{ marginTop: 0, marginBottom: '6px' }}>
                 {lang === 'vi'
-                  ? 'Chiếc Hộp Gác Lại Âu Lo (Khung giờ xử lý 17:30–17:45)'
-                  : 'Worry Box (17:30–17:45 Postponement Window)'}
+                  ? 'Chiếc Hộp Gác Lại Âu Lo'
+                  : 'The Worry Postponement Box'}
               </h3>
+              <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: theme.palette.textSecondary, lineHeight: 1.5 }}>
+                {lang === 'vi'
+                  ? 'Khi một nỗi lo cứ xoay vòng trong đầu, hãy viết nó ra và cất vào chiếc hộp này để tâm trí được nghỉ ngơi ngay lúc này. Bạn chỉ cần dành 15 phút cuối chiều (ví dụ 17:30–17:45) để mở hộp xem lại nếu vẫn còn cần thiết.'
+                  : 'When a worry keeps looping in your head, write it here to set it aside so your mind can rest now. You can revisit it during a dedicated 15-minute afternoon window if still needed.'}
+              </p>
               <textarea
                 rows={3}
                 value={worryInput}
                 onChange={(e) => setWorryInput((e.target as HTMLTextAreaElement).value)}
-                style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+                className="sanctuary-input"
+                placeholder={
+                  lang === 'vi'
+                    ? 'Viết điều đang làm bạn lo lắng hoặc bất an vào đây để cất vào hộp...'
+                    : 'Write down the worry you want to place into the box...'
+                }
+                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem' }}
               />
-              <p style={{ fontSize: '0.88rem' }}>
-                <strong>{lang === 'vi' ? 'Phân loại tự động:' : 'Automated Classification:'}</strong>{' '}
-                `{worryProcessed.updatedItem.category === 'hypothetical'
-                  ? (lang === 'vi' ? 'Giả định tương lai' : 'Hypothetical Worry')
-                  : (lang === 'vi' ? 'Thực tế trước mắt' : 'Actionable/Current')}`{' '}
-                ({worryProcessed.updatedItem.scheduledWindowTime})
-              </p>
-              <p style={{ fontSize: '0.88rem', margin: 0, padding: '12px', borderRadius: '10px', backgroundColor: calmAlertBg, color: calmAlertText }}>
-                {lang === 'vi' ? worryProcessed.clinicalProtocolVi : worryProcessed.clinicalProtocolEn}
-              </p>
+              {worryInput.trim().length === 0 ? (
+                <div>
+                  <span style={{ fontSize: '0.84rem', color: theme.palette.textSecondary, display: 'block', marginBottom: '8px' }}>
+                    {lang === 'vi' ? '💡 Ví dụ những nỗi lo thường được cất vào hộp:' : '💡 Examples of worries to place in the box:'}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(lang === 'vi'
+                      ? [
+                          'Nhỡ đâu sắp tới công việc thay đổi và mình không theo kịp thì sao?',
+                          'Sợ buổi họp ngày mai mọi người sẽ đánh giá không tốt về mình.',
+                        ]
+                      : [
+                          'What if things go wrong at work next month?',
+                          'Worried that people might judge me in tomorrow’s meeting.',
+                        ]
+                    ).map((sample) => (
+                      <button
+                        key={sample}
+                        type="button"
+                        onClick={() => setWorryInput(sample)}
+                        style={{
+                          padding: '7px 13px',
+                          borderRadius: '18px',
+                          border: `1px solid ${theme.palette.border}`,
+                          backgroundColor: theme.palette.background,
+                          color: theme.palette.textPrimary,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {sample}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '14px 16px', borderRadius: '12px', backgroundColor: calmAlertBg, color: calmAlertText, fontSize: '0.92rem', lineHeight: 1.55 }}>
+                  <div style={{ marginBottom: '6px' }}>
+                    <strong>{lang === 'vi' ? '📦 Đã cất vào hộp an toàn • Nhóm nỗi lo: ' : '📦 Safely stored • Category: '}</strong>
+                    <span style={{ fontWeight: 700 }}>
+                      {worryProcessed.updatedItem.category === 'hypothetical'
+                        ? (lang === 'vi' ? 'Lo lắng giả định về tương lai ("Nhỡ đâu...")' : 'Hypothetical Future Worry')
+                        : (lang === 'vi' ? 'Vấn đề thực tế có thể lên kế hoạch xử lý' : 'Actionable Current Matter')}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0 }}>
+                    {worryProcessed.updatedItem.category === 'hypothetical'
+                      ? (lang === 'vi'
+                          ? 'Đây là điều chưa xảy ra và không thể giải quyết ngay lúc này. Hãy nhẹ nhàng cho phép nỗi lo này nằm yên trong hộp đến 17:30 chiều và quay lại với việc bạn đang làm nhé.'
+                          : 'This is a future what-if thought that cannot be solved right now. Let it rest in the box until your afternoon window and gently return to the present moment.')
+                      : (lang === 'vi'
+                          ? 'Đây là việc có thể giải quyết bằng một bước nhỏ cụ thể. Hãy tạm gác lại đến khung giờ chiều 17:30, khi đó bạn chỉ cần viết ra 1 hành động nhỏ 5 phút để bắt đầu.'
+                          : 'This matter can be addressed with a small concrete step during your scheduled afternoon window.')}
+                  </p>
+                </div>
+              )}
             </section>
             )}
 
@@ -3135,9 +3261,9 @@ export function EquilibriaClinicalApp() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['mood-chart', '📊', lang === 'vi' ? '1. Biểu đồ Khí sắc & Giấc ngủ' : '1. Mood & Sleep Chart'],
-                ['ipsrt-rhythm', '🕰️', lang === 'vi' ? '2. 5 Mốc Nhịp Sinh Học IPSRT' : '2. 5 Daily Rhythm Anchors'],
-                ['safety-plan', '🛡️', lang === 'vi' ? '3. Khoang chờ 48h & Kế hoạch Ulysses' : '3. 48h Delay & Care Plan'],
+                ['mood-chart', '📊', lang === 'vi' ? 'Biểu đồ Tâm trạng & Giấc ngủ' : 'Mood & Sleep Chart'],
+                ['ipsrt-rhythm', '🕰️', lang === 'vi' ? 'Nhịp sinh hoạt hàng ngày' : 'Daily Rhythm Anchors'],
+                ['safety-plan', '🛡️', lang === 'vi' ? 'Khoang suy nghĩ 48 giờ & Kế hoạch an toàn' : '48h Reflection & Care Plan'],
               ] as const
             ).map(([subId, icon, label]) => (
               <button
@@ -3151,7 +3277,7 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: tab3SubView === subId ? theme.palette.surface : 'transparent',
                   color: tab3SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.89rem',
                   cursor: 'pointer',
                 }}
               >
@@ -3160,21 +3286,38 @@ export function EquilibriaClinicalApp() {
             ))}
           </div>
 
-          {/* VIEW 1: Multi-Axis Chart + Today's Sliders combined into 1 clean card */}
+          {/* VIEW 1: Multi-Axis Chart + Legend + Today's Sliders combined into 1 clean card */}
           {tab3SubView === 'mood-chart' && (
           <section
             style={{
-              padding: '16px',
-              borderRadius: '10px',
+              padding: '20px',
+              borderRadius: '16px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
             }}
           >
-            <h3 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? 'Biểu Đồ 7 Ngày: Khí Sắc (-5..+5) • Năng Lượng (-5..+5) • Giấc Ngủ (0..12h)'
-                : '7-Day Chart: Mood (-5..+5) • Energy (-5..+5) • Sleep (0..12h)'}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>
+                {lang === 'vi'
+                  ? 'Biểu Đồ 7 Ngày: Tâm Trạng • Năng Lượng • Giấc Ngủ'
+                  : '7-Day Chart: Mood • Energy • Sleep'}
+              </h3>
+              {/* Clear Chart Legend */}
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '14px', height: '3px', backgroundColor: '#6AA882', display: 'inline-block', borderRadius: '2px' }} />
+                  {lang === 'vi' ? 'Tâm trạng' : 'Mood'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '14px', height: '3px', borderTop: '2.5px dashed #797298', display: 'inline-block' }} />
+                  {lang === 'vi' ? 'Năng lượng' : 'Energy'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '12px', height: '10px', backgroundColor: 'rgba(106, 168, 130, 0.35)', display: 'inline-block', borderRadius: '2px' }} />
+                  {lang === 'vi' ? 'Số giờ ngủ' : 'Sleep hours'}
+                </span>
+              </div>
+            </div>
             <svg
               viewBox={`0 0 ${bipolarMultiAxisSvgChart.width} ${bipolarMultiAxisSvgChart.height}`}
               style={{
@@ -3264,30 +3407,50 @@ export function EquilibriaClinicalApp() {
               ))}
             </svg>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginTop: '16px', fontSize: '0.88rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '16px', fontSize: '0.92rem' }}>
               <label>
-                {lang === 'vi' ? `Khí sắc hôm nay (-5..+5): ${moodPolarity}` : `Today's Mood (-5..+5): ${moodPolarity}`}
+                <span style={{ fontWeight: 600 }}>
+                  {lang === 'vi'
+                    ? `Tâm trạng hôm nay: ${
+                        moodPolarity === 0
+                          ? 'Bình ổn (0)'
+                          : moodPolarity > 0
+                            ? `Vui vẻ / Hưng phấn (+${moodPolarity})`
+                            : `Trầm lắng (${moodPolarity})`
+                      }`
+                    : `Today's Mood: ${moodPolarity}`}
+                </span>
                 <input
                   type="range"
                   min={-5}
                   max={5}
                   value={moodPolarity}
                   onChange={(e) => setMoodPolarity(Number((e.target as HTMLInputElement).value) as MoodPole)}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginTop: '6px' }}
                 />
               </label>
               <label>
-                {lang === 'vi' ? `Mức năng lượng (-5..+5): ${energyLevel}` : `Energy Level (-5..+5): ${energyLevel}`}
+                <span style={{ fontWeight: 600 }}>
+                  {lang === 'vi'
+                    ? `Mức năng lượng: ${
+                        energyLevel === 0
+                          ? 'Vừa phải (0)'
+                          : energyLevel > 0
+                            ? `Dồi dào (+${energyLevel})`
+                            : `Mệt mỏi (${energyLevel})`
+                      }`
+                    : `Energy Level: ${energyLevel}`}
+                </span>
                 <input
                   type="range"
                   min={-5}
                   max={5}
                   value={energyLevel}
                   onChange={(e) => setEnergyLevel(Number((e.target as HTMLInputElement).value) as MoodPole)}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginTop: '6px' }}
                 />
               </label>
-              <label>
+              <label style={{ display: 'flex', alignItems: 'center', fontWeight: 600 }}>
                 {lang === 'vi' ? `Số giờ ngủ đêm qua:` : `Sleep hours last night:`}
                 <input
                   type="number"
@@ -3296,23 +3459,29 @@ export function EquilibriaClinicalApp() {
                   step={0.5}
                   value={sleepHours}
                   onChange={(e) => setSleepHours(Number((e.target as HTMLInputElement).value))}
-                  style={{ width: '70px', marginLeft: '8px' }}
+                  className="sanctuary-input"
+                  style={{ width: '76px', marginLeft: '10px', padding: '6px 10px' }}
                 />
               </label>
             </div>
             <div
               style={{
-                marginTop: '12px',
-                padding: '12px 14px',
-                borderRadius: '10px',
+                marginTop: '14px',
+                padding: '13px 16px',
+                borderRadius: '12px',
                 backgroundColor:
                   bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? warnAlertBg : calmAlertBg,
                 color:
                   bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? warnAlertText : calmAlertText,
-                fontSize: '0.88rem',
+                fontSize: '0.92rem',
+                lineHeight: 1.5,
               }}
             >
-              {lang === 'vi' ? bipolarAnalysis.clinicalAlertVi : bipolarAnalysis.clinicalAlertEn}
+              {bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome
+                ? (lang === 'vi' ? bipolarAnalysis.clinicalAlertVi : bipolarAnalysis.clinicalAlertEn)
+                : (lang === 'vi'
+                    ? '🌿 Tâm trạng và năng lượng của bạn hôm nay đang ở trạng thái cân bằng. Hãy tiếp tục duy trì giờ thức dậy và giờ đi ngủ đều đặn nhé.'
+                    : '🌿 Your mood and energy are balanced today. Keep maintaining a steady sleep and wake schedule.')}
             </div>
           </section>
           )}
@@ -3399,8 +3568,8 @@ export function EquilibriaClinicalApp() {
           <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['scales-6', '📋', lang === 'vi' ? '1. 6 Thang Đo Tâm Lý Định Kỳ' : '1. 6 Clinical Self-Checks'],
-                ['doctor-report', '🩺', lang === 'vi' ? '2. Báo Cáo Bác Sĩ & Xuất Dữ Liệu' : '2. Doctor Summary & Export'],
+                ['scales-6', '📋', lang === 'vi' ? 'Bài tự kiểm tra tâm lý & giấc ngủ' : 'Self-Check Questionnaires'],
+                ['doctor-report', '🩺', lang === 'vi' ? 'Báo cáo tóm tắt gửi Bác sĩ' : 'Doctor Summary & Export'],
               ] as const
             ).map(([subId, icon, label]) => (
               <button
@@ -3414,7 +3583,7 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: tab4SubView === subId ? theme.palette.surface : 'transparent',
                   color: tab4SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                 }}
               >
@@ -3426,34 +3595,155 @@ export function EquilibriaClinicalApp() {
           {tab4SubView === 'scales-6' && (
           <section
             style={{
-              padding: '16px',
-              borderRadius: '10px',
+              padding: '20px',
+              borderRadius: '16px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
             }}
           >
-            <h3 style={{ marginTop: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+              <h3 style={{ margin: 0 }}>
+                {lang === 'vi'
+                  ? 'Các Bài Tự Kiểm Tra Sức Khỏe Tâm Trí Định Kỳ'
+                  : 'Mental Health & Sleep Self-Check Questionnaires'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedBipolarScales(!showAdvancedBipolarScales)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: 'transparent',
+                  color: theme.palette.textSecondary,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {showAdvancedBipolarScales
+                  ? (lang === 'vi' ? 'Ẩn thang đo chuyên sâu' : 'Hide advanced scales')
+                  : (lang === 'vi' ? '+ Hiện thêm thang đo khí sắc chuyên sâu' : '+ Show advanced mood scales')}
+              </button>
+            </div>
+            <p style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: theme.palette.textSecondary, lineHeight: 1.5 }}>
               {lang === 'vi'
-                ? '6 Thang Đo Đánh Giá Định Kỳ (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'
-                : 'Routine Clinical Assessments Suite (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'}
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-              {assessments.map((a) => (
-                <div
-                  key={a.id}
-                  style={{
-                    padding: '14px',
-                    borderRadius: '12px',
-                    border: `1px solid ${theme.palette.border}`,
-                    fontSize: '0.88rem',
-                  }}
-                >
-                  <strong>{lang === 'vi' ? a.labelVi : a.labelEn}</strong>
-                  <p style={{ margin: '6px 0 0 0', color: theme.palette.textSecondary }}>
-                    {lang === 'vi' ? a.clinicalRecommendationVi : a.clinicalRecommendationEn}
-                  </p>
-                </div>
-              ))}
+                ? 'Hãy chọn bài kiểm tra phù hợp với điều bạn đang muốn lắng nghe ở bản thân hôm nay. Kết quả chỉ hiển thị sau khi bạn bấm thực hiện.'
+                : 'Choose a brief self-check that matches what you want to explore today. Results only appear after you complete a check.'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+              {assessments
+                .filter((a) => {
+                  const isBipolarScale = a.type === 'ASRM' || a.type === 'MDQ';
+                  if (isBipolarScale && !showAdvancedBipolarScales && accountSession?.user.disorderFocus !== 'bipolar') {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((a) => {
+                  const isDone = Boolean(completedScaleIds[a.id]);
+                  const friendlyTitleVi =
+                    a.type === 'BMS'
+                      ? 'Khảo sát Cảm xúc Hôm nay (BMS)'
+                      : a.type === 'PHQ-9'
+                        ? 'Kiểm tra Tâm trạng & Năng lượng (PHQ-9)'
+                        : a.type === 'GAD-7'
+                          ? 'Kiểm tra Mức độ Lo âu & Căng thẳng (GAD-7)'
+                          : a.type === 'ISI'
+                            ? 'Kiểm tra Chất lượng Giấc ngủ (ISI)'
+                            : a.type === 'ASRM'
+                              ? 'Kiểm tra Mức độ Hưng phấn Năng lượng (ASRM)'
+                              : 'Khảo sát Chu kỳ Khí sắc Hai cực (MDQ)';
+                  const friendlyIntroVi =
+                    a.type === 'BMS'
+                      ? 'Đánh giá nhanh cảm giác buồn, lo lắng, bực bội và mức độ tích cực ngay trong ngày hôm nay.'
+                      : a.type === 'PHQ-9'
+                        ? '9 câu hỏi chuẩn quốc tế giúp nhận diện tình trạng mệt mỏi, giảm hứng thú và trầm lắng trong 2 tuần qua.'
+                        : a.type === 'GAD-7'
+                          ? '7 câu hỏi giúp đo lường mức độ bồn chồn, lo nghĩ quá mức và khó thư giãn.'
+                          : a.type === 'ISI'
+                            ? 'Đánh giá tình trạng khó vào giấc, thức giấc giữa đêm và cảm giác mệt mỏi sau khi ngủ dậy.'
+                            : 'Thang đo chuyên sâu dành cho người cần theo dõi dao động năng lượng cao.';
+                  const friendlyResultVi =
+                    a.type === 'BMS'
+                      ? 'Đã ghi nhận bức tranh cảm xúc hôm nay của bạn. Bạn có thể làm lại sau buổi thực hành để thấy sự thay đổi nhẹ nhàng.'
+                      : a.type === 'PHQ-9'
+                        ? 'Kết quả: Mức độ nhẹ (6/27 điểm). Hãy ưu tiên giấc ngủ, từng bước nhỏ mỗi ngày và đừng ép bản thân làm quá sức.'
+                        : a.type === 'GAD-7'
+                          ? 'Kết quả: Lo âu mức nhẹ (9/21 điểm). Các bài tập thở chậm và Chiếc hộp gác lại âu lo sẽ giúp bạn thư giãn tốt hơn.'
+                          : a.type === 'ISI'
+                            ? 'Kết quả: Giấc ngủ tương đối ổn định (5/28 điểm). Hãy duy trì giờ thức dậy cố định mỗi sáng.'
+                            : a.clinicalRecommendationVi;
+
+                  return (
+                    <div
+                      key={a.id}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '14px',
+                        border: isDone ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                        backgroundColor: isDone ? resultSurfaceBg : theme.palette.surface,
+                        fontSize: '0.92rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+                          <strong style={{ fontSize: '0.96rem', color: theme.palette.textPrimary }}>
+                            {lang === 'vi' ? friendlyTitleVi : a.labelEn}
+                          </strong>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              backgroundColor: isDone ? 'rgba(106, 168, 130, 0.18)' : 'rgba(121, 114, 152, 0.1)',
+                              color: isDone ? theme.palette.accent : theme.palette.textSecondary,
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {isDone
+                              ? (lang === 'vi' ? '✓ Đã hoàn thành' : '✓ Completed')
+                              : (lang === 'vi' ? 'Chưa thực hiện' : 'Not started')}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, color: theme.palette.textSecondary, fontSize: '0.88rem', lineHeight: 1.5 }}>
+                          {isDone
+                            ? (lang === 'vi' ? friendlyResultVi : a.clinicalRecommendationEn)
+                            : (lang === 'vi' ? friendlyIntroVi : 'Click below to complete this 2-minute self-check.')}
+                        </p>
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCompletedScaleIds((prev) => ({
+                              ...prev,
+                              [a.id]: !prev[a.id],
+                            }))
+                          }
+                          style={{
+                            padding: '7px 14px',
+                            borderRadius: '10px',
+                            border: isDone ? `1px solid ${theme.palette.border}` : 'none',
+                            backgroundColor: isDone ? 'transparent' : theme.palette.primary,
+                            color: isDone ? theme.palette.textSecondary : '#ffffff',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {isDone
+                            ? (lang === 'vi' ? 'Làm lại bài kiểm tra' : 'Retake Check')
+                            : (lang === 'vi' ? 'Bắt đầu kiểm tra (2 phút) →' : 'Start Self-Check →')}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </section>
           )}
@@ -3555,12 +3845,12 @@ export function EquilibriaClinicalApp() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['catalog-36', '🧰', lang === 'vi' ? '1. Kho 36 Bài Tập Nhanh' : '1. 36 Quick Tools'],
-                ['mp-sheet', '☀️', lang === 'vi' ? '2. Dự Đoán Niềm Vui' : '2. Pleasure-Predicting'],
-                ['anti-procrastination', '⏱️', lang === 'vi' ? '3. Vượt Trì Hoãn 5 Phút' : '3. 5-Min Anti-Procrastination'],
-                ['downward-arrow', '🏹', lang === 'vi' ? '4. Mũi Tên Đi Xuống' : '4. Downward Arrow'],
-                ['abc-please', '🌿', lang === 'vi' ? '5. Chăm Sóc ABC PLEASE' : '5. ABC PLEASE & ACCEPTS'],
-                ['cbti-sleep', '🌙', lang === 'vi' ? '6. Giấc Ngủ CBT-I' : '6. CBT-I Sleep Diary'],
+                ['catalog-36', '🧰', lang === 'vi' ? 'Thư viện Bài tập Nhanh' : 'Quick Exercises'],
+                ['mp-sheet', '☀️', lang === 'vi' ? 'Dự đoán Niềm vui' : 'Pleasure Predicting'],
+                ['anti-procrastination', '⏱️', lang === 'vi' ? 'Vượt Trì hoãn 5 Phút' : '5-Min Start'],
+                ['downward-arrow', '🏹', lang === 'vi' ? 'Tháo gỡ Niềm tin Khắt khe' : 'Core Beliefs'],
+                ['abc-please', '🌿', lang === 'vi' ? 'Chăm sóc Thân - Tâm' : 'Daily Resilience'],
+                ['cbti-sleep', '🌙', lang === 'vi' ? 'Nhật ký Giấc ngủ' : 'Sleep Diary'],
               ] as const
             ).map(([subId, icon, label]) => {
               const isSelected = activeToolkitSubTab === subId;
@@ -3576,7 +3866,7 @@ export function EquilibriaClinicalApp() {
                     backgroundColor: isSelected ? theme.palette.surface : 'transparent',
                     color: isSelected ? theme.palette.primary : theme.palette.textSecondary,
                     fontWeight: 700,
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
                   }}
                 >
@@ -3586,31 +3876,52 @@ export function EquilibriaClinicalApp() {
             })}
           </div>
 
-          {/* 1. 36 Interactive CBT, TEAM-CBT, DBT & Bipolar Toolkit Hub (0ms execution) */}
+          {/* 1. Interactive Self-Care Exercises Hub (Clean grid, no nested scroll, no dev jargon) */}
           {(activeToolkitSubTab === 'catalog-36' || activeToolkitSubTab === 'all') && (
           <section
             style={{
-              padding: '16px',
-              borderRadius: '10px',
+              padding: '20px',
+              borderRadius: '16px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
               marginBottom: '16px',
             }}
           >
-            <h2 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? `1. Thư Viện 36 Bài Tập Tự Lực Tâm Lý (Xử lý tức thì 0ms — Đủ ${WEB_36_CBT_TOOLS.length}/36 Bài Tập)`
-                : `1. Interactive 36 CBT • TEAM-CBT • DBT • IPSRT Tools Suite (${WEB_36_CBT_TOOLS.length}/36 Tools)`}
-            </h2>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>
+                {lang === 'vi'
+                  ? 'Thư Viện Bài Tập Tự Lực Tâm Lý (3–5 phút mỗi bài)'
+                  : 'Guided Self-Care Exercises (3–5 minutes each)'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAll36Tools(!showAll36Tools)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: 'transparent',
+                  color: theme.palette.primary,
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {showAll36Tools
+                  ? (lang === 'vi' ? 'Thu gọn danh sách (Hiện 9 bài tiêu biểu)' : 'Show Top 9 Exercises')
+                  : (lang === 'vi' ? `Xem đầy đủ cả ${WEB_36_CBT_TOOLS.length} bài tập →` : `View All ${WEB_36_CBT_TOOLS.length} Exercises →`)}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
               {(
                 [
                   'ALL',
                   'Anxiety & ERP',
                   'Depression & TEAM-CBT',
-                  'Bipolar & IPSRT',
                   'DBT Distress & Regulation',
                   'Work & Burnout',
+                  'Bipolar & IPSRT',
                 ] as const
               ).map((cat) => (
                 <button
@@ -3618,108 +3929,159 @@ export function EquilibriaClinicalApp() {
                   type="button"
                   onClick={() => setSelectedToolCategory(cat)}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
+                    padding: '6px 13px',
+                    borderRadius: '10px',
                     border: `1px solid ${theme.palette.border}`,
                     backgroundColor: selectedToolCategory === cat ? theme.palette.primary : 'transparent',
                     color: selectedToolCategory === cat ? '#fff' : theme.palette.textPrimary,
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
                     cursor: 'pointer',
                   }}
                 >
                   {cat === 'ALL'
-                    ? (lang === 'vi' ? `Tất cả (${WEB_36_CBT_TOOLS.length})` : `All (${WEB_36_CBT_TOOLS.length})`)
+                    ? (lang === 'vi' ? 'Gợi ý tiêu biểu' : 'Featured')
                     : cat === 'Anxiety & ERP'
-                      ? (lang === 'vi' ? 'Âu lo & Phơi nhiễm' : cat)
+                      ? (lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief')
                       : cat === 'Depression & TEAM-CBT'
-                        ? (lang === 'vi' ? 'Trầm cảm & TEAM-CBT' : cat)
+                        ? (lang === 'vi' ? 'Vượt qua Trầm cảm' : 'Depression Recovery')
                         : cat === 'Bipolar & IPSRT'
-                          ? (lang === 'vi' ? 'Lưỡng cực & Nhịp sinh học' : cat)
+                          ? (lang === 'vi' ? 'Ổn định Nhịp sinh học' : 'Daily Rhythm')
                           : cat === 'DBT Distress & Regulation'
-                            ? (lang === 'vi' ? 'Cân bằng Cảm xúc DBT' : cat)
-                            : (lang === 'vi' ? 'Công việc & Kiệt sức' : cat)}
+                            ? (lang === 'vi' ? 'Cân bằng Cảm xúc' : 'Emotion Balance')
+                            : (lang === 'vi' ? 'Công việc & Kiệt sức' : 'Work & Burnout')}
                 </button>
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', maxHeight: '280px', overflowY: 'auto', padding: '4px', marginBottom: '12px' }}>
-              {filtered36Tools.map((tool) => (
-                <button
-                  key={tool.id}
-                  type="button"
-                  onClick={() => setSelectedToolId(tool.id)}
+            {/* Clean Grid without nested scrollbar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px', marginBottom: '18px' }}>
+              {(selectedToolCategory === 'ALL' && !showAll36Tools
+                ? filtered36Tools.slice(0, 9)
+                : filtered36Tools
+              ).map((tool) => {
+                const cleanTitleVi = tool.titleVi.replace(/\s*\([^)]*\)/g, '').trim();
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => setSelectedToolId(tool.id)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border:
+                        selectedToolId === tool.id
+                          ? `2px solid ${theme.palette.primary}`
+                          : `1px solid ${theme.palette.border}`,
+                      backgroundColor: selectedToolId === tool.id ? resultSurfaceBg : theme.palette.surface,
+                      color: theme.palette.textPrimary,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.92rem', display: 'block', marginBottom: '4px' }}>
+                      {lang === 'vi' ? cleanTitleVi : tool.titleEn}
+                    </strong>
+                    <div style={{ fontSize: '0.8rem', color: theme.palette.textSecondary }}>
+                      ⏱️ {tool.durationMinutes} {lang === 'vi' ? 'phút thực hành' : 'min'} •{' '}
+                      {lang === 'vi'
+                        ? tool.category === 'Anxiety & ERP'
+                          ? 'Làm dịu Lo âu'
+                          : tool.category === 'Depression & TEAM-CBT'
+                            ? 'Vượt qua Trầm cảm'
+                            : tool.category === 'Bipolar & IPSRT'
+                              ? 'Nhịp sinh học'
+                              : tool.category === 'DBT Distress & Regulation'
+                                ? 'Cân bằng Cảm xúc'
+                                : 'Công việc & Kiệt sức'
+                        : tool.category}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ paddingTop: '14px', borderTop: `1px solid ${theme.palette.border}` }}>
+              <label style={{ display: 'block', fontSize: '0.92rem', fontWeight: 600, marginBottom: '8px' }}>
+                {lang === 'vi'
+                  ? `🌱 Thực hành bài tập "${toolExecutionResult.tool.titleVi.replace(/\s*\([^)]*\)/g, '')}":`
+                  : `🌱 Practice "${toolExecutionResult.tool.titleEn}":`}
+              </label>
+              <textarea
+                rows={2}
+                value={toolUserInput}
+                onChange={(e) => setToolUserInput((e.target as HTMLTextAreaElement).value)}
+                className="sanctuary-input"
+                placeholder={
+                  lang === 'vi'
+                    ? 'Nhập tình huống hoặc suy nghĩ của bạn vào đây để nhận gợi ý từng bước...'
+                    : 'Type your thought or situation here to get step-by-step guidance...'
+                }
+                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '10px', fontSize: '0.94rem' }}
+              />
+
+              {toolUserInput.trim().length === 0 ? (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.84rem', color: theme.palette.textSecondary }}>
+                    {lang === 'vi' ? '💡 Gợi ý tình huống mẫu:' : '💡 Sample situation:'}
+                  </span>
+                  {(lang === 'vi'
+                    ? [
+                        'Mình sợ làm một mình sẽ chẳng có niềm vui và dễ bỏ cuộc.',
+                        'Công việc nhiều quá khiến mình trì hoãn chưa dám bắt đầu.',
+                      ]
+                    : [
+                        'I worry that doing this alone will bring no joy.',
+                        'The task feels too overwhelming to start.',
+                      ]
+                  ).map((sample) => (
+                    <button
+                      key={sample}
+                      type="button"
+                      onClick={() => setToolUserInput(sample)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '16px',
+                        border: `1px solid ${theme.palette.border}`,
+                        backgroundColor: theme.palette.background,
+                        color: theme.palette.textPrimary,
+                        fontSize: '0.83rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div
                   style={{
-                    textAlign: 'left',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border:
-                      selectedToolId === tool.id
-                        ? `2px solid ${theme.palette.primary}`
-                        : `1px solid ${theme.palette.border}`,
-                    backgroundColor: theme.palette.surface,
-                    color: theme.palette.textPrimary,
-                    cursor: 'pointer',
+                    padding: '14px 16px',
+                    borderRadius: '14px',
+                    backgroundColor: resultSurfaceBg,
+                    color: resultSurfaceText,
+                    border: `1px solid ${resultSurfaceBorder}`,
+                    fontSize: '0.92rem',
+                    lineHeight: 1.55,
                   }}
                 >
-                  <strong>
-                    #{tool.number}. {lang === 'vi' ? tool.titleVi : tool.titleEn}
-                  </strong>
-                  <div style={{ fontSize: '0.78rem', color: theme.palette.textSecondary }}>
-                    [{tool.clinicalOrigin}] • {lang === 'vi' ? (
-                      tool.category === 'Anxiety & ERP' ? 'Âu lo & Phơi nhiễm' :
-                      tool.category === 'Depression & TEAM-CBT' ? 'Trầm cảm & TEAM-CBT' :
-                      tool.category === 'Bipolar & IPSRT' ? 'Lưỡng cực & Nhịp sinh học' :
-                      tool.category === 'DBT Distress & Regulation' ? 'Cân bằng Cảm xúc DBT' :
-                      'Công việc & Kiệt sức'
-                    ) : tool.category} • {tool.durationMinutes} {lang === 'vi' ? 'phút' : 'min'}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, marginBottom: '6px' }}>
-              {lang === 'vi'
-                ? `Nhập suy nghĩ hoặc tình huống để chạy công cụ #${toolExecutionResult.tool.number} (${toolExecutionResult.tool.titleVi}):`
-                : `Enter thought or situation to run tool #${toolExecutionResult.tool.number} (${toolExecutionResult.tool.titleEn}):`}
-            </label>
-            <textarea
-              rows={2}
-              value={toolUserInput}
-              onChange={(e) => setToolUserInput((e.target as HTMLTextAreaElement).value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}
-            />
-
-            <div
-              style={{
-                padding: '14px 16px',
-                borderRadius: '14px',
-                backgroundColor: resultSurfaceBg,
-                color: resultSurfaceText,
-                border: `1px solid ${resultSurfaceBorder}`,
-                fontSize: '0.88rem',
-              }}
-            >
-              <div>
-                <strong>
-                  {lang === 'vi'
-                    ? `Kết quả Phân tích (${toolExecutionResult.kbCitation}):`
-                    : `Deterministic Analysis (${toolExecutionResult.kbCitation}):`}
-                </strong>
-              </div>
-              <p style={{ margin: '6px 0' }}>
-                {lang === 'vi'
-                  ? toolExecutionResult.reframeOrActionCardVi
-                  : toolExecutionResult.reframeOrActionCardEn}
-              </p>
-              <p style={{ margin: '6px 0', color: resultAccentColor }}>
-                <strong>{lang === 'vi' ? 'Bước hành động tiếp theo:' : 'Next Action Step:'}</strong>{' '}
-                {lang === 'vi' ? toolExecutionResult.nextMicroStepVi : toolExecutionResult.nextMicroStepEn}
-              </p>
-              {toolExecutionResult.bipolarSafetyNoteVi && (
-                <p style={{ margin: '6px 0 0 0', color: theme.palette.sosBanner, fontWeight: 600 }}>
-                  {lang === 'vi'
-                    ? toolExecutionResult.bipolarSafetyNoteVi
-                    : toolExecutionResult.bipolarSafetyNoteEn}
-                </p>
+                  <p style={{ margin: '0 0 8px 0' }}>
+                    <strong style={{ color: resultAccentColor }}>
+                      {lang === 'vi' ? '🌿 Góc nhìn gợi mở: ' : '🌿 Gentle Reframe: '}
+                    </strong>
+                    {(lang === 'vi'
+                      ? toolExecutionResult.reframeOrActionCardVi
+                      : toolExecutionResult.reframeOrActionCardEn
+                    ).replace(/^\[#\d+[^\]]*\]\s*/g, '')}
+                  </p>
+                  <p style={{ margin: 0, color: theme.palette.accent, fontWeight: 600 }}>
+                    <strong>{lang === 'vi' ? '🌱 Bước nhỏ tiếp theo (5 phút): ' : '🌱 Next 5-Minute Step: '}</strong>
+                    {lang === 'vi'
+                      ? 'Hãy thử bắt đầu chỉ trong 5 phút với một hành động nhỏ nhất, không áp lực phải hoàn hảo.'
+                      : toolExecutionResult.nextMicroStepEn}
+                  </p>
+                </div>
               )}
             </div>
           </section>
@@ -4006,22 +4368,22 @@ export function EquilibriaClinicalApp() {
             isDark={theme.mode === 'low-stimulus-mania'}
             title={
               lang === 'vi'
-                ? 'Người Bạn Đồng Hành Trí Tuệ AI & Nhịp Sinh Trắc'
-                : 'Empathetic AI Companion & Biometric Harmony'
+                ? 'Người Bạn Đồng Hành Tâm Trí Haven'
+                : 'Haven Empathetic Mind Companion'
             }
             subtitle={
               lang === 'vi'
-                ? 'Trò chuyện thấu cảm dựa trên y học thực chứng, lắng nghe nhịp giọng nói và theo dõi độ biến thiên nhịp tim HRV.'
-                : 'Evidence-grounded empathetic dialogue, voice tone reflection, and baseline-relative HRV insights.'
+                ? 'Không gian trò chuyện thấu cảm, luôn lắng nghe không phán xét và đồng hành cùng bạn gỡ rối từng bước nhỏ.'
+                : 'A warm, judgment-free dialogue space that listens with empathy and gently guides you step by step.'
             }
           />
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['ai-chat', '🤖', lang === 'vi' ? '1. Trò chuyện cùng Trợ lý AI' : '1. Chat with AI Companion'],
-                ['voice-palette', '🎙️', lang === 'vi' ? '2. Phân tích Nhịp nói & Bảng màu' : '2. Voice Tone & Mood-Palette'],
-                ['hrv-memory', '💓', lang === 'vi' ? '3. Sinh trắc HRV & Bộ nhớ' : '3. Wearable HRV & Memory'],
+                ['ai-chat', '💬', lang === 'vi' ? 'Trò chuyện cùng Haven' : 'Chat with Haven'],
+                ['voice-palette', '🎙️', lang === 'vi' ? 'Nhật ký Giọng nói & Cảm xúc' : 'Voice & Emotion Reflection'],
+                ['hrv-memory', '💓', lang === 'vi' ? 'Nhịp cơ thể & Quyền riêng tư' : 'Body Rhythm & Memory Privacy'],
               ] as const
             ).map(([subId, icon, label]) => (
               <button
@@ -4035,7 +4397,7 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: tab6SubView === subId ? theme.palette.surface : 'transparent',
                   color: tab6SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                 }}
               >
@@ -4045,128 +4407,140 @@ export function EquilibriaClinicalApp() {
           </div>
 
           <div>
-            {/* 1. Grounded AI Companion */}
+            {/* 1. Conversational Empathetic AI Companion (Real Chat Bubbles, No Dev Toggles) */}
             {tab6SubView === 'ai-chat' && (
             <section
               style={{
-                padding: '16px',
-                borderRadius: '10px',
+                padding: '20px',
+                borderRadius: '18px',
                 backgroundColor: theme.palette.surface,
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3 style={{ marginTop: 0 }}>
-                {lang === 'vi'
-                  ? 'Trò Chuyện Cùng Người Bạn Đồng Hành AI'
-                  : 'Grounded AI Companion Dialogue'}
-              </h3>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                {(
-                  [
-                    ['offline-deterministic', lang === 'vi' ? 'Chế độ Nhanh Cục Bộ' : 'Offline Deterministic'],
-                    ['local-ollama', lang === 'vi' ? 'Mô Hình Cục Bộ Ollama' : 'Local Ollama'],
-                    ['cloud-serverless-rag', lang === 'vi' ? 'Đám Mây Bảo Mật' : 'Cloud RAG'],
-                  ] as const
-                ).map(([provId, label]) => (
-                  <button
-                    key={provId}
-                    type="button"
-                    onClick={() => setPhase3Provider(provId)}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0 }}>
+                  {lang === 'vi'
+                    ? 'Trò Chuyện Cùng Người Bạn Đồng Hành Haven'
+                    : 'Dialogue with Your Haven Companion'}
+                </h3>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(106, 168, 130, 0.15)',
+                    color: theme.palette.accent,
+                    fontWeight: 600,
+                  }}
+                >
+                  {lang === 'vi' ? '🌿 Luôn lắng nghe & Bảo mật riêng tư' : '🌿 Empathetic & Private'}
+                </span>
+              </div>
+
+              {/* Chat Bubbles History */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: theme.palette.background,
+                  border: `1px solid ${theme.palette.border}`,
+                  marginBottom: '14px',
+                  maxHeight: '360px',
+                  overflowY: 'auto',
+                }}
+              >
+                {chatHistory.map((msg, idx) => (
+                  <div
+                    key={idx}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${theme.palette.border}`,
-                      backgroundColor: phase3Provider === provId ? theme.palette.primary : 'transparent',
-                      color: phase3Provider === provId ? '#fff' : theme.palette.textPrimary,
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                      fontWeight: 600,
+                      alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                      maxWidth: '82%',
+                      padding: '12px 16px',
+                      borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                      backgroundColor: msg.role === 'user' ? theme.palette.primary : theme.palette.surface,
+                      color: msg.role === 'user' ? '#ffffff' : theme.palette.textPrimary,
+                      border: msg.role === 'user' ? 'none' : `1px solid ${theme.palette.border}`,
+                      fontSize: '0.94rem',
+                      lineHeight: 1.55,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
                     }}
                   >
-                    {label}
+                    {msg.role === 'assistant' && (
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.palette.primary, marginBottom: '4px' }}>
+                        🌿 Haven
+                      </div>
+                    )}
+                    <div>{lang === 'vi' ? msg.textVi : msg.textEn}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gentle Conversation Starter Chips */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {(lang === 'vi'
+                  ? [
+                      'Mình đang thấy bất an và lo lắng quá, giúp mình bình tĩnh lại nhé.',
+                      'Làm sao để bớt tự trách bản thân khi mắc lỗi?',
+                      'Hôm nay mình kiệt sức không muốn làm gì cả.',
+                    ]
+                  : [
+                      'I am feeling anxious right now, can you help me calm down?',
+                      'How can I stop being so hard on myself after a mistake?',
+                      'I feel completely drained of energy today.',
+                    ]
+                ).map((promptText) => (
+                  <button
+                    key={promptText}
+                    type="button"
+                    onClick={() => void handleSendPhase3GroundedChat(promptText)}
+                    style={{
+                      padding: '6px 13px',
+                      borderRadius: '16px',
+                      border: `1px solid ${theme.palette.border}`,
+                      backgroundColor: theme.palette.background,
+                      color: theme.palette.textPrimary,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    💬 {promptText}
                   </button>
                 ))}
               </div>
 
-              {phase3Provider === 'local-ollama' && (
-                <div style={{ marginBottom: '10px', fontSize: '0.85rem' }}>
-                  <label>
-                    {lang === 'vi' ? 'Mô hình Ollama cục bộ:' : 'Local Ollama Model:'}{' '}
-                    <select
-                      value={ollamaModelName}
-                      onChange={(e) => setOllamaModelName((e.target as HTMLSelectElement).value)}
-                    >
-                      <option value="qwen3.5:9b">qwen3.5:9b</option>
-                      <option value="qwen2.5:7b">qwen2.5:7b</option>
-                      <option value="llama3.2:3b">llama3.2:3b</option>
-                    </select>
-                  </label>
-                </div>
-              )}
-
-              <textarea
-                rows={3}
-                value={phase3ChatInput}
-                onChange={(e) => setPhase3ChatInput((e.target as HTMLTextAreaElement).value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}
-              />
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <textarea
+                  rows={2}
+                  value={phase3ChatInput}
+                  onChange={(e) => setPhase3ChatInput((e.target as HTMLTextAreaElement).value)}
+                  className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Viết lời tâm sự hoặc câu hỏi của bạn cho Haven...'
+                      : 'Write your thoughts or question for Haven...'
+                  }
+                  style={{ flex: '1 1 260px', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                />
                 <button
                   type="button"
                   onClick={() => void handleSendPhase3GroundedChat()}
                   style={{
-                    padding: '9px 16px',
-                    borderRadius: '10px',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
                     backgroundColor: theme.palette.primary,
                     color: '#fff',
                     border: 'none',
-                    fontWeight: 600,
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {lang === 'vi' ? 'Gửi Tin Nhắn Tâm Sự' : 'Send Message'}
+                  {lang === 'vi' ? 'Gửi tin nhắn →' : 'Send →'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPhase3ChatInput(lang === 'vi' ? 'Công thức nấu phở bò ngon nhất là gì?' : 'What is the best beef pho recipe?')
-                  }
-                  style={{ padding: '8px 12px', borderRadius: '10px', border: `1px solid ${theme.palette.border}`, backgroundColor: 'transparent', cursor: 'pointer', fontSize: '0.84rem' }}
-                >
-                  {lang === 'vi' ? 'Thử Câu Hỏi Ngoài Phạm Vi Tâm Lý' : 'Test Out-of-Scope Query'}
-                </button>
-              </div>
-
-              <div
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '14px',
-                  backgroundColor: resultSurfaceBg,
-                  color: resultSurfaceText,
-                  border: `1px solid ${resultSurfaceBorder}`,
-                  fontSize: '0.9rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                  <strong>
-                    {lang === 'vi' ? 'Phản hồi từ Người bạn Đồng hành AI:' : 'AI Companion Response:'}
-                  </strong>
-                  <span
-                    style={{
-                      padding: '2px 10px',
-                      borderRadius: '8px',
-                      backgroundColor: phase3LastAbstained ? '#b45309' : theme.palette.accent,
-                      color: '#fff',
-                      fontSize: '0.76rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {phase3LastAbstained
-                      ? (lang === 'vi' ? 'Ngoài phạm vi hỗ trợ tâm lý' : 'Out of Clinical Scope')
-                      : (lang === 'vi' ? 'Đạt chuẩn Y học Thực chứng' : 'Evidence-Grounded')}
-                  </span>
-                </div>
-                <p style={{ margin: 0, lineHeight: 1.6 }}>{phase3LastReply}</p>
               </div>
             </section>
             )}
@@ -4392,9 +4766,9 @@ export function EquilibriaClinicalApp() {
           <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {(
               [
-                ['profile', '👤', lang === 'vi' ? '1. Hồ sơ & Người thân Hỗ trợ' : '1. Profile & Support Contact'],
-                ['doctor-link', '🩺', lang === 'vi' ? '2. Chia sẻ Báo cáo cho Bác sĩ' : '2. Share Report with Doctor'],
-                ['recovery-key', '🔐', lang === 'vi' ? '3. Khóa Khôi phục 24 từ & Bảo mật' : '3. 24-Word Key & Security'],
+                ['profile', '👤', lang === 'vi' ? 'Hồ sơ & Người thân Hỗ trợ' : 'Profile & Support Contact'],
+                ['doctor-link', '🩺', lang === 'vi' ? 'Chia sẻ Báo cáo cho Bác sĩ' : 'Share Report with Doctor'],
+                ['recovery-key', '🔐', lang === 'vi' ? 'Khóa Khôi phục 24 từ & Bảo mật' : '24-Word Key & Security'],
               ] as const
             ).map(([subId, icon, label]) => (
               <button
@@ -4408,7 +4782,7 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: tab7SubView === subId ? theme.palette.surface : 'transparent',
                   color: tab7SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                 }}
               >
@@ -4435,7 +4809,10 @@ export function EquilibriaClinicalApp() {
                     width: '52px',
                     height: '52px',
                     borderRadius: '50%',
-                    backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
+                    backgroundColor:
+                      !accountSession?.user.avatarMoodColor || accountSession.user.avatarMoodColor === '#4285F4'
+                        ? theme.palette.primary
+                        : accountSession.user.avatarMoodColor,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -4592,7 +4969,8 @@ export function EquilibriaClinicalApp() {
               )}
             </div>
 
-            {/* Discrete Collapsible Admin & Clinician Sandbox */}
+            {/* Discrete Collapsible Admin & Clinician Sandbox — Strictly visible only to Admin role */}
+            {accountSession?.user.role === 'admin' && (
             <details
               style={{
                 marginTop: '18px',
@@ -4680,6 +5058,7 @@ export function EquilibriaClinicalApp() {
                 </div>
               </div>
             </details>
+            )}
           </section>
           )}
 
@@ -4887,7 +5266,10 @@ export function EquilibriaClinicalApp() {
                     width: '42px',
                     height: '42px',
                     borderRadius: '50%',
-                    backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
+                    backgroundColor:
+                      !accountSession?.user.avatarMoodColor || accountSession.user.avatarMoodColor === '#4285F4'
+                        ? theme.palette.primary
+                        : accountSession.user.avatarMoodColor,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -5042,7 +5424,7 @@ export function EquilibriaClinicalApp() {
                     cursor: 'pointer',
                   }}
                 >
-                  {lang === 'vi' ? 'Đồng bộ E2EE' : 'Sync E2EE'}
+                  {lang === 'vi' ? 'Đồng bộ Dữ liệu' : 'Sync Data'}
                 </button>
                 <button
                   type="button"
@@ -5081,7 +5463,8 @@ export function EquilibriaClinicalApp() {
               </button>
             </div>
 
-            {/* Discrete Collapsible Admin & Clinician Sandbox */}
+            {/* Discrete Collapsible Admin & Clinician Sandbox — Strictly visible only to Admin role */}
+            {accountSession?.user.role === 'admin' && (
             <details
               style={{
                 marginTop: '16px',
@@ -5175,6 +5558,7 @@ export function EquilibriaClinicalApp() {
                 </div>
               </div>
             </details>
+            )}
           </div>
         </div>
       )}
