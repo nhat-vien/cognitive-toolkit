@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata = {
@@ -6,10 +7,10 @@ export const metadata = {
     'Evidence-based bilingual (Vietnamese/English) self-help & between-session companion for Anxiety, Depression, and Bipolar Disorder.',
 };
 
-export default function RootLayout(props: { children: unknown }) {
+export default function RootLayout(props: { children: ReactNode }) {
   return (
     <html lang="vi">
-      <body>{props.children as never}</body>
+      <body>{props.children}</body>
     </html>
   );
 }
