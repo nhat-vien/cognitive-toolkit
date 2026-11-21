@@ -84,12 +84,12 @@ export function resolveAdaptiveTheme(params: {
   if (mode === 'low-energy-depression') {
     return {
       mode: 'low-energy-depression',
-      titleVi: 'Không gian Dịu dàng Năng lượng Thấp — Hôm nay một bước nhỏ thôi là đủ',
-      titleEn: 'Gentle Low-Energy Sanctuary — One Small Step Today Is Enough',
+      titleVi: 'Không gian Dịu dàng — Hôm nay một bước nhỏ thôi là đủ',
+      titleEn: 'Gentle Sanctuary — One Small Step Today Is Enough',
       reasonVi:
-        'Giao diện tự động chuyển sang tông Kem Yến mạch ấm áp khi khí sắc trầm xuống (<= -3). Đã ẩn mọi thống kê gây áp lực và tắt đếm chuỗi ngày để bạn được nghỉ ngơi thoải mái.',
+        'Khi cơ thể và tâm trí đang mệt, bạn không cần ép mình làm nhiều việc. Hãy chọn một điều nhỏ nhẹ nhất hoặc đơn giản là nghỉ ngơi.',
       reasonEn:
-        'Automatically shifted to a warm oatmeal sanctuary because mood is low (<= -3). Complex grids and streak counters are hidden so you can breathe without pressure.',
+        'When your mind and body feel heavy, you do not need to push yourself. Choose one tiny step or simply rest without guilt.',
       palette: {
         background: '#F4F1EA',
         surface: '#FAF8F5',
@@ -115,12 +115,12 @@ export function resolveAdaptiveTheme(params: {
   if (mode === 'low-stimulus-mania') {
     return {
       mode: 'low-stimulus-mania',
-      titleVi: 'Không gian Trầm ấm Hạ nhiệt — Giảm Kích thích & Bảo vệ Giấc ngủ',
-      titleEn: 'Low-Stimulus Warm Amber Rest — Gentle Wind-Down & Rhythm Guard',
+      titleVi: 'Không gian Trầm ấm Hạ nhiệt & Bảo vệ Giấc ngủ',
+      titleEn: 'Warm Evening Rest — Gentle Wind-Down & Sleep Guard',
       reasonVi:
-        'Tự động bật chế độ Hổ phách Trầm ấm (không ánh sáng xanh, không hiệu ứng chuyển động) khi năng lượng/khí sắc tăng cao (>= +2 hoặc ASRM >= 6), kèm Khoang Chờ Quyết định 48 Giờ.',
+        'Không gian đã chuyển sang tông trầm dịu mắt để giúp hệ thần kinh của bạn thư giãn và chuẩn bị cho giấc ngủ sâu.',
       reasonEn:
-        'Warm Obsidian-Amber rest palette active (zero blue light, zero animations) while energy/mood is elevated (>= +2 or ASRM >= 6), with 48-Hour Impulse Vault protection.',
+        'Shifted to a warm, low-stimulus evening space to help your nervous system wind down for restful sleep.',
       palette: {
         background: '#14110F',
         surface: '#1E1916',
@@ -145,12 +145,12 @@ export function resolveAdaptiveTheme(params: {
 
   return {
     mode: 'standard',
-    titleVi: 'Không gian Bình yên — Cân bằng & Thấu cảm',
-    titleEn: 'Serene Sanctuary — Balanced & Empathetic',
+    titleVi: 'Không gian lắng nghe & chăm sóc tâm trí mỗi ngày',
+    titleEn: 'Your daily space for calm reflection & mental clarity',
     reasonVi:
-      'Tông màu Giấy Alabaster ấm áp (#FAF9F6) và Tím Oải hương dịu nhẹ (#797298) giúp mắt thư giãn, giảm mỏi mệt nhận thức.',
+      'Hãy thả lỏng vai và hít một hơi thật sâu. Bạn đang ở trong không gian an toàn và không phán xét của riêng mình.',
     reasonEn:
-      'Warm Alabaster Paper (#FAF9F6) and Soft Lavender-Slate (#797298) reduce visual fatigue and support calm reflection.',
+      'Relax your shoulders and take a slow breath. You are in your safe, judgment-free sanctuary.',
     palette: {
       background: '#FAF9F6',
       surface: '#FFFFFF',

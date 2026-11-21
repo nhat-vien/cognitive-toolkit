@@ -118,6 +118,109 @@ export type ActiveHubTab =
   | 'phase3-ai-biometrics-voice'
   | 'phase4-e2ee-clinician-qa';
 
+/**
+ * Calming Pastel Vector Illustrations (Inspired by irolinski/Well_CBT & KazKozDev/cbt-assistant)
+ */
+function SanctuaryHeroBanner(props: {
+  scene: 'sunrise-hills' | 'calm-waves' | 'moon-stars' | 'botanical-garden' | 'care-notebook';
+  title: string;
+  subtitle: string;
+  isDark: boolean;
+}) {
+  const bgGradient = props.isDark
+    ? 'linear-gradient(135deg, #231D19 0%, #1B1613 100%)'
+    : props.scene === 'sunrise-hills'
+      ? 'linear-gradient(135deg, #F4EFFA 0%, #EAF4EE 55%, #FDF6EC 100%)'
+      : props.scene === 'calm-waves'
+        ? 'linear-gradient(135deg, #EBF3F5 0%, #F2EFF9 60%, #FAF8F5 100%)'
+        : props.scene === 'moon-stars'
+          ? 'linear-gradient(135deg, #EFEBF7 0%, #F9F3E8 100%)'
+          : props.scene === 'botanical-garden'
+            ? 'linear-gradient(135deg, #EAF4EE 0%, #F6F3EB 100%)'
+            : 'linear-gradient(135deg, #F3F0F8 0%, #EEF5F0 100%)';
+
+  return (
+    <div
+      className="no-print"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '20px',
+        padding: '20px 26px',
+        borderRadius: '22px',
+        background: bgGradient,
+        border: props.isDark ? '1px solid #38302A' : '1px solid #E5E2D9',
+        marginBottom: '18px',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div style={{ flex: '1 1 320px' }}>
+        <h2 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', color: props.isDark ? '#FAF3E0' : '#2F2F2B' }}>
+          {props.title}
+        </h2>
+        <p style={{ margin: 0, fontSize: '0.92rem', color: props.isDark ? '#C8C2B8' : '#5E5E56', lineHeight: 1.55 }}>
+          {props.subtitle}
+        </p>
+      </div>
+
+      {/* Gentle Vector Artwork */}
+      <div style={{ flexShrink: 0 }}>
+        {props.scene === 'sunrise-hills' && (
+          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+            <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
+            <circle cx="118" cy="28" r="16" fill="#F6D59E" />
+            <circle cx="118" cy="28" r="22" fill="#F6D59E" fillOpacity="0.3" />
+            <path d="M0 64 Q40 38 85 58 T160 52 L160 84 L0 84 Z" fill="#C5BEDC" fillOpacity="0.7" />
+            <path d="M0 72 Q55 50 110 66 T160 62 L160 84 L0 84 Z" fill="#9BC4AE" fillOpacity="0.85" />
+            <path d="M32 24 Q36 20 40 24 Q44 20 48 24" stroke="#797298" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            <path d="M52 18 Q55 15 58 18 Q61 15 64 18" stroke="#797298" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+          </svg>
+        )}
+        {props.scene === 'calm-waves' && (
+          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+            <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
+            <circle cx="44" cy="26" r="12" fill="#E2DCF2" />
+            <path d="M75 26 C75 20 83 18 88 22 C92 16 104 17 106 24 C112 24 114 31 108 33 L76 33 C71 32 71 27 75 26 Z" fill="#FFFFFF" fillOpacity="0.9" />
+            <path d="M0 54 Q28 44 56 54 T112 54 T160 54 L160 84 L0 84 Z" fill="#B5D3D8" fillOpacity="0.65" />
+            <path d="M0 66 Q32 57 64 66 T128 66 T160 66 L160 84 L0 84 Z" fill="#8FB9AA" fillOpacity="0.8" />
+          </svg>
+        )}
+        {props.scene === 'moon-stars' && (
+          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+            <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
+            <path d="M88 18 A16 16 0 1 0 106 42 A13 13 0 1 1 88 18 Z" fill="#EAB308" fillOpacity="0.8" />
+            <circle cx="42" cy="24" r="2" fill="#797298" />
+            <circle cx="64" cy="16" r="1.5" fill="#797298" />
+            <circle cx="128" cy="22" r="2" fill="#6AA882" />
+            <path d="M0 65 Q48 48 96 63 T160 58 L160 84 L0 84 Z" fill="#B8B0D0" fillOpacity="0.6" />
+          </svg>
+        )}
+        {props.scene === 'botanical-garden' && (
+          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+            <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
+            <circle cx="80" cy="44" r="28" fill="#D5E8DC" fillOpacity="0.7" />
+            <path d="M80 68 L80 28" stroke="#528767" strokeWidth="2.4" strokeLinecap="round" />
+            <path d="M80 52 C66 48 64 36 78 38" fill="#6AA882" />
+            <path d="M80 44 C94 40 96 28 82 30" fill="#797298" fillOpacity="0.85" />
+            <circle cx="80" cy="24" r="4" fill="#F2C078" />
+          </svg>
+        )}
+        {props.scene === 'care-notebook' && (
+          <svg width="160" height="84" viewBox="0 0 160 84" fill="none" aria-hidden="true">
+            <rect width="160" height="84" rx="16" fill={props.isDark ? '#2B231D' : '#FFFFFF'} fillOpacity="0.6" />
+            <rect x="52" y="14" width="56" height="56" rx="10" fill="#FFFFFF" stroke="#797298" strokeWidth="2" />
+            <line x1="64" y1="28" x2="96" y2="28" stroke="#B8B0D0" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="64" y1="38" x2="90" y2="38" stroke="#B8B0D0" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="80" cy="53" r="7" fill="#9BC4AE" />
+            <path d="M77 53 L79.5 55.5 L84 50.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function EquilibriaClinicalApp() {
   // Global Bilingual & Clinical State
   const [lang, setLang] = useState<Language>('vi');
@@ -127,6 +230,12 @@ export function EquilibriaClinicalApp() {
   const [activeToolkitSubTab, setActiveToolkitSubTab] = useState<
     'catalog-36' | 'mp-sheet' | 'anti-procrastination' | 'downward-arrow' | 'abc-please' | 'cbti-sleep' | 'all'
   >('catalog-36');
+  const [tab1SubView, setTab1SubView] = useState<'companion' | 'practice-7' | 'emotions'>('companion');
+  const [tab2SubView, setTab2SubView] = useState<'worry-box' | 'wave-90s' | 'exposure' | 'prediction'>('worry-box');
+  const [tab3SubView, setTab3SubView] = useState<'mood-chart' | 'ipsrt-rhythm' | 'safety-plan'>('mood-chart');
+  const [tab4SubView, setTab4SubView] = useState<'scales-6' | 'doctor-report'>('scales-6');
+  const [tab6SubView, setTab6SubView] = useState<'ai-chat' | 'voice-palette' | 'hrv-memory'>('ai-chat');
+  const [tab7SubView, setTab7SubView] = useState<'profile' | 'doctor-link' | 'recovery-key'>('profile');
 
   // Patient Account Authentication & Profile State (null = show Welcome Sign-In Gate on startup)
   const [accountSession, setAccountSession] = useState<UserAccountSession | null>(null);
@@ -1682,8 +1791,18 @@ export function EquilibriaClinicalApp() {
               boxShadow: '0 12px 32px rgba(47, 47, 43, 0.06)',
             }}
           >
-            <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 28px' }}>
-              <div style={{ fontSize: '2.6rem', marginBottom: '8px' }}>🌿</div>
+            <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                <svg width="240" height="100" viewBox="0 0 240 100" fill="none" aria-hidden="true">
+                  <rect width="240" height="100" rx="22" fill="#F4EFFA" />
+                  <circle cx="176" cy="34" r="18" fill="#F6D59E" />
+                  <circle cx="176" cy="34" r="26" fill="#F6D59E" fillOpacity="0.32" />
+                  <path d="M0 74 Q60 44 128 68 T240 58 L240 100 L0 100 Z" fill="#C5BEDC" fillOpacity="0.72" />
+                  <path d="M0 84 Q82 58 164 76 T240 72 L240 100 L0 100 Z" fill="#9BC4AE" fillOpacity="0.88" />
+                  <path d="M54 30 Q59 25 64 30 Q69 25 74 30" stroke="#797298" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+                  <path d="M82 22 Q86 18 90 22 Q94 18 98 22" stroke="#797298" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+                </svg>
+              </div>
               <h1 style={{ margin: '0 0 10px 0', fontSize: '1.75rem', color: theme.palette.textPrimary }}>
                 {lang === 'vi'
                   ? 'Chào mừng bạn đến với Không gian Bình yên Equilibria Care'
@@ -1950,117 +2069,71 @@ export function EquilibriaClinicalApp() {
         </main>
       ) : (
         <>
-      {/* Adaptive Theme Clinical Status Banner & Mania 48h Vault / Dark Therapy Banner */}
-      <section
-        className="no-print"
-        style={{
-          maxWidth: '1240px',
-          margin: '16px auto',
-          padding: '12px 18px',
-          borderRadius: '16px',
-          backgroundColor: theme.palette.surface,
-          border: `1px solid ${theme.palette.border}`,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>
-            <strong>{lang === 'vi' ? 'Trạng thái Không gian Trị liệu: ' : 'Sanctuary Status: '}</strong>
-            {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
-              {lang === 'vi' ? 'Hồ sơ đang dùng:' : 'Active Profile:'}
-            </span>
-            <span
-              style={{
-                fontSize: '0.82rem',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(106, 168, 130, 0.15)',
-                color: theme.palette.accent,
-                fontWeight: 600,
-              }}
-            >
-              {accountSession?.user.disorderFocus === 'depression'
-                ? (lang === 'vi' ? '🌱 Vượt Trầm cảm' : 'Depression Recovery')
-                : accountSession?.user.disorderFocus === 'bipolar'
-                  ? (lang === 'vi' ? '🌙 Cân bằng Lưỡng cực' : 'Bipolar & Rhythm')
-                  : (lang === 'vi' ? '🌊 Làm dịu Lo âu' : 'Anxiety Relief')}
-            </span>
-          </div>
-        </div>
-
-        {theme.show48hImpulseVaultBanner && (
-          <div
-            style={{
-              padding: '12px 16px',
-              borderRadius: '12px',
-              backgroundColor: '#451a03',
-              color: '#fef3c7',
-              marginTop: '10px',
-            }}
-          >
-            <strong>
-              {lang === 'vi'
-                ? 'LÁ CHẮN HƯNG CẢM & KHOANG CHỜ 48 GIỜ ĐANG BẬT: '
-                : '48-HOUR IMPULSE VAULT & DARK THERAPY ACTIVE: '}
-            </strong>
-            {lang === 'vi' ? darkTherapyTimer.bannerTextVi : darkTherapyTimer.bannerTextEn}
-          </div>
-        )}
-
-        {theme.simplifiedOneSmallStep && (
-          <div
-            style={{
-              padding: '14px 18px',
-              borderRadius: '12px',
-              backgroundColor: '#F4F1EA',
-              color: '#2F2F2B',
-              border: '1px solid #E4E0D5',
-              marginTop: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <span style={{ fontSize: '1.6rem' }}>🌱</span>
+      {/* Gentle Clinical Alert Banner (Only visible when Low-Energy Depression or Night Wind-Down is active) */}
+      {(theme.show48hImpulseVaultBanner || theme.simplifiedOneSmallStep) && (
+        <section
+          className="no-print"
+          style={{
+            maxWidth: '940px',
+            margin: '14px auto 0',
+            padding: '12px 18px',
+            borderRadius: '16px',
+            backgroundColor: theme.show48hImpulseVaultBanner ? '#451a03' : '#F4F1EA',
+            color: theme.show48hImpulseVaultBanner ? '#fef3c7' : '#2F2F2B',
+            border: `1px solid ${theme.palette.border}`,
+          }}
+        >
+          {theme.show48hImpulseVaultBanner ? (
             <div>
-              <strong style={{ fontSize: '0.98rem' }}>
+              <strong>
                 {lang === 'vi'
-                  ? 'HÔM NAY MỘT BƯỚC NHỎ THÔI LÀ ĐỦ (Không đếm chuỗi ngày đứt đoạn): '
-                  : 'ONE GENTLE SMALL STEP IS ENOUGH TODAY (No Broken Streaks): '}
+                  ? '🌙 Chế độ Hạ nhiệt Ban đêm & Khoang chờ 48 giờ đang bật: '
+                  : '🌙 Evening Wind-Down & 48-Hour Delay Guard Active: '}
               </strong>
-              <div style={{ marginTop: '2px', fontSize: '0.88rem', color: '#6B6B63' }}>
-                {lang === 'vi'
-                  ? 'Bạn không cần làm hết mọi thứ hôm nay. Bạn có thể chỉ cần ghi lại cảm xúc bằng giọng nói, hoặc chọn 1 thẻ cảm xúc bên dưới.'
-                  : 'You do not need to do everything today. You can simply record your thought with Voice Burst or pick an Affect Labeling card below.'}
+              {lang === 'vi' ? darkTherapyTimer.bannerTextVi : darkTherapyTimer.bannerTextEn}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.3rem' }}>🌱</span>
+              <div>
+                <strong>
+                  {lang === 'vi'
+                    ? 'Hôm nay một bước nhỏ thôi là đủ: '
+                    : 'One gentle small step today is enough: '}
+                </strong>
+                <span style={{ fontSize: '0.88rem', color: '#6B6B63' }}>
+                  {lang === 'vi'
+                    ? 'Bạn không cần làm hết mọi thứ. Hãy chọn một điều nhẹ nhàng nhất hoặc nghỉ ngơi.'
+                    : 'You do not need to do everything today. Pick one tiny step or simply rest.'}
+                </span>
               </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      )}
 
       {/* Main Clinical Module Sanctuary Navigation Tabs */}
       <nav
         className="no-print"
         style={{
-          maxWidth: '1240px',
-          margin: '18px auto 8px',
+          maxWidth: '940px',
+          margin: '18px auto 12px',
           display: 'flex',
           gap: '8px',
           flexWrap: 'wrap',
+          justifyContent: 'center',
           padding: '0 16px',
         }}
       >
         {(
           [
-            ['session-player', '🌿', lang === 'vi' ? 'Không gian Trò chuyện & Phác đồ' : 'Sanctuary & Guided Practice'],
-            ['anxiety-hub', '🌊', lang === 'vi' ? 'Góc Bình yên Lo âu' : 'Anxiety Relief'],
-            ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Nhật ký Khí sắc & Nhịp Sinh học' : 'Mood & Circadian Rhythm'],
-            ['tools-36-team-cbt', '✨', lang === 'vi' ? 'Thư viện 36 Bài tập Tự lực' : '36 Self-Care Tools'],
-            ['assessments-report', '📋', lang === 'vi' ? 'Trắc nghiệm & Báo cáo Bác sĩ' : 'Assessments & Doctor Report'],
-            ['ai-companion-biometrics', '🤖', lang === 'vi' ? 'Người bạn Trí tuệ AI & Sinh trắc' : 'Grounded AI & Biometrics'],
-            ['account-privacy-vault', '🔐', lang === 'vi' ? 'Tài khoản & Bảo mật Dữ liệu' : 'Account & Privacy Vault'],
+            ['session-player', '🌿', lang === 'vi' ? 'Tâm sự & Nhật ký' : 'Journal & Practice'],
+            ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
+            ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Khí sắc & Giấc ngủ' : 'Mood & Sleep'],
+            ['tools-36-team-cbt', '✨', lang === 'vi' ? 'Bài tập Tự lực' : 'Self-Care Tools'],
+            ['ai-companion-biometrics', '🤖', lang === 'vi' ? 'Trợ lý AI & HRV' : 'AI Companion'],
+            ['assessments-report', '📋', lang === 'vi' ? 'Trắc nghiệm & Bác sĩ' : 'Self-Checks'],
+            ['account-privacy-vault', '🔐', lang === 'vi' ? 'Hồ sơ & Bảo mật' : 'Account'],
           ] as const
         ).map(([tabId, icon, label]) => {
           const isSelected =
@@ -2075,17 +2148,17 @@ export function EquilibriaClinicalApp() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '16px',
+                gap: '6px',
+                padding: '9px 16px',
+                borderRadius: '14px',
                 border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
                 backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
                 color: isSelected ? '#ffffff' : theme.palette.textPrimary,
                 fontWeight: 600,
-                fontSize: '0.92rem',
+                fontSize: '0.89rem',
                 cursor: 'pointer',
-                boxShadow: isSelected ? '0 4px 12px rgba(121, 114, 152, 0.22)' : 'none',
-                transition: 'all 0.18s ease',
+                boxShadow: isSelected ? '0 4px 12px rgba(121, 114, 152, 0.2)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
               <span>{icon}</span>
@@ -2095,196 +2168,161 @@ export function EquilibriaClinicalApp() {
         })}
       </nav>
 
-      {/* TAB 1: DBT-FIRST, CBT-SECOND INTERACTIVE SESSION PLAYER */}
+      {/* TAB 1: DBT-FIRST, CBT-SECOND INTERACTIVE SESSION PLAYER (Clean 1-Card-Per-View Layout) */}
       {activeTab === 'session-player' && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          {/* Expressive vs Instrumental + Voice Burst + Mood Palette + Safety Gate */}
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="sunrise-hills"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={
+              lang === 'vi'
+                ? `Xin chào ${accountSession.user.displayName}, hôm nay tâm trí bạn thế nào?`
+                : `Hello ${accountSession.user.displayName}, how is your mind feeling today?`
+            }
+            subtitle={
+              lang === 'vi'
+                ? 'Hãy chọn một hoạt động nhẹ nhàng bên dưới. Mỗi lần chỉ mở một không gian duy nhất để bạn thật sự thư thái.'
+                : 'Choose one gentle activity below. Only one focused card opens at a time so your mind stays calm and uncluttered.'
+            }
+          />
+
+          {/* 3-Mode Pill Switcher for Tab 1 (Only 1 panel rendered below!) */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['companion', '💬', lang === 'vi' ? '1. Tâm sự & Giải tỏa Cảm xúc' : '1. Share & Emotional Relief'],
+                ['practice-7', '🌱', lang === 'vi' ? '2. Thực hành 7 Bài tập CBT/DBT' : '2. Guided CBT/DBT Practice'],
+                ['emotions', '🎨', lang === 'vi' ? '3. Gọi tên 5 Nhóm Cảm xúc' : '3. 5-Family Emotion Cards'],
+              ] as const
+            ).map(([viewId, icon, label]) => (
+              <button
+                key={viewId}
+                type="button"
+                onClick={() => setTab1SubView(viewId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab1SubView === viewId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab1SubView === viewId ? theme.palette.surface : 'transparent',
+                  color: tab1SubView === viewId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          {/* VIEW 1: Expressive vs Instrumental + Voice Burst + Mood Palette (Single Focused Card) */}
+          {tab1SubView === 'companion' && (
           <section
             style={{
-              padding: '16px',
-              borderRadius: '16px',
+              padding: '20px',
+              borderRadius: '18px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
             }}
           >
-            <h2 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? 'Chọn Chế Độ Lắng Nghe & Đồng Hành (Thấu Cảm EAR vs. Thực Hành Kỹ Năng) • Bảng Màu Cảm Xúc'
-                : 'Empathy vs. Skill Practice Mode (Expressive EAR vs. Instrumental) • Mood-Palette'}
-            </h2>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-              <button
-                type="button"
-                onClick={() => setPhase0Mode('expressive')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  backgroundColor: phase0Mode === 'expressive' ? theme.palette.primary : 'transparent',
-                  color: phase0Mode === 'expressive' ? '#fff' : theme.palette.textPrimary,
-                  border: `1px solid ${theme.palette.border}`,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0 }}>
                 {lang === 'vi'
-                  ? 'Chế độ Lắng nghe Thấu cảm (Giải tỏa cảm xúc & 5 Bí quyết EAR)'
-                  : 'Expressive Empathy Mode (Venting & 5 EAR Secrets)'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhase0Mode('instrumental')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  backgroundColor: phase0Mode === 'instrumental' ? theme.palette.primary : 'transparent',
-                  color: phase0Mode === 'instrumental' ? '#fff' : theme.palette.textPrimary,
-                  border: `1px solid ${theme.palette.border}`,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                {lang === 'vi'
-                  ? 'Chế độ Thực hành Kỹ năng (Phương pháp Nhận thức & Hành vi CBT / DBT)'
-                  : 'Instrumental Practice Mode (Guided CBT & DBT Skills)'}
-              </button>
+                  ? 'Chia sẻ tâm sự & Nhận diện sắc thái cảm xúc'
+                  : 'Share Your Thoughts & Mood Reflection'}
+              </h3>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPhase0Mode('expressive')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: phase0Mode === 'expressive' ? theme.palette.primary : 'transparent',
+                    color: phase0Mode === 'expressive' ? '#fff' : theme.palette.textSecondary,
+                    border: `1px solid ${theme.palette.border}`,
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {lang === 'vi' ? '💛 Chỉ cần lắng nghe thấu cảm' : '💛 Just Empathy & Listening'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhase0Mode('instrumental')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: phase0Mode === 'instrumental' ? theme.palette.primary : 'transparent',
+                    color: phase0Mode === 'instrumental' ? '#fff' : theme.palette.textSecondary,
+                    border: `1px solid ${theme.palette.border}`,
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {lang === 'vi' ? '🌱 Gợi ý bài tập gỡ rối' : '🌱 Suggest Helpful Skills'}
+                </button>
+              </div>
             </div>
 
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-              {lang === 'vi'
-                ? 'Ghi âm hoặc chia sẻ suy nghĩ / tình huống đang bận lòng:'
-                : 'Share or record the situation / automatic thought on your mind:'}
-            </label>
             <textarea
-              rows={2}
+              rows={3}
               value={voiceBurstText}
               onChange={(e) => setVoiceBurstText((e.target as HTMLTextAreaElement).value)}
               className="sanctuary-input"
+              placeholder={lang === 'vi' ? 'Viết ra điều đang làm bạn bận lòng...' : 'Write down what is on your mind...'}
               style={{ width: '100%', boxSizing: 'border-box' }}
             />
 
-            {/* Generated Mood Palette & 4-Layer Safety Screen */}
+            {/* Generated Mood Palette */}
             <div
               style={{
-                marginTop: '10px',
-                padding: '12px',
-                borderRadius: '10px',
+                marginTop: '12px',
+                padding: '14px 16px',
+                borderRadius: '14px',
                 background: voiceBurstAnalysis.moodPalette.gradientCss,
-                color: '#0f172a',
+                color: '#1e293b',
               }}
             >
-              <strong>{lang === 'vi' ? 'Bảng màu Cảm xúc' : 'Mood-Palette'} ({voiceBurstAnalysis.moodPalette.dominantEmotion}): </strong>
+              <strong>{lang === 'vi' ? 'Sắc thái cảm xúc ghi nhận' : 'Detected Mood-Palette'} ({voiceBurstAnalysis.moodPalette.dominantEmotion}): </strong>
               {lang === 'vi'
                 ? voiceBurstAnalysis.moodPalette.summaryVi
                 : voiceBurstAnalysis.moodPalette.summaryEn}
             </div>
 
-            {phase0Mode === 'expressive' && (
-              <p style={{ marginTop: '10px', padding: '10px', borderLeft: `4px solid ${theme.palette.primary}`, backgroundColor: 'rgba(121, 114, 152, 0.08)', borderRadius: '4px' }}>
+            {phase0Mode === 'expressive' ? (
+              <p style={{ marginTop: '12px', padding: '12px 14px', borderLeft: `4px solid ${theme.palette.primary}`, backgroundColor: resultSurfaceBg, color: resultSurfaceText, borderRadius: '8px', marginBottom: 0 }}>
                 {lang === 'vi'
                   ? voiceBurstAnalysis.earEmpathyReplyVi
                   : voiceBurstAnalysis.earEmpathyReplyEn}
               </p>
+            ) : (
+              <p style={{ marginTop: '12px', padding: '12px 14px', backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', fontSize: '0.9rem', marginBottom: 0 }}>
+                <strong>{lang === 'vi' ? 'Gợi ý bước tiếp theo: ' : 'Recommended Step: '}</strong>
+                {lang === 'vi' ? dbtFirstRouter.rationaleVi : dbtFirstRouter.rationaleEn}
+              </p>
             )}
-
-            <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>
-              <strong>{lang === 'vi' ? 'Lộ trình Ưu tiên Điều hòa: ' : 'Physiological Regulation Route: '}</strong>
-              {lang === 'vi' ? dbtFirstRouter.rationaleVi : dbtFirstRouter.rationaleEn}
-            </p>
-            <p style={{ marginTop: '6px', fontSize: '0.9rem', color: safetyGate.safeToProceedToCbt ? theme.palette.primary : '#e11d48' }}>
-              <strong>{lang === 'vi' ? 'Hàng rào An toàn 4 Tầng: ' : '4-Layer Clinical Safety Gate: '}</strong>
-              {lang === 'vi' ? safetyGate.bannerVi : safetyGate.bannerEn}
-            </p>
           </section>
+          )}
 
-          {/* Live Socratic Pushback Switcher Mid-Session */}
+          {/* VIEW 3: 5-Family Affect Labeling & Socratic Gentle Prompt (Single Focused Card) */}
+          {tab1SubView === 'emotions' && (
           <section
             style={{
-              padding: '14px 16px',
-              borderRadius: '16px',
+              padding: '20px',
+              borderRadius: '18px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <strong>
-                {lang === 'vi'
-                  ? 'Mức độ Phản biện Socratic trong phiên:'
-                  : 'Live Socratic Pushback Level:'}
-              </strong>
-              {(['off', 'gentle', 'moderate', 'firm'] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setPushbackLevel(lvl)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: pushbackLevel === lvl ? theme.palette.primary : 'transparent',
-                    color: pushbackLevel === lvl ? '#fff' : theme.palette.textPrimary,
-                    border: `1px solid ${theme.palette.border}`,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  {lvl === 'off'
-                    ? (lang === 'vi' ? 'TẮT' : 'OFF')
-                    : lvl === 'gentle'
-                      ? (lang === 'vi' ? 'DỊU DÀNG' : 'GENTLE')
-                      : lvl === 'moderate'
-                        ? (lang === 'vi' ? 'TIÊU CHUẨN' : 'MODERATE')
-                        : (lang === 'vi' ? 'THÁCH THỨC' : 'FIRM')}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setPushbackLevel(adjustPushbackLevel(pushbackLevel, 'softer'))}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: `1px solid ${theme.palette.border}`,
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                {lang === 'vi' ? '↓ Dịu hơn' : '↓ Softer'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPushbackLevel(adjustPushbackLevel(pushbackLevel, 'harder'))}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: `1px solid ${theme.palette.border}`,
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                {lang === 'vi' ? '↑ Thách thức hơn' : '↑ Firmer'}
-              </button>
-            </div>
-            <p style={{ margin: '8px 0 0 0', fontSize: '0.88rem', color: theme.palette.textSecondary }}>
-              {lang === 'vi' ? livePushbackPreview.promptVi : livePushbackPreview.promptEn}
-            </p>
-          </section>
-
-          {/* 5-Family Affect Labeling Cards (Shame vs Guilt distinction) */}
-          <section
-            style={{
-              padding: '14px 16px',
-              borderRadius: '16px',
-              backgroundColor: theme.palette.surface,
-              border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
             }}
           >
             <h3 style={{ marginTop: 0 }}>
               {lang === 'vi'
-                ? 'Bảng Gọi Tên 5 Nhóm Cảm Xúc (Phân biệt rõ Cảm giác Xấu hổ và Áy náy)'
+                ? 'Gọi Tên 5 Nhóm Cảm Xúc Tự Nhiên (Phân biệt Xấu hổ và Áy náy)'
                 : '5-Family Affect Labeling Cards (Distinguishing Shame vs. Guilt)'}
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '16px' }}>
               {FIVE_FAMILY_AFFECT_CARDS.map((card) => (
                 <button
                   key={card.id}
@@ -2310,86 +2348,82 @@ export function EquilibriaClinicalApp() {
                 </button>
               ))}
             </div>
-          </section>
 
-          {/* Progressive Disclosure Step Selector for 7 Guided Protocols (One Gentle Step at a Time) */}
-          <section
-            style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: theme.palette.surface,
-              border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem' }}>
-                  {lang === 'vi'
-                    ? '🌱 Chọn 1 Bài Tập Nhẹ Nhàng Để Thực Hành (Không cần làm tất cả cùng lúc)'
-                    : '🌱 Choose One Gentle Exercise to Practice (One Step at a Time)'}
-                </h3>
-                <p style={{ margin: '3px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
-                  {lang === 'vi'
-                    ? 'Chạm vào một phương pháp bên dưới để mở không gian thực hành riêng cho bài tập đó:'
-                    : 'Tap any method below to open a focused practice space for that single skill:'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveProtocolStep(activeProtocolStep === 'all' ? 1 : 'all')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  border: `1px solid ${theme.palette.border}`,
-                  backgroundColor: activeProtocolStep === 'all' ? theme.palette.primary : 'transparent',
-                  color: activeProtocolStep === 'all' ? '#ffffff' : theme.palette.textSecondary,
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {activeProtocolStep === 'all'
-                  ? (lang === 'vi' ? 'Thu gọn về 1 bài tập' : 'Focus on 1 Exercise')
-                  : (lang === 'vi' ? 'Xem tất cả 7 bài tập' : 'Show All 7 Exercises')}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {(
-                [
-                  [1, '📝', lang === 'vi' ? '1. Nhật ký Suy nghĩ 7 bước' : '1. 7-Step Thought Record'],
-                  [2, '🌱', lang === 'vi' ? '2. Kích hoạt Hành vi & Nghỉ ngơi' : '2. Behavioral Activation'],
-                  [3, '🎯', lang === 'vi' ? '3. Đặt Mục tiêu Nghịch lý' : '3. Paradoxical Agenda'],
-                  [4, '🔄', lang === 'vi' ? '4. Hành động Đối lập DBT' : '4. Opposite Action'],
-                  [5, '🧘', lang === 'vi' ? '5. Trí tuệ Sáng suốt Wise Mind' : '5. Wise Mind'],
-                  [6, '🔗', lang === 'vi' ? '6. Phân tích Chuỗi hành vi' : '6. Chain Analysis'],
-                  [7, '💬', lang === 'vi' ? '7. Giao tiếp DEAR MAN & AI' : '7. DEAR MAN Roleplay'],
-                ] as const
-              ).map(([num, icon, title]) => {
-                const isSelected = activeProtocolStep === num;
-                return (
+            <div style={{ paddingTop: '12px', borderTop: `1px solid ${theme.palette.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: '0.88rem' }}>
+                  {lang === 'vi' ? 'Phong cách gợi mở Socratic:' : 'Socratic Reflection Tone:'}
+                </strong>
+                {(['off', 'gentle', 'moderate', 'firm'] as const).map((lvl) => (
                   <button
-                    key={num}
+                    key={lvl}
                     type="button"
-                    onClick={() => setActiveProtocolStep(num)}
+                    onClick={() => setPushbackLevel(lvl)}
                     style={{
-                      padding: '8px 14px',
-                      borderRadius: '12px',
-                      border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                      backgroundColor: isSelected ? theme.palette.primary : theme.palette.background,
-                      color: isSelected ? '#ffffff' : theme.palette.textPrimary,
-                      fontWeight: 600,
-                      fontSize: '0.86rem',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: pushbackLevel === lvl ? theme.palette.primary : 'transparent',
+                      color: pushbackLevel === lvl ? '#fff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
                       cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
                     }}
                   >
-                    {icon} {title}
+                    {lvl === 'off'
+                      ? (lang === 'vi' ? 'Tắt' : 'Off')
+                      : lvl === 'gentle'
+                        ? (lang === 'vi' ? 'Dịu dàng' : 'Gentle')
+                        : lvl === 'moderate'
+                          ? (lang === 'vi' ? 'Tiêu chuẩn' : 'Moderate')
+                          : (lang === 'vi' ? 'Sâu sắc' : 'Firm')}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+              <p style={{ margin: '8px 0 0 0', fontSize: '0.88rem', color: theme.palette.textSecondary }}>
+                {lang === 'vi' ? livePushbackPreview.promptVi : livePushbackPreview.promptEn}
+              </p>
             </div>
           </section>
+          )}
+
+          {/* VIEW 2: 7 Guided Protocols (Only visible when tab1SubView === 'practice-7') */}
+          {tab1SubView === 'practice-7' && (
+          <>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                [1, '📝', lang === 'vi' ? '1. Nhật ký Suy nghĩ' : '1. Thought Record'],
+                [2, '🌱', lang === 'vi' ? '2. Kích hoạt Hành vi' : '2. Behavioral Activation'],
+                [3, '🎯', lang === 'vi' ? '3. Mục tiêu Nghịch lý' : '3. Paradoxical Agenda'],
+                [4, '🔄', lang === 'vi' ? '4. Hành động Đối lập' : '4. Opposite Action'],
+                [5, '🧘', lang === 'vi' ? '5. Trí tuệ Wise Mind' : '5. Wise Mind'],
+                [6, '🔗', lang === 'vi' ? '6. Chuỗi Hành vi' : '6. Chain Analysis'],
+                [7, '💬', lang === 'vi' ? '7. Giao tiếp DEAR MAN' : '7. DEAR MAN Roleplay'],
+              ] as const
+            ).map(([num, icon, title]) => {
+              const isSelected = activeProtocolStep === num;
+              return (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => setActiveProtocolStep(num)}
+                  style={{
+                    padding: '7px 13px',
+                    borderRadius: '11px',
+                    border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                    backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
+                    color: isSelected ? '#ffffff' : theme.palette.textPrimary,
+                    fontWeight: 600,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {icon} {title}
+                </button>
+              );
+            })}
+          </div>
 
           {/* 7 Interactive Guided Protocols Grid (Filtered by activeProtocolStep for low cognitive load) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
@@ -2704,14 +2738,57 @@ export function EquilibriaClinicalApp() {
             </article>
             )}
           </div>
+          </>
+          )}
         </main>
       )}
 
-      {/* TAB 2: ANXIETY GOLD-STANDARD HUB */}
+      {/* TAB 2: ANXIETY GOLD-STANDARD HUB (Clean 1-Card-Per-View with Calm Waves Illustration) */}
       {activeTab === 'anxiety-hub' && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="calm-waves"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={lang === 'vi' ? 'Góc Bình Yên Làm Dịu Lo Âu' : 'Anxiety Relief & Calm Waves Sanctuary'}
+            subtitle={
+              lang === 'vi'
+                ? 'Khi lo lắng dâng lên, bạn không cần giải quyết mọi thứ ngay lúc này. Hãy chọn một phương pháp nhẹ nhàng bên dưới.'
+                : 'When worry rises, you do not have to solve everything at once. Choose one gentle exercise below.'
+            }
+          />
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['worry-box', '📦', lang === 'vi' ? '1. Chiếc hộp gác lại âu lo' : '1. Worry Box'],
+                ['wave-90s', '🌊', lang === 'vi' ? '2. Lướt sóng cảm xúc 90 giây' : '2. 90-Second Wave Surfing'],
+                ['exposure', '🪜', lang === 'vi' ? '3. Thang đối diện từng bước' : '3. Gentle Exposure Ladder'],
+                ['prediction', '🔍', lang === 'vi' ? '4. Kiểm chứng dự đoán' : '4. Prediction Calibration'],
+              ] as const
+            ).map(([subId, icon, label]) => (
+              <button
+                key={subId}
+                type="button"
+                onClick={() => setTab2SubView(subId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab2SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab2SubView === subId ? theme.palette.surface : 'transparent',
+                  color: tab2SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          <div>
             {/* Worry Box (Worry Postponement 15-min window) */}
+            {tab2SubView === 'worry-box' && (
             <section
               style={{
                 padding: '16px',
@@ -2720,30 +2797,32 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '1. Chiếc Hộp Gác Lại Âu Lo (Khung giờ xử lý 17:30–17:45)'
-                  : '1. Worry Box (17:30–17:45 Postponement Window)'}
+                  ? 'Chiếc Hộp Gác Lại Âu Lo (Khung giờ xử lý 17:30–17:45)'
+                  : 'Worry Box (17:30–17:45 Postponement Window)'}
               </h3>
               <textarea
-                rows={2}
+                rows={3}
                 value={worryInput}
                 onChange={(e) => setWorryInput((e.target as HTMLTextAreaElement).value)}
-                style={{ width: '100%', padding: '8px', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
               />
-              <p style={{ fontSize: '0.86rem' }}>
+              <p style={{ fontSize: '0.88rem' }}>
                 <strong>{lang === 'vi' ? 'Phân loại tự động:' : 'Automated Classification:'}</strong>{' '}
                 `{worryProcessed.updatedItem.category === 'hypothetical'
                   ? (lang === 'vi' ? 'Giả định tương lai' : 'Hypothetical Worry')
                   : (lang === 'vi' ? 'Thực tế trước mắt' : 'Actionable/Current')}`{' '}
                 ({worryProcessed.updatedItem.scheduledWindowTime})
               </p>
-              <p style={{ fontSize: '0.85rem' }}>
+              <p style={{ fontSize: '0.88rem', margin: 0, padding: '12px', borderRadius: '10px', backgroundColor: calmAlertBg, color: calmAlertText }}>
                 {lang === 'vi' ? worryProcessed.clinicalProtocolVi : worryProcessed.clinicalProtocolEn}
               </p>
             </section>
+            )}
 
             {/* Exposure Hierarchy Builder (ERP & Interoceptive Exposure) + Safety Behavior Detector */}
+            {tab2SubView === 'exposure' && (
             <section
               style={{
                 padding: '16px',
@@ -2752,20 +2831,20 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '2. Thang Đối Diện Nỗi Sợ Từng Bước (ERP & Cảm Giác Cơ Thể 0–100)'
-                  : '2. Exposure Hierarchy Ladder (ERP & Interoceptive SUDS 0–100)'}
+                  ? 'Thang Đối Diện Nỗi Sợ Từng Bước (ERP & Cảm Giác Cơ Thể 0–100)'
+                  : 'Exposure Hierarchy Ladder (ERP & Interoceptive SUDS 0–100)'}
               </h3>
               {exposureLadder.map((step) => (
                 <div
                   key={step.id}
                   style={{
-                    padding: '10px',
-                    marginBottom: '8px',
-                    borderRadius: '6px',
+                    padding: '12px',
+                    marginBottom: '10px',
+                    borderRadius: '12px',
                     border: `1px solid ${theme.palette.border}`,
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                   }}
                 >
                   <strong>
@@ -2773,13 +2852,13 @@ export function EquilibriaClinicalApp() {
                       ? (lang === 'vi' ? 'CẢM GIÁC CƠ THỂ' : 'INTEROCEPTIVE')
                       : (lang === 'vi' ? 'THỰC TẾ TRỰC TIẾP' : 'IN-VIVO ERP')}] {step.title}
                   </strong>
-                  <div>
+                  <div style={{ marginTop: '4px' }}>
                     {lang === 'vi'
                       ? `Mức khó chịu ban đầu: ${step.baselineSuds}/100 → Hiện tại: ${step.currentSuds}/100 ${step.habituationAchieved ? '(Đã thích nghi và hạ nhiệt ✓)' : ''}`
                       : `Baseline SUDS: ${step.baselineSuds}/100 → Current: ${step.currentSuds}/100 ${step.habituationAchieved ? '(Habituated ✓)' : ''}`}
                   </div>
                   {step.detectedSafetyBehaviors.length > 0 && (
-                    <div style={{ color: '#e11d48' }}>
+                    <div style={{ color: theme.palette.sosBanner, marginTop: '4px' }}>
                       {lang === 'vi'
                         ? `Hành vi né tránh / an toàn ngầm phát hiện: ${step.detectedSafetyBehaviors.join(', ')}`
                         : `Detected subtle safety behaviors: ${step.detectedSafetyBehaviors.join(', ')}`}
@@ -2788,8 +2867,10 @@ export function EquilibriaClinicalApp() {
                 </div>
               ))}
             </section>
+            )}
 
             {/* Prediction Calibration Tracker */}
+            {tab2SubView === 'prediction' && (
             <section
               style={{
                 padding: '16px',
@@ -2798,16 +2879,16 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '3. Kiểm Chứng & Hiệu Chỉnh Dự Đoán Lo Âu'
-                  : '3. Prediction Calibration Tracker'}
+                  ? 'Kiểm Chứng & Hiệu Chỉnh Dự Đoán Lo Âu'
+                  : 'Prediction Calibration Tracker'}
               </h3>
-              <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+              <p style={{ fontSize: '0.92rem', fontWeight: 600, padding: '12px', borderRadius: '10px', backgroundColor: calmAlertBg, color: calmAlertText }}>
                 {lang === 'vi' ? predictionStats.calibrationInsightVi : predictionStats.calibrationInsightEn}
               </p>
               {predictionEntries.map((pe) => (
-                <div key={pe.id} style={{ fontSize: '0.84rem', marginBottom: '8px' }}>
+                <div key={pe.id} style={{ fontSize: '0.88rem', marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${theme.palette.border}` }}>
                   • <strong>{pe.eventDescription}:</strong>{' '}
                   {lang === 'vi' ? 'Dự đoán thảm họa' : 'Feared prediction'}{' '}
                   {pe.predictedProbabilityPercent}% →{' '}
@@ -2815,8 +2896,10 @@ export function EquilibriaClinicalApp() {
                 </div>
               ))}
             </section>
+            )}
 
             {/* 4. DBT Radical Acceptance & Urge Surfing 90-Second Adrenaline Wave Timer */}
+            {tab2SubView === 'wave-90s' && (
             <section
               style={{
                 padding: '16px',
@@ -2825,12 +2908,12 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '4. Lướt Sóng Cảm Xúc 90 Giây (Chấp Nhận Triệt Để & Thả Lỏng Cơn Thôi Thúc)'
-                  : '4. 90-Second Emotion Wave Surfing (DBT Radical Acceptance)'}
+                  ? 'Lướt Sóng Cảm Xúc 90 Giây (Chấp Nhận Triệt Để & Thả Lỏng Cơn Thôi Thúc)'
+                  : '90-Second Emotion Wave Surfing (DBT Radical Acceptance)'}
               </h3>
-              <label style={{ display: 'block', fontSize: '0.86rem', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '12px' }}>
                 {lang === 'vi'
                   ? `Thời gian trên đỉnh sóng (${urgeSurfFrame.elapsedSeconds}s / 90s — Độ cao sóng: ${urgeSurfFrame.waveHeightPercent}%):`
                   : `Time on peak of wave (${urgeSurfFrame.elapsedSeconds}s / 90s — Wave height: ${urgeSurfFrame.waveHeightPercent}%):`}
@@ -2840,40 +2923,80 @@ export function EquilibriaClinicalApp() {
                   max={90}
                   value={urgeSurfSeconds}
                   onChange={(e) => setUrgeSurfSeconds(Number((e.target as HTMLInputElement).value))}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginTop: '8px' }}
                 />
               </label>
-              <p style={{ fontSize: '0.85rem', margin: 0 }}>
+              <p style={{ fontSize: '0.9rem', margin: 0, padding: '12px', borderRadius: '10px', backgroundColor: resultSurfaceBg, color: resultSurfaceText }}>
                 {lang === 'vi' ? urgeSurfFrame.coachingVi : urgeSurfFrame.coachingEn}
               </p>
             </section>
+            )}
           </div>
         </main>
       )}
 
-      {/* TAB 3: BIPOLAR & IPSRT HUB */}
+      {/* TAB 3: BIPOLAR & IPSRT HUB (Clean 1-Card-Per-View with Moon & Starlight Illustration) */}
       {activeTab === 'bipolar-ipsrt-hub' && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          {/* Multi-Axis Dual-Pole (-5..+5) Mood, Energy & Sleep SVG Overlay Chart */}
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="moon-stars"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={lang === 'vi' ? 'Nhật Ký Khí Sắc, Giấc Ngủ & Nhịp Sinh Học' : 'Mood, Sleep & Circadian Rhythm Sanctuary'}
+            subtitle={
+              lang === 'vi'
+                ? 'Theo dõi nhẹ nhàng sự thay đổi năng lượng, giữ nhịp sinh học ổn định và bảo vệ giấc ngủ của bạn.'
+                : 'Gently track your energy and sleep patterns, maintain daily rhythm anchors, and protect restful sleep.'
+            }
+          />
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['mood-chart', '📊', lang === 'vi' ? '1. Biểu đồ Khí sắc & Giấc ngủ' : '1. Mood & Sleep Chart'],
+                ['ipsrt-rhythm', '🕰️', lang === 'vi' ? '2. 5 Mốc Nhịp Sinh Học IPSRT' : '2. 5 Daily Rhythm Anchors'],
+                ['safety-plan', '🛡️', lang === 'vi' ? '3. Khoang chờ 48h & Kế hoạch Ulysses' : '3. 48h Delay & Care Plan'],
+              ] as const
+            ).map(([subId, icon, label]) => (
+              <button
+                key={subId}
+                type="button"
+                onClick={() => setTab3SubView(subId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab3SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab3SubView === subId ? theme.palette.surface : 'transparent',
+                  color: tab3SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          {/* VIEW 1: Multi-Axis Chart + Today's Sliders combined into 1 clean card */}
+          {tab3SubView === 'mood-chart' && (
           <section
             style={{
               padding: '16px',
               borderRadius: '10px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
             }}
           >
             <h3 style={{ marginTop: 0 }}>
               {lang === 'vi'
-                ? 'Biểu Đồ Đa Trục 7 Ngày: Khí Sắc (-5..+5) • Năng Lượng (-5..+5) • Giấc Ngủ (0..12h)'
-                : '7-Day Multi-Axis Chart: Mood (-5..+5) • Energy (-5..+5) • Sleep (0..12h)'}
+                ? 'Biểu Đồ 7 Ngày: Khí Sắc (-5..+5) • Năng Lượng (-5..+5) • Giấc Ngủ (0..12h)'
+                : '7-Day Chart: Mood (-5..+5) • Energy (-5..+5) • Sleep (0..12h)'}
             </h3>
             <svg
               viewBox={`0 0 ${bipolarMultiAxisSvgChart.width} ${bipolarMultiAxisSvgChart.height}`}
               style={{
                 width: '100%',
-                maxHeight: '240px',
+                maxHeight: '220px',
                 backgroundColor: resultSurfaceBg,
                 border: `1px solid ${resultSurfaceBorder}`,
                 borderRadius: '14px',
@@ -2881,7 +3004,6 @@ export function EquilibriaClinicalApp() {
               role="img"
               aria-label="SVG Multi-Axis Dual-Pole (-5..+5) Mood, Energy and Sleep Chart"
             >
-              {/* Euthymic 0 Line & Mania/Depression Threshold Lines */}
               <line
                 x1={44}
                 y1={bipolarMultiAxisSvgChart.maniaThresholdY}
@@ -2909,7 +3031,6 @@ export function EquilibriaClinicalApp() {
                 strokeWidth={1}
               />
 
-              {/* Sleep Duration Bars */}
               {bipolarMultiAxisSvgChart.points.map((pt) => (
                 <g key={pt.dateLabel}>
                   <rect
@@ -2917,7 +3038,7 @@ export function EquilibriaClinicalApp() {
                     y={bipolarMultiAxisSvgChart.height - 24 - pt.sleepBarHeight}
                     width={20}
                     height={pt.sleepBarHeight}
-                    fill="rgba(56, 189, 248, 0.22)"
+                    fill="rgba(106, 168, 130, 0.25)"
                     rx={3}
                   />
                   <text
@@ -2932,45 +3053,89 @@ export function EquilibriaClinicalApp() {
                 </g>
               ))}
 
-              {/* Mood Polarity Polyline (-5..+5) */}
               <polyline
                 fill="none"
-                stroke="#14b8a6"
+                stroke="#6AA882"
                 strokeWidth={3}
                 points={bipolarMultiAxisSvgChart.moodPolylinePoints}
               />
 
-              {/* Energy Level Polyline (-5..+5) */}
               <polyline
                 fill="none"
-                stroke="#f97316"
+                stroke="#797298"
                 strokeWidth={2.5}
                 strokeDasharray="5 3"
                 points={bipolarMultiAxisSvgChart.energyPolylinePoints}
               />
 
-              {/* Data Nodes */}
               {bipolarMultiAxisSvgChart.points.map((pt) => (
                 <g key={`node-${pt.dateLabel}`}>
                   <circle
                     cx={pt.x}
                     cy={pt.moodY}
                     r={pt.isMixedRisk || pt.isManiaProdromeRisk ? 6 : 4}
-                    fill={pt.isMixedRisk ? '#e11d48' : '#14b8a6'}
+                    fill={pt.isMixedRisk ? '#C56548' : '#6AA882'}
                   />
-                  <circle cx={pt.x} cy={pt.energyY} r={4} fill="#f97316" />
+                  <circle cx={pt.x} cy={pt.energyY} r={4} fill="#797298" />
                 </g>
               ))}
             </svg>
-            <p style={{ fontSize: '0.82rem', margin: '8px 0 0 0', color: theme.palette.textSecondary }}>
-              {lang === 'vi'
-                ? 'Chú giải: Đường xanh ngọc = Khí sắc (-5..+5) | Đường cam đứt nét = Năng lượng (-5..+5) | Cột xanh dương = Số giờ ngủ | Điểm đỏ = Cảnh báo Pha Hỗn hợp / Tiền triệu Hưng cảm.'
-                : 'Legend: Teal line = Mood (-5..+5) | Orange dashed line = Energy (-5..+5) | Blue bar = Sleep hours | Red dot = Mixed State / Mania Prodrome Risk.'}
-            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginTop: '16px', fontSize: '0.88rem' }}>
+              <label>
+                {lang === 'vi' ? `Khí sắc hôm nay (-5..+5): ${moodPolarity}` : `Today's Mood (-5..+5): ${moodPolarity}`}
+                <input
+                  type="range"
+                  min={-5}
+                  max={5}
+                  value={moodPolarity}
+                  onChange={(e) => setMoodPolarity(Number((e.target as HTMLInputElement).value) as MoodPole)}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <label>
+                {lang === 'vi' ? `Mức năng lượng (-5..+5): ${energyLevel}` : `Energy Level (-5..+5): ${energyLevel}`}
+                <input
+                  type="range"
+                  min={-5}
+                  max={5}
+                  value={energyLevel}
+                  onChange={(e) => setEnergyLevel(Number((e.target as HTMLInputElement).value) as MoodPole)}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <label>
+                {lang === 'vi' ? `Số giờ ngủ đêm qua:` : `Sleep hours last night:`}
+                <input
+                  type="number"
+                  min={0}
+                  max={14}
+                  step={0.5}
+                  value={sleepHours}
+                  onChange={(e) => setSleepHours(Number((e.target as HTMLInputElement).value))}
+                  style={{ width: '70px', marginLeft: '8px' }}
+                />
+              </label>
+            </div>
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                backgroundColor:
+                  bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? warnAlertBg : calmAlertBg,
+                color:
+                  bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? warnAlertText : calmAlertText,
+                fontSize: '0.88rem',
+              }}
+            >
+              {lang === 'vi' ? bipolarAnalysis.clinicalAlertVi : bipolarAnalysis.clinicalAlertEn}
+            </div>
           </section>
+          )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
-            {/* Dual-Pole Mood & Energy Chart (-5 to +5) & Prodrome / Mixed State Detector */}
+          {/* VIEW 2: 5 IPSRT Social Rhythm Anchors */}
+          {tab3SubView === 'ipsrt-rhythm' && (
             <section
               style={{
                 padding: '16px',
@@ -2979,89 +3144,26 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '1. Khí Sắc & Nhịp Năng Lượng (-5 đến +5) — Cảnh Báo Sớm'
-                  : '1. Dual-Pole Mood & Energy (-5..+5) — Early Warning'}
+                  ? `Nhịp Sinh Học Xã Hội 5 Mốc IPSRT (Độ ổn định: ${ipsrtReport.stabilityScorePercent}%)`
+                  : `5-Anchor Social Rhythm Metric IPSRT (Stability: ${ipsrtReport.stabilityScorePercent}%)`}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem' }}>
-                <label>
-                  {lang === 'vi' ? `Khí sắc (Thăng trầm -5..+5): ${moodPolarity}` : `Mood Valence (-5..+5): ${moodPolarity}`}
-                  <input
-                    type="range"
-                    min={-5}
-                    max={5}
-                    value={moodPolarity}
-                    onChange={(e) => setMoodPolarity(Number((e.target as HTMLInputElement).value) as MoodPole)}
-                    style={{ width: '100%' }}
-                  />
-                </label>
-                <label>
-                  {lang === 'vi' ? `Năng lượng vận động (-5..+5): ${energyLevel}` : `Motor Energy (-5..+5): ${energyLevel}`}
-                  <input
-                    type="range"
-                    min={-5}
-                    max={5}
-                    value={energyLevel}
-                    onChange={(e) => setEnergyLevel(Number((e.target as HTMLInputElement).value) as MoodPole)}
-                    style={{ width: '100%' }}
-                  />
-                </label>
-                <label>
-                  {lang === 'vi' ? `Số giờ ngủ đêm qua: ${sleepHours} giờ` : `Sleep hours last night: ${sleepHours}h`}
-                  <input
-                    type="number"
-                    min={0}
-                    max={14}
-                    step={0.5}
-                    value={sleepHours}
-                    onChange={(e) => setSleepHours(Number((e.target as HTMLInputElement).value))}
-                    style={{ width: '70px', marginLeft: '8px' }}
-                  />
-                </label>
-              </div>
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  backgroundColor:
-                    bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? '#7f1d1d' : '#064e3b',
-                  color: '#fff',
-                  fontSize: '0.86rem',
-                }}
-              >
-                {lang === 'vi' ? bipolarAnalysis.clinicalAlertVi : bipolarAnalysis.clinicalAlertEn}
-              </div>
-            </section>
-
-            {/* 5 IPSRT Social Rhythm Anchors */}
-            <section
-              style={{
-                padding: '16px',
-                borderRadius: '10px',
-                backgroundColor: theme.palette.surface,
-                border: `1px solid ${theme.palette.border}`,
-              }}
-            >
-              <h3>
-                {lang === 'vi'
-                  ? `2. Nhịp Sinh Học Xã Hội 5 Mốc IPSRT (Độ ổn định: ${ipsrtReport.stabilityScorePercent}%)`
-                  : `2. 5-Anchor Social Rhythm Metric IPSRT (Stability: ${ipsrtReport.stabilityScorePercent}%)`}
-              </h3>
-              <ul style={{ fontSize: '0.86rem' }}>
-                <li>{lang === 'vi' ? '1. Giờ thức dậy ra khỏi giường:' : '1. Out of bed time:'} {currentBipolarLog.ipsrtAnchors.outOfBedTime}</li>
-                <li>{lang === 'vi' ? '2. Giao tiếp xã hội đầu tiên trong ngày:' : '2. First social contact:'} {currentBipolarLog.ipsrtAnchors.firstSocialContactTime}</li>
-                <li>{lang === 'vi' ? '3. Bắt đầu làm việc hoặc học tập:' : '3. Work/study start time:'} {currentBipolarLog.ipsrtAnchors.workOrStudyStartTime}</li>
-                <li>{lang === 'vi' ? '4. Bữa ăn tối:' : '4. Dinner time:'} {currentBipolarLog.ipsrtAnchors.dinnerTime}</li>
-                <li>{lang === 'vi' ? '5. Giờ lên giường ngủ:' : '5. Bedtime:'} {currentBipolarLog.ipsrtAnchors.bedTime}</li>
+              <ul style={{ fontSize: '0.9rem', lineHeight: 1.8 }}>
+                <li>{lang === 'vi' ? '1. Giờ thức dậy ra khỏi giường:' : '1. Out of bed time:'} <strong>{currentBipolarLog.ipsrtAnchors.outOfBedTime}</strong></li>
+                <li>{lang === 'vi' ? '2. Giao tiếp xã hội đầu tiên trong ngày:' : '2. First social contact:'} <strong>{currentBipolarLog.ipsrtAnchors.firstSocialContactTime}</strong></li>
+                <li>{lang === 'vi' ? '3. Bắt đầu làm việc hoặc học tập:' : '3. Work/study start time:'} <strong>{currentBipolarLog.ipsrtAnchors.workOrStudyStartTime}</strong></li>
+                <li>{lang === 'vi' ? '4. Bữa ăn tối:' : '4. Dinner time:'} <strong>{currentBipolarLog.ipsrtAnchors.dinnerTime}</strong></li>
+                <li>{lang === 'vi' ? '5. Giờ lên giường ngủ:' : '5. Bedtime:'} <strong>{currentBipolarLog.ipsrtAnchors.bedTime}</strong></li>
               </ul>
-              <p style={{ fontSize: '0.85rem' }}>
+              <p style={{ fontSize: '0.88rem', margin: 0, padding: '12px', borderRadius: '10px', backgroundColor: calmAlertBg, color: calmAlertText }}>
                 {lang === 'vi' ? ipsrtReport.interpretationVi : ipsrtReport.interpretationEn}
               </p>
             </section>
+          )}
 
-            {/* 48-Hour Impulse Vault */}
+          {/* VIEW 3: 48-Hour Impulse Vault & Ulysses Care Plan combined in 1 clean card */}
+          {tab3SubView === 'safety-plan' && (
             <section
               style={{
                 padding: '16px',
@@ -3070,78 +3172,97 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '3. Khoang Trì Hoãn Quyết Định 48 Giờ (Bảo Vệ Trước Cơn Bốc Đồng)'
-                  : '3. 48-Hour Decision Delay Vault (Impulse Guard)'}
+                  ? 'Khoang Trì Hoãn Quyết Định 48 Giờ & Kế Hoạch Bình Ổn Ulysses'
+                  : '48-Hour Decision Delay Vault & Ulysses Care Plan'}
               </h3>
-              <p style={{ fontSize: '0.86rem' }}>
-                <strong>{lang === 'vi' ? 'Quyết định đang tạm khóa:' : 'Locked Impulse Decision:'}</strong> {impulseVaultEntry.impulseDescription}
+              <p style={{ fontSize: '0.88rem' }}>
+                <strong>{lang === 'vi' ? 'Quyết định đang tạm khóa 48h:' : 'Locked Impulse Decision:'}</strong> {impulseVaultEntry.impulseDescription}
               </p>
-              <p style={{ fontSize: '0.84rem', color: '#d97706' }}>
-                <strong>{lang === 'vi' ? 'Dấu hiệu hưng phấn quá mức phát hiện:' : 'Positive Distortions Detected:'}</strong>{' '}
-                {impulseVaultEntry.positiveDistortionsDetected.join(' • ')}
-              </p>
-              <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+              <p style={{ fontSize: '0.88rem', padding: '10px 12px', borderRadius: '10px', backgroundColor: resultSurfaceBg, color: resultSurfaceText }}>
                 {lang === 'vi' ? impulseLockStatus.statusMessageVi : impulseLockStatus.statusMessageEn}
               </p>
-            </section>
-
-            {/* Ulysses Contract & Medication Adherence CBT */}
-            <section
-              style={{
-                padding: '16px',
-                borderRadius: '10px',
-                backgroundColor: theme.palette.surface,
-                border: `1px solid ${theme.palette.border}`,
-              }}
-            >
-              <h3>
-                {lang === 'vi'
-                  ? '4. Kế Hoạch Bình Ổn Ulysses & Tuân Thủ Điều Trị'
-                  : '4. Ulysses Care Plan & Medication Adherence CBT'}
-              </h3>
-              <p style={{ fontSize: '0.84rem' }}>
-                <strong>{lang === 'vi' ? 'Dấu hiệu tiền triệu cá nhân:' : 'Personal Prodromal Signs:'}</strong>{' '}
+              <hr style={{ border: 'none', borderTop: `1px solid ${theme.palette.border}`, margin: '14px 0' }} />
+              <p style={{ fontSize: '0.88rem' }}>
+                <strong>{lang === 'vi' ? 'Dấu hiệu tiền triệu cá nhân cần lưu ý:' : 'Personal Prodromal Signs:'}</strong>{' '}
                 {DEFAULT_ULYSSES_CONTRACT.personalManiaProdromes.join('; ')}
               </p>
-              <p style={{ fontSize: '0.84rem' }}>
-                <strong>{lang === 'vi' ? 'Tái cấu trúc suy nghĩ muốn bỏ thuốc:' : 'Balanced Thought on Adherence:'}</strong>{' '}
+              <p style={{ fontSize: '0.88rem', margin: 0 }}>
+                <strong>{lang === 'vi' ? 'Góc nhìn cân bằng về tuân thủ điều trị:' : 'Balanced Thought on Adherence:'}</strong>{' '}
                 {lang === 'vi'
                   ? medAdherenceReview.balancedAdherenceThoughtVi
                   : medAdherenceReview.balancedAdherenceThoughtEn}
               </p>
             </section>
-          </div>
+          )}
         </main>
       )}
 
-      {/* TAB 4: CLINICAL SELF-ASSESSMENTS, ENCRYPTED STORAGE, OLLAMA & A4 REPORT */}
+      {/* TAB 4: CLINICAL SELF-ASSESSMENTS & A4 REPORT (Clean 1-Card-Per-View) */}
       {activeTab === 'assessments-report' && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="care-notebook"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={lang === 'vi' ? 'Tự Đánh Giá Sức Khỏe Tâm Trí & Báo Cáo Bác Sĩ' : 'Mental Health Self-Checks & Clinician Report'}
+            subtitle={
+              lang === 'vi'
+                ? 'Theo dõi tiến trình hồi phục qua 6 thang đo chuẩn quốc tế và xuất bản tóm tắt riêng tư gửi bác sĩ.'
+                : 'Track your recovery gently through 6 validated self-checks and generate a private summary for your doctor.'
+            }
+          />
+
+          <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['scales-6', '📋', lang === 'vi' ? '1. 6 Thang Đo Tâm Lý Định Kỳ' : '1. 6 Clinical Self-Checks'],
+                ['doctor-report', '🩺', lang === 'vi' ? '2. Báo Cáo Bác Sĩ & Xuất Dữ Liệu' : '2. Doctor Summary & Export'],
+              ] as const
+            ).map(([subId, icon, label]) => (
+              <button
+                key={subId}
+                type="button"
+                onClick={() => setTab4SubView(subId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab4SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab4SubView === subId ? theme.palette.surface : 'transparent',
+                  color: tab4SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          {tab4SubView === 'scales-6' && (
           <section
             style={{
               padding: '16px',
               borderRadius: '10px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
             }}
           >
-            <h3>
+            <h3 style={{ marginTop: 0 }}>
               {lang === 'vi'
-                ? '1. Hệ Thống 6 Thang Đo Đánh Giá Định Kỳ (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'
-                : '1. Routine Clinical Assessments Suite (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'}
+                ? '6 Thang Đo Đánh Giá Định Kỳ (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'
+                : 'Routine Clinical Assessments Suite (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)'}
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
               {assessments.map((a) => (
                 <div
                   key={a.id}
                   style={{
-                    padding: '12px',
-                    borderRadius: '8px',
+                    padding: '14px',
+                    borderRadius: '12px',
                     border: `1px solid ${theme.palette.border}`,
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                   }}
                 >
                   <strong>{lang === 'vi' ? a.labelVi : a.labelEn}</strong>
@@ -3152,66 +3273,66 @@ export function EquilibriaClinicalApp() {
               ))}
             </div>
           </section>
+          )}
 
-          {/* Local Encrypted Storage, Markdown Export & Local Ollama Toggle */}
+          {tab4SubView === 'doctor-report' && (
           <section
-            className="no-print"
+            className="print-only-a4"
             style={{
-              padding: '16px',
+              padding: '20px',
               borderRadius: '10px',
               backgroundColor: theme.palette.surface,
+              color: theme.palette.textPrimary,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
             }}
           >
-            <h3>
+            <h3 style={{ marginTop: 0 }}>
               {lang === 'vi'
-                ? '2. Tự Chủ Dữ Liệu (Mã Hóa WebCrypto AES-256 • Xuất Markdown • Mô Hình Cục Bộ)'
-                : '2. Data Sovereignty (WebCrypto AES-256 • Markdown Export • Local Ollama)'}
+                ? 'Báo Cáo Tóm Tắt Lâm Sàng Gửi Bác Sĩ (Chu Kỳ 30 Ngày)'
+                : 'Clinician Summary Report (30-Day Longitudinal)'}
             </h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-              <button
-                type="button"
-                onClick={() => void handleTestWebCryptoEncryption()}
-                style={{ padding: '8px 12px', cursor: 'pointer' }}
-              >
-                {lang === 'vi'
-                  ? 'Mã hóa Phiên Hiện Tại (WebCrypto AES-GCM 256)'
-                  : 'Encrypt Current Session (WebCrypto AES-256)'}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setAiMode(aiMode === 'local-ollama' ? 'offline-deterministic' : 'local-ollama')
-                }
-                style={{ padding: '8px 12px', cursor: 'pointer' }}
-              >
-                {lang === 'vi'
-                  ? `Chế độ AI: ${aiMode === 'local-ollama' ? 'Mô hình Cục bộ Ollama' : 'Thuần Cục bộ 0ms'}`
-                  : `AI Mode: ${aiMode.toUpperCase()} (127.0.0.1:11434)`}
-              </button>
+            <p style={{ fontSize: '0.88rem' }}>
+              <strong>{lang === 'vi' ? 'Mã Người Dùng:' : 'Patient Alias:'}</strong> {clinicianReport.patientAlias} |{' '}
+              <strong>{lang === 'vi' ? 'Ngày xuất:' : 'Date:'}</strong> {clinicianReport.generatedDate} |{' '}
+              <strong>{lang === 'vi' ? 'Độ ổn định nhịp sinh học:' : 'IPSRT Stability:'}</strong> {clinicianReport.ipsrtAverageStabilityPercent}% |{' '}
+              <strong>{lang === 'vi' ? 'Tuân thủ điều trị:' : 'Medication Adherence:'}</strong> {clinicianReport.medicationAdherencePercent}%
+            </p>
+            <p style={{ fontSize: '0.88rem' }}>
+              <strong>{lang === 'vi' ? 'Khuôn mẫu suy nghĩ thường gặp:' : 'Frequent Cognitive Distortions:'}</strong>{' '}
+              {clinicianReport.topDistortions.join(', ') || (lang === 'vi' ? 'Chưa ghi nhận' : 'None detected')}
+            </p>
+
+            <div className="no-print" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px', marginBottom: '12px' }}>
               <button
                 type="button"
                 onClick={() => typeof window !== 'undefined' && window.print()}
                 style={{
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   backgroundColor: theme.palette.primary,
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
-                {lang === 'vi' ? 'In Báo Cáo Lâm Sàng Chuẩn A4' : 'Print A4 Clinical Report'}
+                {lang === 'vi' ? '🖨️ In Báo Cáo Chuẩn A4' : '🖨️ Print A4 Report'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleTestWebCryptoEncryption()}
+                style={{ padding: '8px 14px', borderRadius: '10px', border: `1px solid ${theme.palette.border}`, backgroundColor: 'transparent', cursor: 'pointer' }}
+              >
+                {lang === 'vi'
+                  ? '🔒 Mã hóa Phiên Hiện Tại (AES-256)'
+                  : '🔒 Encrypt Current Session'}
               </button>
             </div>
-            <p style={{ fontSize: '0.84rem' }}>
-              <strong>{lang === 'vi' ? 'Trạng thái Mã hóa Cục bộ:' : 'Local Encryption Status:'}</strong> <code>{encryptedPreview}</code>
-            </p>
-            <details>
-              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+
+            <details className="no-print">
+              <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.86rem' }}>
                 {lang === 'vi'
-                  ? `Xem Tệp Xuất Markdown (${markdownExport.filename})`
+                  ? `Xem Tệp Xuất Nhật Ký Markdown (${markdownExport.filename})`
                   : `View Exported Markdown (${markdownExport.filename})`}
               </summary>
               <pre
@@ -3223,145 +3344,64 @@ export function EquilibriaClinicalApp() {
                   borderRadius: '12px',
                   overflowX: 'auto',
                   fontSize: '0.82rem',
+                  marginTop: '8px',
                 }}
               >
                 {markdownExport.markdownContent}
               </pre>
             </details>
           </section>
-
-          {/* Print-Optimized A4 Clinician Summary Report */}
-          <section
-            className="print-only-a4"
-            style={{
-              padding: '20px',
-              borderRadius: '10px',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
-              border: '1px solid #cbd5e1',
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? 'BÁO CÁO TÓM TẮT LÂM SÀNG GỬI BÁC SĨ (CHU KỲ 30 NGÀY)'
-                : 'CLINICIAN SUMMARY REPORT (30-DAY LONGITUDINAL)'}
-            </h2>
-            <p style={{ fontSize: '0.88rem' }}>
-              <strong>{lang === 'vi' ? 'Mã Người Dùng:' : 'Patient Alias:'}</strong> {clinicianReport.patientAlias} |{' '}
-              <strong>{lang === 'vi' ? 'Ngày xuất:' : 'Date:'}</strong> {clinicianReport.generatedDate} |{' '}
-              <strong>{lang === 'vi' ? 'Điểm Ổn định Nhịp Sinh học IPSRT:' : 'IPSRT Stability:'}</strong> {clinicianReport.ipsrtAverageStabilityPercent}% |{' '}
-              <strong>{lang === 'vi' ? 'Tuân thủ Điều trị:' : 'Medication Adherence:'}</strong> {clinicianReport.medicationAdherencePercent}%
-            </p>
-            <p style={{ fontSize: '0.85rem' }}>
-              <strong>{lang === 'vi' ? 'Biến dạng Nhận thức Thường gặp:' : 'Frequent Cognitive Distortions:'}</strong>{' '}
-              {clinicianReport.topDistortions.join(', ') || (lang === 'vi' ? 'Chưa ghi nhận' : 'None detected')}
-            </p>
-            <p style={{ fontSize: '0.82rem', color: '#475569' }}>
-              <strong>{lang === 'vi' ? 'Liên kết Chia sẻ Bác sĩ Riêng tư (E2EE):' : 'Zero-Knowledge E2EE Doctor Share Link:'}</strong>{' '}
-              <code>{clinicianSharePkg?.fullShareUrlWithFragment ?? clinicianReport.e2eeShareUrlFragment}</code>
-            </p>
-            <div className="no-print" style={{ marginTop: '12px' }}>
-              <button
-                type="button"
-                onClick={() => setActiveTab('account-privacy-vault')}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  backgroundColor: theme.palette.primary,
-                  color: '#fff',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {lang === 'vi'
-                  ? 'Mở Trung tâm Tài khoản & Bảo mật Dữ liệu (Đồng bộ E2EE, Cổng Bác sĩ & An toàn)'
-                  : 'Open Account & Privacy Vault (E2EE Sync, Clinician Portal & Safety Audit)'}
-              </button>
-            </div>
-          </section>
+          )}
         </main>
       )}
 
       {/* TAB 5: 36 INTERACTIVE CBT/TEAM-CBT/DBT TOOLS & DEPRESSION GOLD-STANDARD SUITE */}
       {activeTab === 'tools-36-team-cbt' && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          {/* Sub-Navigation Selector for Tab 5 to prevent cognitive overload */}
-          <section
-            style={{
-              padding: '16px 20px',
-              borderRadius: '18px',
-              backgroundColor: theme.palette.surface,
-              border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem' }}>
-                  {lang === 'vi'
-                    ? '✨ Chọn Công Cụ Tự Lực Để Thực Hành (Tập trung 1 công cụ mỗi lúc)'
-                    : '✨ Choose a Self-Care Tool to Practice (One Tool at a Time)'}
-                </h3>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
-                  {lang === 'vi'
-                    ? 'Chuyển đổi nhẹ nhàng giữa Thư viện 36 bài tập nhanh và 5 bảng thực hành chuyên sâu:'
-                    : 'Switch gently between the 36 quick tools catalog and the 5 deep practice sheets:'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveToolkitSubTab(activeToolkitSubTab === 'all' ? 'catalog-36' : 'all')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  border: `1px solid ${theme.palette.border}`,
-                  backgroundColor: activeToolkitSubTab === 'all' ? theme.palette.primary : 'transparent',
-                  color: activeToolkitSubTab === 'all' ? '#ffffff' : theme.palette.textSecondary,
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {activeToolkitSubTab === 'all'
-                  ? (lang === 'vi' ? 'Thu gọn về 1 công cụ' : 'Focus on 1 Tool')
-                  : (lang === 'vi' ? 'Xem tất cả trên 1 trang' : 'Show All on 1 Page')}
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {(
-                [
-                  ['catalog-36', '🧰', lang === 'vi' ? '1. Kho 36 Bài Tập Nhanh' : '1. 36 Quick Tools'],
-                  ['mp-sheet', '☀️', lang === 'vi' ? '2. Dự Đoán Niềm Vui' : '2. Pleasure-Predicting'],
-                  ['anti-procrastination', '⏱️', lang === 'vi' ? '3. Vượt Trì Hoãn 5 Phút' : '3. 5-Min Anti-Procrastination'],
-                  ['downward-arrow', '🏹', lang === 'vi' ? '4. Mũi Tên Đi Xuống' : '4. Downward Arrow'],
-                  ['abc-please', '🌿', lang === 'vi' ? '5. Chăm Sóc ABC PLEASE' : '5. ABC PLEASE & ACCEPTS'],
-                  ['cbti-sleep', '🌙', lang === 'vi' ? '6. Giấc Ngủ CBT-I' : '6. CBT-I Sleep Diary'],
-                ] as const
-              ).map(([subId, icon, label]) => {
-                const isSelected = activeToolkitSubTab === subId;
-                return (
-                  <button
-                    key={subId}
-                    type="button"
-                    onClick={() => setActiveToolkitSubTab(subId)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '12px',
-                      border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                      backgroundColor: isSelected ? theme.palette.primary : theme.palette.background,
-                      color: isSelected ? '#ffffff' : theme.palette.textPrimary,
-                      fontWeight: 600,
-                      fontSize: '0.86rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {icon} {label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="botanical-garden"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={lang === 'vi' ? 'Khu Vườn 36 Bài Tập Tự Lực Tâm Lý' : 'Self-Care Garden & 36 Interactive Exercises'}
+            subtitle={
+              lang === 'vi'
+                ? 'Chọn một công cụ nhỏ để thực hành trong 3–5 phút. Mỗi bước nhỏ đều nuôi dưỡng sự bình an của bạn.'
+                : 'Choose one gentle exercise to practice in 3–5 minutes. Every small step nurtures your inner calm.'
+            }
+          />
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['catalog-36', '🧰', lang === 'vi' ? '1. Kho 36 Bài Tập Nhanh' : '1. 36 Quick Tools'],
+                ['mp-sheet', '☀️', lang === 'vi' ? '2. Dự Đoán Niềm Vui' : '2. Pleasure-Predicting'],
+                ['anti-procrastination', '⏱️', lang === 'vi' ? '3. Vượt Trì Hoãn 5 Phút' : '3. 5-Min Anti-Procrastination'],
+                ['downward-arrow', '🏹', lang === 'vi' ? '4. Mũi Tên Đi Xuống' : '4. Downward Arrow'],
+                ['abc-please', '🌿', lang === 'vi' ? '5. Chăm Sóc ABC PLEASE' : '5. ABC PLEASE & ACCEPTS'],
+                ['cbti-sleep', '🌙', lang === 'vi' ? '6. Giấc Ngủ CBT-I' : '6. CBT-I Sleep Diary'],
+              ] as const
+            ).map(([subId, icon, label]) => {
+              const isSelected = activeToolkitSubTab === subId;
+              return (
+                <button
+                  key={subId}
+                  type="button"
+                  onClick={() => setActiveToolkitSubTab(subId)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                    backgroundColor: isSelected ? theme.palette.surface : 'transparent',
+                    color: isSelected ? theme.palette.primary : theme.palette.textSecondary,
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {icon} {label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* 1. 36 Interactive CBT, TEAM-CBT, DBT & Bipolar Toolkit Hub (0ms execution) */}
           {(activeToolkitSubTab === 'catalog-36' || activeToolkitSubTab === 'all') && (
@@ -3775,32 +3815,55 @@ export function EquilibriaClinicalApp() {
         </main>
       )}
 
-      {/* TAB 6: GROUNDED AI COMPANION (LOCAL OLLAMA / RAG 0.46), 2-TIER MEMORY INSPECTOR, VOICE BURST WPM STUDIO & BASELINE HRV/SLEEP CONTEXT */}
+      {/* TAB 6: GROUNDED AI COMPANION, VOICE MOOD STUDIO & BASELINE HRV CONTEXT (Clean 1-Card-Per-View) */}
       {(activeTab === 'ai-companion-biometrics' || activeTab === 'phase3-ai-biometrics-voice') && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          <section
-            style={{
-              padding: '16px',
-              borderRadius: '10px',
-              backgroundColor: theme.palette.surface,
-              border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? 'Người bạn Trí tuệ AI Thấu cảm (RAG 0.46 / Ollama), Bộ nhớ Cuộn 2 Tầng, Phân tích Nhịp nói & Sinh trắc HRV'
-                : 'Grounded AI Companion (RAG 0.46 / Ollama), 2-Tier Memory, Voice WPM Studio & Baseline HRV Context'}
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: theme.palette.textSecondary, margin: 0 }}>
-              {lang === 'vi'
-                ? 'Tích hợp AI đồng hành đa chế độ (100% Offline Deterministic • Local Ollama 127.0.0.1:11434 • Vercel + Supabase Cloud RAG ngưỡng 0.46), Bộ nhớ Cuộn 2 tầng (20 tin nhắn + Tóm tắt mỗi 15 tin nhắn + Hồ sơ cá nhân có thể xóa 1 chạm), Phân tích Nhịp nói Hưng cảm (> 30% WPM spike) kèm Bảng màu 5 Sắc thái và Sinh trắc học HRV phân vị P25–P75.'
-                : 'Multimodal AI Companion (100% Offline Deterministic • Local Ollama • Vercel/Supabase Cloud RAG 0.46), 2-Tier Rolling Memory (20 messages + 15-message rolling summary + One-click profile eraser), Pressured Speech Analysis (>30% WPM spike), 5-Swatch Mood-Palette, and Baseline-Relative HRV Percentiles (P25-P75).'}
-            </p>
-          </section>
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="sunrise-hills"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={
+              lang === 'vi'
+                ? 'Người Bạn Đồng Hành Trí Tuệ AI & Nhịp Sinh Trắc'
+                : 'Empathetic AI Companion & Biometric Harmony'
+            }
+            subtitle={
+              lang === 'vi'
+                ? 'Trò chuyện thấu cảm dựa trên y học thực chứng, lắng nghe nhịp giọng nói và theo dõi độ biến thiên nhịp tim HRV.'
+                : 'Evidence-grounded empathetic dialogue, voice tone reflection, and baseline-relative HRV insights.'
+            }
+          />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '16px' }}>
-            {/* 1. Grounded AI Companion (Local Ollama 127.0.0.1:11434 / Cloud RAG 0.46 / 100% Offline) */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['ai-chat', '🤖', lang === 'vi' ? '1. Trò chuyện cùng Trợ lý AI' : '1. Chat with AI Companion'],
+                ['voice-palette', '🎙️', lang === 'vi' ? '2. Phân tích Nhịp nói & Bảng màu' : '2. Voice Tone & Mood-Palette'],
+                ['hrv-memory', '💓', lang === 'vi' ? '3. Sinh trắc HRV & Bộ nhớ' : '3. Wearable HRV & Memory'],
+              ] as const
+            ).map(([subId, icon, label]) => (
+              <button
+                key={subId}
+                type="button"
+                onClick={() => setTab6SubView(subId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab6SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab6SubView === subId ? theme.palette.surface : 'transparent',
+                  color: tab6SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            {/* 1. Grounded AI Companion */}
+            {tab6SubView === 'ai-chat' && (
             <section
               style={{
                 padding: '16px',
@@ -3809,17 +3872,17 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '1. Trợ Lý AI Dựa Trên Bằng Chứng (Ngưỡng RAG 0.46 • Kiểm soát an toàn)'
-                  : '1. Grounded AI Companion (Threshold = 0.46 • Safety Abstention)'}
+                  ? 'Trò Chuyện Cùng Người Bạn Đồng Hành AI'
+                  : 'Grounded AI Companion Dialogue'}
               </h3>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
                 {(
                   [
-                    ['offline-deterministic', lang === 'vi' ? 'Thuần Cục Bộ 0ms' : '100% Offline Deterministic'],
-                    ['local-ollama', lang === 'vi' ? 'Mô Hình Cục Bộ Ollama' : 'Local Ollama (127.0.0.1:11434)'],
-                    ['cloud-serverless-rag', lang === 'vi' ? 'Đám Mây Bảo Mật RAG' : 'Vercel + Supabase Cloud RAG'],
+                    ['offline-deterministic', lang === 'vi' ? 'Chế độ Nhanh Cục Bộ' : 'Offline Deterministic'],
+                    ['local-ollama', lang === 'vi' ? 'Mô Hình Cục Bộ Ollama' : 'Local Ollama'],
+                    ['cloud-serverless-rag', lang === 'vi' ? 'Đám Mây Bảo Mật' : 'Cloud RAG'],
                   ] as const
                 ).map(([provId, label]) => (
                   <button
@@ -3828,11 +3891,13 @@ export function EquilibriaClinicalApp() {
                     onClick={() => setPhase3Provider(provId)}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       border: `1px solid ${theme.palette.border}`,
                       backgroundColor: phase3Provider === provId ? theme.palette.primary : 'transparent',
                       color: phase3Provider === provId ? '#fff' : theme.palette.textPrimary,
                       cursor: 'pointer',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
                     }}
                   >
                     {label}
@@ -3843,7 +3908,7 @@ export function EquilibriaClinicalApp() {
               {phase3Provider === 'local-ollama' && (
                 <div style={{ marginBottom: '10px', fontSize: '0.85rem' }}>
                   <label>
-                    {lang === 'vi' ? 'Mô hình Ollama cục bộ:' : 'Local Ollama Model (127.0.0.1:11434):'}{' '}
+                    {lang === 'vi' ? 'Mô hình Ollama cục bộ:' : 'Local Ollama Model:'}{' '}
                     <select
                       value={ollamaModelName}
                       onChange={(e) => setOllamaModelName((e.target as HTMLSelectElement).value)}
@@ -3857,18 +3922,18 @@ export function EquilibriaClinicalApp() {
               )}
 
               <textarea
-                rows={2}
+                rows={3}
                 value={phase3ChatInput}
                 onChange={(e) => setPhase3ChatInput((e.target as HTMLTextAreaElement).value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}
               />
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                 <button
                   type="button"
                   onClick={() => void handleSendPhase3GroundedChat()}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '9px 16px',
+                    borderRadius: '10px',
                     backgroundColor: theme.palette.primary,
                     color: '#fff',
                     border: 'none',
@@ -3876,16 +3941,16 @@ export function EquilibriaClinicalApp() {
                     cursor: 'pointer',
                   }}
                 >
-                  {lang === 'vi' ? 'Gửi Tin Nhắn (Kiểm soát 4 lớp an toàn)' : 'Send Chat (4-Layer Safety + RAG 0.46)'}
+                  {lang === 'vi' ? 'Gửi Tin Nhắn Tâm Sự' : 'Send Message'}
                 </button>
                 <button
                   type="button"
                   onClick={() =>
                     setPhase3ChatInput(lang === 'vi' ? 'Công thức nấu phở bò ngon nhất là gì?' : 'What is the best beef pho recipe?')
                   }
-                  style={{ padding: '8px 12px', cursor: 'pointer' }}
+                  style={{ padding: '8px 12px', borderRadius: '10px', border: `1px solid ${theme.palette.border}`, backgroundColor: 'transparent', cursor: 'pointer', fontSize: '0.84rem' }}
                 >
-                  {lang === 'vi' ? 'Thử Câu Hỏi Ngoài Phạm Vi (Kiểm tra từ chối < 0.46)' : 'Test Out-of-Scope Query (Abstention < 0.46)'}
+                  {lang === 'vi' ? 'Thử Câu Hỏi Ngoài Phạm Vi Tâm Lý' : 'Test Out-of-Scope Query'}
                 </button>
               </div>
 
@@ -3896,12 +3961,12 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: resultSurfaceBg,
                   color: resultSurfaceText,
                   border: `1px solid ${resultSurfaceBorder}`,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
                   <strong>
-                    {lang === 'vi' ? `Điểm Bằng Chứng RAG: ${phase3LastTopScore.toFixed(2)} (Ngưỡng: 0.46)` : `RAG Score: ${phase3LastTopScore.toFixed(2)} (Threshold: 0.46)`}
+                    {lang === 'vi' ? 'Phản hồi từ Người bạn Đồng hành AI:' : 'AI Companion Response:'}
                   </strong>
                   <span
                     style={{
@@ -3909,20 +3974,22 @@ export function EquilibriaClinicalApp() {
                       borderRadius: '8px',
                       backgroundColor: phase3LastAbstained ? '#b45309' : theme.palette.accent,
                       color: '#fff',
-                      fontSize: '0.78rem',
+                      fontSize: '0.76rem',
                       fontWeight: 600,
                     }}
                   >
                     {phase3LastAbstained
-                      ? (lang === 'vi' ? 'TỪ CHỐI TRẢ LỜI (< 0.46 — Không suy đoán bừa bãi)' : 'ABSTAINED (< 0.46 — Zero Hallucination)')
-                      : (lang === 'vi' ? `CĂN CỨ TÀI LIỆU (${phase3LastCitations.join(' ')})` : `GROUNDED (${phase3LastCitations.join(' ')})`)}
+                      ? (lang === 'vi' ? 'Ngoài phạm vi hỗ trợ tâm lý' : 'Out of Clinical Scope')
+                      : (lang === 'vi' ? 'Đạt chuẩn Y học Thực chứng' : 'Evidence-Grounded')}
                   </span>
                 </div>
-                <p style={{ margin: 0 }}>{phase3LastReply}</p>
+                <p style={{ margin: 0, lineHeight: 1.6 }}>{phase3LastReply}</p>
               </div>
             </section>
+            )}
 
-            {/* 2. 2-Tier Rolling Memory & Personal Profile Inspector */}
+            {/* 3. Multimodal Audio "Burst" Journal & 5-Swatch Mood-Palette Studio */}
+            {tab6SubView === 'voice-palette' && (
             <section
               style={{
                 padding: '16px',
@@ -3931,111 +3998,31 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>
-                  {lang === 'vi'
-                    ? '2. Bộ Nhớ Hội Thoại 2 Tầng (20 Tin Gần Nhất + Tóm Tắt Cuộn + Hồ Sơ Cá Nhân)'
-                    : '2. 2-Tier Memory Inspector (20-Msg Window + Rolling Summary + Profile)'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={handleErasePhase3Memory}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: theme.palette.sosBanner,
-                    color: '#fff',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {lang === 'vi' ? 'Xóa Bộ Nhớ Hội Thoại' : 'Clear Memory (DELETE)'}
-                </button>
-              </div>
-
-              <div style={{ fontSize: '0.85rem', marginTop: '10px' }}>
-                <div>
-                  <strong>{lang === 'vi' ? 'Cửa sổ trượt tin nhắn:' : 'Sliding Window:'}</strong>{' '}
-                  {lang === 'vi'
-                    ? `${phase3Memory.recentMessagesWindow.length}/20 tin nhắn gần nhất (Đã xử lý: ${phase3Memory.totalMessagesProcessed} tin | Lần làm mới tóm tắt: ${phase3Memory.summaryRefreshCount})`
-                    : `${phase3Memory.recentMessagesWindow.length}/20 messages (Processed: ${phase3Memory.totalMessagesProcessed} | Summary refreshes: ${phase3Memory.summaryRefreshCount})`}
-                </div>
-                <div style={{ marginTop: '8px' }}>
-                  <strong>{lang === 'vi' ? 'Tóm tắt cuộn ngữ cảnh:' : 'Rolling Context Summary:'}</strong>
-                  <div
-                    style={{
-                      padding: '10px 12px',
-                      backgroundColor: resultSurfaceBg,
-                      color: resultSurfaceText,
-                      border: `1px solid ${resultSurfaceBorder}`,
-                      borderRadius: '10px',
-                      marginTop: '4px',
-                    }}
-                  >
-                    {phase3Memory.rollingSummary}
-                  </div>
-                </div>
-                <div style={{ marginTop: '8px' }}>
-                  <strong>{lang === 'vi' ? 'Hồ sơ cá nhân ghi nhận:' : 'Structured Personal Profile:'}</strong>
-                  <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px' }}>
-                    <li>{lang === 'vi' ? 'Tên:' : 'Name:'} {phase3Memory.personalProfile.name ?? (lang === 'vi' ? 'Chưa ghi nhận' : 'Unrecorded')}</li>
-                    <li>
-                      {lang === 'vi' ? 'Lĩnh vực công việc/học tập:' : 'Work/Study Domain:'}{' '}
-                      {phase3Memory.personalProfile.workOrStudyDomain ?? (lang === 'vi' ? 'Chưa ghi nhận' : 'Unrecorded')}
-                    </li>
-                    <li>
-                      {lang === 'vi' ? 'Người thân tin cậy:' : 'Trusted Contacts:'}{' '}
-                      {phase3Memory.personalProfile.trustedContacts.join(', ') || (lang === 'vi' ? 'Chưa ghi nhận' : 'None')}
-                    </li>
-                    <li>
-                      {lang === 'vi' ? 'Biến dạng nhận thức lặp lại:' : 'Recurrent Distortions:'}{' '}
-                      {phase3Memory.personalProfile.recurrentCognitiveDistortions.join(', ') || (lang === 'vi' ? 'Chưa ghi nhận' : 'None')}
-                    </li>
-                    <li>
-                      {lang === 'vi' ? 'Mức độ phản biện Socratic ưa thích:' : 'Preferred Pushback Level:'}{' '}
-                      <code>{phase3Memory.personalProfile.preferredPushbackLevel}</code>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            {/* 3. Multimodal Audio "Burst" Journal, Pressured-Speech Mania Detector & 5-Swatch Mood-Palette Studio */}
-            <section
-              style={{
-                padding: '16px',
-                borderRadius: '10px',
-                backgroundColor: theme.palette.surface,
-                border: `1px solid ${theme.palette.border}`,
-              }}
-            >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '3. Phân Tích Nhịp Nói & Bảng Màu Cảm Xúc (Phát hiện lời nói dồn dập > 30%)'
-                  : '3. Voice Burst Studio • Pressured Speech Detector (> 30% WPM Spike) & Mood-Palette'}
+                  ? 'Phân Tích Nhịp Nói & Bảng Màu Cảm Xúc 5 Sắc Thái'
+                  : 'Voice Speaking Rate & 5-Swatch Mood-Palette'}
               </h3>
               <textarea
-                rows={2}
+                rows={3}
                 value={vbStudioTranscript}
                 onChange={(e) => setVbStudioTranscript((e.target as HTMLTextAreaElement).value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}
               />
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.88rem', marginBottom: '12px' }}>
                 <label>
-                  {lang === 'vi' ? 'Thời lượng ghi âm (giây):' : 'Audio Duration (seconds):'}{' '}
+                  {lang === 'vi' ? 'Thời lượng chia sẻ (giây):' : 'Audio Duration (seconds):'}{' '}
                   <input
                     type="number"
                     min={3}
                     max={120}
                     value={vbStudioDurationSec}
                     onChange={(e) => setVbStudioDurationSec(Number((e.target as HTMLInputElement).value))}
-                    style={{ width: '60px' }}
+                    style={{ width: '65px' }}
                   />
                 </label>
                 <label>
-                  {lang === 'vi' ? 'Tốc độ nói nền (từ/phút):' : 'Baseline Speaking Rate (WPM):'}{' '}
+                  {lang === 'vi' ? 'Tốc độ nói trung bình của bạn (từ/phút):' : 'Your Baseline Rate (WPM):'}{' '}
                   <input
                     type="number"
                     min={80}
@@ -4049,18 +4036,18 @@ export function EquilibriaClinicalApp() {
 
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '6px',
-                  backgroundColor: phase3VoiceBurstEval.bipolarPressuredSpeechAlert ? '#7f1d1d' : '#064e3b',
-                  color: '#fff',
-                  fontSize: '0.85rem',
-                  marginBottom: '10px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: phase3VoiceBurstEval.bipolarPressuredSpeechAlert ? warnAlertBg : calmAlertBg,
+                  color: phase3VoiceBurstEval.bipolarPressuredSpeechAlert ? warnAlertText : calmAlertText,
+                  fontSize: '0.88rem',
+                  marginBottom: '12px',
                 }}
               >
                 <strong>
                   {lang === 'vi'
-                    ? `Tốc độ nói: ${phase3VoiceBurstEval.wordsPerMinute} từ/phút (Biến thiên: ${phase3VoiceBurstEval.wpmSpikePercent >= 0 ? `+${phase3VoiceBurstEval.wpmSpikePercent}%` : `${phase3VoiceBurstEval.wpmSpikePercent}%`})`
-                    : `Speaking Rate: ${phase3VoiceBurstEval.wordsPerMinute} WPM (Delta: ${phase3VoiceBurstEval.wpmSpikePercent >= 0 ? `+${phase3VoiceBurstEval.wpmSpikePercent}%` : `${phase3VoiceBurstEval.wpmSpikePercent}%`})`}
+                    ? `Tốc độ nói hiện tại: ${phase3VoiceBurstEval.wordsPerMinute} từ/phút`
+                    : `Current Speaking Rate: ${phase3VoiceBurstEval.wordsPerMinute} WPM`}
                 </strong>
                 <p style={{ margin: '4px 0 0 0' }}>
                   {lang === 'vi'
@@ -4069,19 +4056,13 @@ export function EquilibriaClinicalApp() {
                 </p>
               </div>
 
-              <p style={{ fontSize: '0.85rem', margin: '0 0 8px 0' }}>
-                {lang === 'vi'
-                  ? phase3VoiceBurstEval.complaintClassificationReasonVi
-                  : phase3VoiceBurstEval.complaintClassificationReasonEn}
-              </p>
-
               {/* 5-Swatch Mood Palette Visual Card */}
               <div
                 style={{
-                  padding: '12px',
-                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
                   background: phase3VoiceBurstEval.moodPalette.gradientCss,
-                  color: '#ffffff',
+                  color: '#1e293b',
                 }}
               >
                 <strong>
@@ -4089,17 +4070,18 @@ export function EquilibriaClinicalApp() {
                     ? phase3VoiceBurstEval.moodPalette.titleVi
                     : phase3VoiceBurstEval.moodPalette.titleEn}
                 </strong>
-                <div style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
+                <div style={{ display: 'flex', gap: '8px', margin: '8px 0', flexWrap: 'wrap' }}>
                   {phase3VoiceBurstEval.moodPalette.fiveSwatches.map((hex) => (
                     <span
                       key={hex}
                       style={{
                         display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
                         backgroundColor: hex,
-                        border: '1px solid rgba(255,255,255,0.5)',
-                        fontSize: '0.75rem',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255,255,255,0.6)',
+                        fontSize: '0.76rem',
                         fontFamily: 'monospace',
                       }}
                     >
@@ -4107,15 +4089,12 @@ export function EquilibriaClinicalApp() {
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: '0.82rem' }}>
-                  {lang === 'vi'
-                    ? `Tọa độ cảm xúc: Chiều cảm xúc ${phase3VoiceBurstEval.moodPalette.emotionalCoordinates.valence} • Mức kích hoạt ${phase3VoiceBurstEval.moodPalette.emotionalCoordinates.arousal}`
-                    : `Emotional Coordinates: Valence ${phase3VoiceBurstEval.moodPalette.emotionalCoordinates.valence} • Arousal ${phase3VoiceBurstEval.moodPalette.emotionalCoordinates.arousal}`}
-                </div>
               </div>
             </section>
+            )}
 
-            {/* 4. Baseline-Relative HRV & Sleep Biometrics Context Engine */}
+            {/* 4. Baseline-Relative HRV & Rolling Memory combined in 1 clean view */}
+            {tab6SubView === 'hrv-memory' && (
             <section
               style={{
                 padding: '16px',
@@ -4124,14 +4103,14 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '4. Sinh Trắc Học Độ Biến Thiên Nhịp Tim HRV (Phân vị cá nhân P25–P75)'
-                  : '4. Baseline-Relative HRV Biometrics (Personal P25–P75 Percentiles)'}
+                  ? 'Đồng Bộ Thiết Bị Đeo HRV & Quản Lý Bộ Nhớ Trò Chuyện'
+                  : 'Wearable HRV Context & Conversation Memory Privacy'}
               </h3>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.88rem', marginBottom: '12px' }}>
                 <label>
-                  {lang === 'vi' ? 'Nguồn thiết bị đồng bộ:' : 'Synced Wearable Source:'}{' '}
+                  {lang === 'vi' ? 'Thiết bị đeo:' : 'Wearable Source:'}{' '}
                   <select
                     value={hrvDeviceSource}
                     onChange={(e) => setHrvDeviceSource((e.target as HTMLSelectElement).value as HrvDeviceSource)}
@@ -4142,26 +4121,14 @@ export function EquilibriaClinicalApp() {
                   </select>
                 </label>
                 <label>
-                  {lang === 'vi' ? `Chỉ số HRV mới nhất (${phase3HrvEval.metricUnit}):` : `Latest HRV (${phase3HrvEval.metricUnit}):`}{' '}
+                  {lang === 'vi' ? `Chỉ số HRV (${phase3HrvEval.metricUnit}):` : `Latest HRV (${phase3HrvEval.metricUnit}):`}{' '}
                   <input
                     type="number"
                     min={15}
                     max={140}
                     value={hrvLatestMs}
                     onChange={(e) => setHrvLatestMs(Number((e.target as HTMLInputElement).value))}
-                    style={{ width: '60px' }}
-                  />
-                </label>
-                <label>
-                  {lang === 'vi' ? 'Thời gian ghi nhận (giờ trước):' : 'Reading age (hours ago):'}{' '}
-                  <input
-                    type="number"
-                    min={0.5}
-                    max={36}
-                    step={0.5}
-                    value={hrvAgeHours}
-                    onChange={(e) => setHrvAgeHours(Number((e.target as HTMLInputElement).value))}
-                    style={{ width: '60px' }}
+                    style={{ width: '65px' }}
                   />
                 </label>
               </div>
@@ -4173,73 +4140,102 @@ export function EquilibriaClinicalApp() {
                   backgroundColor: resultSurfaceBg,
                   color: resultSurfaceText,
                   border: `1px solid ${resultSurfaceBorder}`,
-                  fontSize: '0.86rem',
+                  fontSize: '0.88rem',
+                  marginBottom: '16px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-                  <span>
-                    <strong>{lang === 'vi' ? 'Phân loại:' : 'Classification:'}</strong> <code>{phase3HrvEval.classification}</code>
-                  </span>
-                  <span>
-                    <strong>{lang === 'vi' ? `Khoảng bình thường 14–30 ngày (${phase3HrvEval.validBaselineDaysCount} ngày):` : `14–30 Day Baseline (${phase3HrvEval.validBaselineDaysCount} days):`}</strong>{' '}
-                    P25 = {phase3HrvEval.p25Ms ?? 'N/A'} | P75 = {phase3HrvEval.p75Ms ?? 'N/A'} {phase3HrvEval.metricUnit}
-                  </span>
-                  <span
-                    style={{
-                      padding: '2px 10px',
-                      borderRadius: '8px',
-                      backgroundColor: phase3HrvEval.isFreshUnder12Hours ? theme.palette.accent : '#64748b',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {phase3HrvEval.isFreshUnder12Hours
-                      ? (lang === 'vi' ? `Dữ liệu mới (${phase3HrvEval.latestReadingAgeHours}h < 12h)` : `Fresh (${phase3HrvEval.latestReadingAgeHours}h < 12h)`)
-                      : (lang === 'vi' ? `Dữ liệu cũ (${phase3HrvEval.latestReadingAgeHours}h > 12h — Đã bỏ qua)` : `Stale (${phase3HrvEval.latestReadingAgeHours}h > 12h — Ignored)`)}
-                  </span>
-                </div>
                 <p style={{ margin: '0 0 6px 0' }}>
                   {lang === 'vi'
                     ? phase3HrvEval.gentleCheckInMentionVi
                     : phase3HrvEval.gentleCheckInMentionEn}
                 </p>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: resultAccentColor }}>
+                <div style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
                   {lang === 'vi'
-                    ? phase3HrvEval.clinicalComplianceRuleNoteVi
-                    : phase3HrvEval.clinicalComplianceRuleNoteEn}
-                </p>
+                    ? `Khoảng bình thường của bạn (P25–P75): ${phase3HrvEval.p25Ms ?? 'N/A'} – ${phase3HrvEval.p75Ms ?? 'N/A'} ${phase3HrvEval.metricUnit}`
+                    : `Your 14–30 Day Baseline (P25–P75): ${phase3HrvEval.p25Ms ?? 'N/A'} – ${phase3HrvEval.p75Ms ?? 'N/A'} ${phase3HrvEval.metricUnit}`}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '12px', borderTop: `1px solid ${theme.palette.border}` }}>
+                <div>
+                  <strong style={{ fontSize: '0.9rem' }}>
+                    {lang === 'vi' ? 'Quyền riêng tư bộ nhớ hội thoại:' : 'Conversation Memory Privacy:'}
+                  </strong>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
+                    {phase3Memory.rollingSummary}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleErasePhase3Memory}
+                  style={{
+                    padding: '7px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: theme.palette.sosBanner,
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {lang === 'vi' ? 'Xóa Bộ Nhớ Hội Thoại' : 'Clear Conversation Memory'}
+                </button>
               </div>
             </section>
+            )}
           </div>
         </main>
       )}
 
-      {/* TAB 7: ZERO-KNOWLEDGE E2EE SYNC (24-WORD KEY & CRDT), CLINICIAN PORTAL (#KEY=... DECRYPTOR) & 105-CASE RED-TEAM / WCAG 2.2 AAA AUDIT */}
+      {/* TAB 7: ACCOUNT SANCTUARY, DOCTOR SHARE LINK & E2EE RECOVERY KEY (Clean 1-Card-Per-View) */}
       {(activeTab === 'account-privacy-vault' || activeTab === 'phase4-e2ee-clinician-qa') && (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          <section
-            className="no-print"
-            style={{
-              padding: '16px',
-              borderRadius: '10px',
-              backgroundColor: theme.palette.surface,
-              border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>
-              {lang === 'vi'
-                ? 'Trung tâm Tài khoản, Đồng bộ Mã hóa Đầu-cuối & Cổng Kết nối Bác sĩ'
-                : 'Account Sanctuary, End-to-End Encrypted Sync & Clinician Portal'}
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: theme.palette.textSecondary, margin: 0 }}>
-              {lang === 'vi'
-                ? 'Quản lý tài khoản cá nhân, sinh khóa khôi phục 24 từ (WebCrypto AES-GCM-256), hợp nhất dữ liệu đa thiết bị bằng thuật toán CRDT không độ trễ, Cổng Bác sĩ giải mã an toàn qua URL fragment (#key=...) và Kiểm định an toàn lâm sàng 105 kịch bản đối kháng.'
-                : 'Personal account management, 24-word master recovery key (WebCrypto AES-GCM-256), zero-latency CRDT multi-device sync, client-side encrypted Clinician Portal (#key=...), and 105-scenario clinical safety audit.'}
-            </p>
-          </section>
+        <main style={{ maxWidth: '940px', margin: '0 auto', padding: '0 16px' }}>
+          <SanctuaryHeroBanner
+            scene="care-notebook"
+            isDark={theme.mode === 'low-stimulus-mania'}
+            title={
+              lang === 'vi'
+                ? 'Hồ Sơ Cá Nhân, Quyền Riêng Tư & Kết Nối Bác Sĩ'
+                : 'Your Personal Profile, Privacy & Doctor Connection'
+            }
+            subtitle={
+              lang === 'vi'
+                ? 'Quản lý thông tin người thân hỗ trợ, chia sẻ báo cáo mã hóa cho bác sĩ và lưu khóa khôi phục dữ liệu.'
+                : 'Manage your support contacts, share encrypted summaries with your clinician, and safeguard your recovery key.'
+            }
+          />
 
-          {/* Account Management & Sanctuary Profiles Card */}
+          <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {(
+              [
+                ['profile', '👤', lang === 'vi' ? '1. Hồ sơ & Người thân Hỗ trợ' : '1. Profile & Support Contact'],
+                ['doctor-link', '🩺', lang === 'vi' ? '2. Chia sẻ Báo cáo cho Bác sĩ' : '2. Share Report with Doctor'],
+                ['recovery-key', '🔐', lang === 'vi' ? '3. Khóa Khôi phục 24 từ & Bảo mật' : '3. 24-Word Key & Security'],
+              ] as const
+            ).map(([subId, icon, label]) => (
+              <button
+                key={subId}
+                type="button"
+                onClick={() => setTab7SubView(subId)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: tab7SubView === subId ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                  backgroundColor: tab7SubView === subId ? theme.palette.surface : 'transparent',
+                  color: tab7SubView === subId ? theme.palette.primary : theme.palette.textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
+          {/* VIEW 1: Clean Personal Profile Card (No duplicate login form!) */}
+          {tab7SubView === 'profile' && (
           <section
             className="no-print"
             style={{
@@ -4247,54 +4243,32 @@ export function EquilibriaClinicalApp() {
               borderRadius: '16px',
               backgroundColor: theme.palette.surface,
               border: `1px solid ${theme.palette.border}`,
-              marginBottom: '16px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div
                   style={{
-                    width: '54px',
-                    height: '54px',
+                    width: '52px',
+                    height: '52px',
                     borderRadius: '50%',
                     backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.5rem',
+                    fontSize: '1.4rem',
                     fontWeight: 700,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
                   }}
                 >
                   {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
-                      {accountSession?.user.displayName || (lang === 'vi' ? 'Chưa đăng nhập' : 'Not signed in')}
-                    </h3>
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(106, 168, 130, 0.15)',
-                        color: theme.palette.accent,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {accountSession?.user.authMode === 'guest-local-only'
-                        ? (lang === 'vi' ? 'Khách Ẩn Danh Tại Chỗ' : 'Anonymous Guest')
-                        : accountSession?.user.authMode === 'email-password'
-                          ? (lang === 'vi' ? 'Tài Khoản Email Đã Xác Thực' : 'Verified Email Account')
-                          : (lang === 'vi' ? 'Hồ Sơ Mẫu 1-Chạm' : 'Quick Sanctuary Profile')}
-                    </span>
-                  </div>
-                  <p style={{ margin: '3px 0 0 0', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
-                    {accountSession?.user.email} • ID: <code>{accountSession?.user.userId}</code> • {lang === 'vi' ? 'Đồng bộ lúc:' : 'Last sync:'}{' '}
-                    {accountSession?.user.lastE2eeSyncAt ? accountSession.user.lastE2eeSyncAt.slice(11, 19) + ' UTC' : 'Chưa có'}
+                  <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
+                    {accountSession?.user.displayName}
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
+                    {accountSession?.user.email}
                   </p>
                 </div>
               </div>
@@ -4304,7 +4278,7 @@ export function EquilibriaClinicalApp() {
                   type="button"
                   onClick={handleSyncNow}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 14px',
                     borderRadius: '10px',
                     backgroundColor: theme.palette.accent,
                     color: '#ffffff',
@@ -4313,13 +4287,13 @@ export function EquilibriaClinicalApp() {
                     cursor: 'pointer',
                   }}
                 >
-                  {lang === 'vi' ? '🔄 Đồng bộ E2EE Ngay' : '🔄 Sync Now'}
+                  {lang === 'vi' ? '🔄 Đồng bộ Dữ liệu' : '🔄 Sync Data'}
                 </button>
                 <button
                   type="button"
                   onClick={handleSignOut}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 14px',
                     borderRadius: '10px',
                     backgroundColor: 'transparent',
                     color: theme.palette.textSecondary,
@@ -4327,303 +4301,64 @@ export function EquilibriaClinicalApp() {
                     cursor: 'pointer',
                   }}
                 >
-                  {lang === 'vi' ? 'Đăng xuất / Về Ẩn danh' : 'Sign Out / Guest'}
+                  {lang === 'vi' ? 'Đăng xuất' : 'Sign Out'}
                 </button>
               </div>
             </div>
 
-            {/* 1-Tap Quick Profiles Switcher */}
-            <div style={{ marginTop: '16px', padding: '14px', borderRadius: '12px', backgroundColor: theme.palette.background }}>
-              <strong style={{ fontSize: '0.9rem' }}>
-                {lang === 'vi' ? '⚡ Chuyển Đổi Nhanh Hồ Sơ Trị Liệu (1-Chạm):' : '⚡ 1-Tap Quick Sanctuary Profiles:'}
-              </strong>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px', marginTop: '10px' }}>
-                {QUICK_DEMO_PROFILES.map((p) => {
-                  const isActive =
-                    accountSession?.user.userId === `demo_${p.id}` ||
-                    (p.id === 'guest-local-only' && accountSession?.user.authMode === 'guest-local-only');
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => handleSelectQuickDemo(p.id)}
-                      style={{
-                        textAlign: 'left',
-                        padding: '10px 14px',
-                        borderRadius: '12px',
-                        border: isActive ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                        backgroundColor: isActive ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.avatarMoodColor }} />
-                        <strong style={{ fontSize: '0.88rem', color: theme.palette.textPrimary }}>
-                          {lang === 'vi' ? p.displayNameVi : p.displayNameEn}
-                        </strong>
-                      </div>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: theme.palette.textSecondary }}>
-                        {lang === 'vi' ? p.descriptionVi : p.descriptionEn}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+              <label style={{ fontSize: '0.88rem' }}>
+                {lang === 'vi' ? 'Tên gọi của bạn:' : 'Display Name:'}
+                <input
+                  type="text"
+                  value={profileFormName}
+                  onChange={(e) => setProfileFormName((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px' }}
+                />
+              </label>
+              <label style={{ fontSize: '0.88rem' }}>
+                {lang === 'vi' ? 'Người thân hỗ trợ khi cần:' : 'Emergency Support Contact:'}
+                <input
+                  type="text"
+                  value={profileEmergencyName}
+                  onChange={(e) => setProfileEmergencyName((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px' }}
+                />
+              </label>
+              <label style={{ fontSize: '0.88rem' }}>
+                {lang === 'vi' ? 'Số điện thoại người thân:' : 'Support Contact Phone:'}
+                <input
+                  type="text"
+                  value={profileEmergencyPhone}
+                  onChange={(e) => setProfileEmergencyPhone((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px' }}
+                />
+              </label>
             </div>
 
-            {/* Forms: Profile Editor & Email Auth */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginTop: '16px' }}>
-              {/* Edit Profile Form */}
-              <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid ${theme.palette.border}` }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem' }}>
-                  {lang === 'vi' ? '✏️ Chỉnh Sửa Hồ Sơ Cá Nhân' : '✏️ Personal Profile Settings'}
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <label style={{ fontSize: '0.85rem' }}>
-                    {lang === 'vi' ? 'Tên hiển thị:' : 'Display Name:'}
-                    <input
-                      type="text"
-                      value={profileFormName}
-                      onChange={(e) => setProfileFormName((e.target as HTMLInputElement).value)}
-                      className="sanctuary-input"
-                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                    />
-                  </label>
-                  <label style={{ fontSize: '0.85rem' }}>
-                    {lang === 'vi' ? 'Người thân hỗ trợ khẩn cấp:' : 'Emergency Contact Name:'}
-                    <input
-                      type="text"
-                      value={profileEmergencyName}
-                      onChange={(e) => setProfileEmergencyName((e.target as HTMLInputElement).value)}
-                      className="sanctuary-input"
-                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                    />
-                  </label>
-                  <label style={{ fontSize: '0.85rem' }}>
-                    {lang === 'vi' ? 'Số điện thoại khẩn cấp:' : 'Emergency Phone:'}
-                    <input
-                      type="text"
-                      value={profileEmergencyPhone}
-                      onChange={(e) => setProfileEmergencyPhone((e.target as HTMLInputElement).value)}
-                      className="sanctuary-input"
-                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleSaveProfile}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: theme.palette.primary,
-                      color: '#ffffff',
-                      border: 'none',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      marginTop: '4px',
-                    }}
-                  >
-                    {lang === 'vi' ? 'Lưu Thông Tin Hồ Sơ' : 'Save Profile Changes'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Sign In / Sign Up Form */}
-              <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid ${theme.palette.border}` }}>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setAuthView('login')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      backgroundColor: authView === 'login' ? theme.palette.primary : 'transparent',
-                      color: authView === 'login' ? '#ffffff' : theme.palette.textPrimary,
-                      border: `1px solid ${theme.palette.border}`,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {lang === 'vi' ? 'Đăng Nhập' : 'Sign In'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthView('register')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      backgroundColor: authView === 'register' ? theme.palette.primary : 'transparent',
-                      color: authView === 'register' ? '#ffffff' : theme.palette.textPrimary,
-                      border: `1px solid ${theme.palette.border}`,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {lang === 'vi' ? 'Đăng Ký Mới' : 'Create Account'}
-                  </button>
-                </div>
-
-                <form onSubmit={authView === 'login' ? handleEmailLogin : handleEmailRegister} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {authView === 'register' && (
-                    <label style={{ fontSize: '0.85rem' }}>
-                      {lang === 'vi' ? 'Họ và tên / Biệt danh:' : 'Full Name / Nickname:'}
-                      <input
-                        type="text"
-                        value={authDisplayName}
-                        onChange={(e) => setAuthDisplayName((e.target as HTMLInputElement).value)}
-                        placeholder="Nguyễn Văn A"
-                        className="sanctuary-input"
-                        style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
-                      />
-                    </label>
-                  )}
-                  <label style={{ fontSize: '0.85rem' }}>
-                    {lang === 'vi' ? 'Email:' : 'Email Address:'}
-                    <input
-                      type="email"
-                      required
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail((e.target as HTMLInputElement).value)}
-                      placeholder="ban@example.com"
-                      className="sanctuary-input"
-                      style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
-                    />
-                  </label>
-                  <label style={{ fontSize: '0.85rem' }}>
-                    {lang === 'vi' ? 'Mật khẩu:' : 'Password:'}
-                    <input
-                      type="password"
-                      required
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword((e.target as HTMLInputElement).value)}
-                      placeholder="••••••••"
-                      className="sanctuary-input"
-                      style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: theme.palette.primary,
-                      color: '#ffffff',
-                      border: 'none',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      marginTop: '6px',
-                    }}
-                  >
-                    {authView === 'login'
-                      ? (lang === 'vi' ? 'Đăng Nhập Tài Khoản' : 'Sign In')
-                      : (lang === 'vi' ? 'Tạo Tài Khoản Mới' : 'Create Account')}
-                  </button>
-                </form>
-
-                {authStatusMessage && (
-                  <div
-                    style={{
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      fontSize: '0.82rem',
-                      backgroundColor: authStatusMessage.ok ? 'rgba(106, 168, 130, 0.15)' : 'rgba(197, 101, 72, 0.15)',
-                      color: authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner,
-                    }}
-                  >
-                    {authStatusMessage.text}
-                  </div>
-                )}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleSaveProfile}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.primary,
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {lang === 'vi' ? 'Lưu Thông Tin Hồ Sơ' : 'Save Profile Changes'}
+            </button>
           </section>
+          )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '16px' }}>
-            {/* 1. Zero-Knowledge E2EE 24-Word Master Recovery Key & CRDT Multi-Device Sync */}
-            <section
-              className="no-print"
-              style={{
-                padding: '16px',
-                borderRadius: '10px',
-                backgroundColor: theme.palette.surface,
-                border: `1px solid ${theme.palette.border}`,
-              }}
-            >
-              <h3>
-                {lang === 'vi'
-                  ? '1. Khóa Khôi Phục Mã Hóa 24 Từ & Đồng Bộ Dữ Liệu Đa Nền Tảng (CRDT)'
-                  : '1. Zero-Knowledge 24-Word Recovery Key & CRDT Multi-Device Sync'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => void handleGenerate24WordKeyAndRunCrdtSync()}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  backgroundColor: theme.palette.primary,
-                  color: '#fff',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  marginBottom: '10px',
-                }}
-              >
-                {lang === 'vi'
-                  ? 'Sinh Khóa 24 Từ & Kiểm Tra Đồng Bộ (< 5s SLA)'
-                  : 'Generate 24-Word Key & Run Sync (< 5s SLA)'}
-              </button>
-
-              {masterKey24 && (
-                <div
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    backgroundColor: resultSurfaceBg,
-                    color: resultSurfaceText,
-                    border: `1px solid ${resultSurfaceBorder}`,
-                    fontSize: '0.84rem',
-                    marginBottom: '10px',
-                  }}
-                >
-                  <div>
-                    <strong>{lang === 'vi' ? 'Mã khóa:' : 'Key ID:'}</strong> <code>{masterKey24.keyId}</code> •{' '}
-                    <strong>{lang === 'vi' ? 'Mã nhận diện:' : 'Fingerprint:'}</strong> <code>{masterKey24.keyFingerprintHex}</code> •{' '}
-                    <strong>{lang === 'vi' ? 'Thuật toán:' : 'Algorithm:'}</strong> <code>{masterKey24.algorithm}</code>
-                  </div>
-                  <div style={{ marginTop: '6px', fontFamily: 'monospace', color: resultAccentColor, fontWeight: 600 }}>
-                    <strong>{lang === 'vi' ? 'Cụm 24 Từ Khôi Phục Bí Mật:' : '24-Word Master Recovery Mnemonic:'}</strong>
-                    <br />
-                    {masterKey24.words.map((w, idx) => `${idx + 1}.${w}`).join(' ')}
-                  </div>
-                </div>
-              )}
-
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  backgroundColor: resultSurfaceBg,
-                  color: resultSurfaceText,
-                  border: `1px solid ${resultSurfaceBorder}`,
-                  fontSize: '0.85rem',
-                }}
-              >
-                <div>
-                  <strong>{lang === 'vi' ? 'Trạng thái Hợp nhất Dữ liệu Đa Thiết Bị (CRDT):' : 'Multi-Device CRDT Convergence State:'}</strong>
-                </div>
-                <p style={{ margin: '6px 0' }}>{crdtDecryptedSampleText}</p>
-                {crdtSyncPreview && (
-                  <div style={{ fontSize: '0.79rem', color: theme.palette.textSecondary }}>
-                    {lang === 'vi'
-                      ? `Tổng bản ghi hợp nhất: ${crdtSyncPreview.stats.totalMerged} | Bản ghi hoạt động: ${crdtSyncPreview.activeRecords.length} | Bản ghi đã xóa: ${crdtSyncPreview.stats.tombstonesAppliedCount} | Thời gian đồng bộ: ${crdtSyncPreview.stats.syncDurationMs}ms (Đạt chuẩn < 5s: ${crdtSyncPreview.stats.underFiveSecondSlaPassed ? 'ĐẠT' : 'CHƯA ĐẠT'})`
-                      : `Total merged: ${crdtSyncPreview.stats.totalMerged} | Active records: ${crdtSyncPreview.activeRecords.length} | Tombstones: ${crdtSyncPreview.stats.tombstonesAppliedCount} | Sync latency: ${crdtSyncPreview.stats.syncDurationMs}ms (Under 5s SLA: ${crdtSyncPreview.stats.underFiveSecondSlaPassed ? 'PASS' : 'FAIL'})`}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* 2. Zero-Knowledge Clinician Portal (#key=... URL Fragment Decryptor & Time-Limited Share Link) */}
+          {/* VIEW 2: Clinician Share Link */}
+          {tab7SubView === 'doctor-link' && (
             <section
               style={{
                 padding: '16px',
@@ -4632,14 +4367,14 @@ export function EquilibriaClinicalApp() {
                 border: `1px solid ${theme.palette.border}`,
               }}
             >
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '2. Cổng Chia Sẻ Dành Cho Bác Sĩ (Giải mã an toàn qua URL fragment #key=...)'
-                  : '2. Zero-Knowledge Clinician Portal (#key=... URL Fragment Decryptor)'}
+                  ? 'Chia Sẻ Báo Cáo Riêng Tư Cho Bác Sĩ Điều Trị'
+                  : 'Private Doctor Report Sharing'}
               </h3>
               <div
                 className="no-print"
-                style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '10px' }}
+                style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.88rem', marginBottom: '12px' }}
               >
                 <label>
                   {lang === 'vi' ? 'Chu kỳ báo cáo:' : 'Report Period:'}{' '}
@@ -4647,12 +4382,12 @@ export function EquilibriaClinicalApp() {
                     value={sharePeriodDays}
                     onChange={(e) => setSharePeriodDays(Number((e.target as HTMLSelectElement).value) as 30 | 90)}
                   >
-                    <option value={30}>{lang === 'vi' ? '30 Ngày (Tóm tắt Lâm sàng 30 Ngày)' : '30-Day Clinical Summary'}</option>
-                    <option value={90}>{lang === 'vi' ? '90 Ngày (Theo dõi Dài hạn 90 Ngày)' : '90-Day Longitudinal Summary'}</option>
+                    <option value={30}>{lang === 'vi' ? '30 Ngày gần nhất' : 'Last 30 Days'}</option>
+                    <option value={90}>{lang === 'vi' ? '90 Ngày gần nhất' : 'Last 90 Days'}</option>
                   </select>
                 </label>
                 <label>
-                  {lang === 'vi' ? 'Thời hạn liên kết:' : 'Link Expiry:'}{' '}
+                  {lang === 'vi' ? 'Thời hạn hiệu lực:' : 'Link Expiry:'}{' '}
                   <select
                     value={shareTtlPreset}
                     onChange={(e) => setShareTtlPreset((e.target as HTMLSelectElement).value as ClinicianShareTtlPreset)}
@@ -4664,13 +4399,13 @@ export function EquilibriaClinicalApp() {
                 </label>
               </div>
 
-              <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                 <button
                   type="button"
                   onClick={() => void handleCreateAndDecryptClinicianShare()}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '9px 16px',
+                    borderRadius: '10px',
                     backgroundColor: theme.palette.primary,
                     color: '#fff',
                     border: 'none',
@@ -4679,39 +4414,25 @@ export function EquilibriaClinicalApp() {
                   }}
                 >
                   {lang === 'vi'
-                    ? 'Tạo Liên Kết Bác Sĩ & Xem Trước Bản Giải Mã'
-                    : 'Generate Doctor Link (#key=...) & Decrypt Preview'}
+                    ? 'Tạo Liên Kết Chia Sẻ Bác Sĩ'
+                    : 'Create Private Doctor Link'}
                 </button>
                 {clinicianSharePkg && !clinicianSharePkg.serverSnapshot.revoked && (
                   <button
                     type="button"
                     onClick={() => void handleRevokeClinicianShare()}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
                       backgroundColor: theme.palette.sosBanner,
                       color: '#fff',
                       border: 'none',
                       cursor: 'pointer',
                     }}
                   >
-                    {lang === 'vi' ? 'Thu Hồi Quyền Truy Cập Ngay' : 'Revoke Link Access Now'}
+                    {lang === 'vi' ? 'Thu Hồi Liên Kết' : 'Revoke Link'}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => typeof window !== 'undefined' && window.print()}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: `1px solid ${theme.palette.border}`,
-                    backgroundColor: 'transparent',
-                    color: theme.palette.textPrimary,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {lang === 'vi' ? 'In Báo Cáo Lâm Sàng A4' : 'Print A4 Clinical Report'}
-                </button>
               </div>
 
               {clinicianSharePkg && (
@@ -4722,43 +4443,26 @@ export function EquilibriaClinicalApp() {
                     backgroundColor: resultSurfaceBg,
                     color: resultSurfaceText,
                     border: `1px solid ${resultSurfaceBorder}`,
-                    fontSize: '0.84rem',
+                    fontSize: '0.85rem',
                   }}
                 >
-                  <div>
-                    <strong>
-                      {lang === 'vi'
-                        ? 'Đường dẫn chia sẻ an toàn (Khóa giải mã chỉ nằm trên trình duyệt của bạn và bác sĩ):'
-                        : 'Zero-Knowledge URL (Key resides only in browser fragment #key=...):'}
-                    </strong>
-                    <div style={{ wordBreak: 'break-all', color: resultAccentColor, fontFamily: 'monospace', marginTop: '4px', fontWeight: 600 }}>
-                      {clinicianSharePkg.fullShareUrlWithFragment}
-                    </div>
-                  </div>
-                  <div style={{ marginTop: '6px' }}>
-                    <strong>{lang === 'vi' ? 'Hết hạn lúc:' : 'Expires at:'}</strong> {clinicianSharePkg.serverSnapshot.expiresAt} •{' '}
-                    <strong>{lang === 'vi' ? 'Trạng thái giải mã:' : 'Decryption status:'}</strong>{' '}
-                    <code>{clinicianDecryptedView?.status.toUpperCase()}</code>
+                  <div style={{ wordBreak: 'break-all', color: resultAccentColor, fontFamily: 'monospace', fontWeight: 600 }}>
+                    {clinicianSharePkg.fullShareUrlWithFragment}
                   </div>
                   {clinicianDecryptedView?.status === 'decrypted' && clinicianDecryptedView.report && (
                     <div style={{ marginTop: '6px', color: theme.palette.accent, fontWeight: 600 }}>
                       {lang === 'vi'
-                        ? `Đã giải mã thành công báo cáo ${clinicianDecryptedView.report.periodDays} ngày của ${clinicianDecryptedView.report.patientAlias} • Độ ổn định nhịp sinh học: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}% • Tỉ lệ tuân thủ điều trị: ${clinicianDecryptedView.report.medicationAdherencePercent}%`
-                        : `Decrypted ${clinicianDecryptedView.report.periodDays}-day report for ${clinicianDecryptedView.report.patientAlias} • IPSRT Stability: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}% • Medication Adherence: ${clinicianDecryptedView.report.medicationAdherencePercent}%`}
-                    </div>
-                  )}
-                  {clinicianDecryptedView?.errorMessageVi && (
-                    <div style={{ marginTop: '6px', color: theme.palette.sosBanner, fontWeight: 600 }}>
-                      {lang === 'vi'
-                        ? clinicianDecryptedView.errorMessageVi
-                        : clinicianDecryptedView.errorMessageEn}
+                        ? `Báo cáo ${clinicianDecryptedView.report.periodDays} ngày đã sẵn sàng • Độ ổn định nhịp sinh học: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}%`
+                        : `${clinicianDecryptedView.report.periodDays}-day report ready • IPSRT Stability: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}%`}
                     </div>
                   )}
                 </div>
               )}
             </section>
+          )}
 
-            {/* 3. 105-Case Adversarial Clinical Red-Teaming Scorecard & WCAG 2.2 AAA / OWASP Compliance Auditor (Collapsed in <details> for clean patient UI) */}
+          {/* VIEW 3: 24-Word Recovery Key & Security Certificate */}
+          {tab7SubView === 'recovery-key' && (
             <section
               className="no-print"
               style={{
@@ -4766,91 +4470,54 @@ export function EquilibriaClinicalApp() {
                 borderRadius: '10px',
                 backgroundColor: theme.palette.surface,
                 border: `1px solid ${theme.palette.border}`,
-                gridColumn: '1 / -1',
               }}
             >
-              <details>
-                <summary style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontWeight: 600 }}>
-                  <span>
-                    {lang === 'vi'
-                      ? `🛡️ Xem Chứng Nhận Kiểm Định An Toàn Lâm Sàng (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} Kịch Bản = ${redTeamAuditReport.passRatePercent}%) & Chuẩn Tiếp Cận WCAG 2.2 AAA`
-                      : `🛡️ View Clinical Safety Audit Certificate (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} Scenarios = ${redTeamAuditReport.passRatePercent}%) & WCAG 2.2 AAA`}
-                  </span>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      backgroundColor:
-                        redTeamAuditReport.passRatePercent === 100 && wcagOwaspAuditReport.wcag22AaaCompliant
-                          ? theme.palette.accent
-                          : '#991b1b',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
-                    }}
-                  >
-                    {redTeamAuditReport.passedCases}/{redTeamAuditReport.totalCases} {lang === 'vi' ? 'ĐẠT' : 'PASS'} • WCAG 2.2 AAA ({wcagOwaspAuditReport.minimumContrastRatioMeasured}:1)
-                  </span>
-                </summary>
+              <h3 style={{ marginTop: 0 }}>
+                {lang === 'vi'
+                  ? 'Khóa Khôi Phục Bí Mật 24 Từ & Đồng Bộ Đa Thiết Bị'
+                  : '24-Word Master Recovery Key & Encrypted Sync'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => void handleGenerate24WordKeyAndRunCrdtSync()}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  backgroundColor: theme.palette.primary,
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginBottom: '12px',
+                }}
+              >
+                {lang === 'vi'
+                  ? 'Tạo Cụm 24 Từ Khôi Phục & Kiểm Tra Đồng Bộ'
+                  : 'Generate 24-Word Key & Verify Sync'}
+              </button>
 
+              {masterKey24 && (
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
-                    gap: '10px',
-                    marginTop: '14px',
-                  }}
-                >
-                  {redTeamAuditReport.categoryBreakdown.map((cat) => (
-                    <div
-                      key={cat.category}
-                      style={{
-                        padding: '10px',
-                        borderRadius: '10px',
-                        border: `1px solid ${theme.palette.border}`,
-                        fontSize: '0.83rem',
-                      }}
-                    >
-                      <strong>{lang === 'vi' ? cat.labelVi : cat.labelEn}</strong>
-                      <div style={{ marginTop: '4px', color: theme.palette.accent, fontWeight: 700 }}>
-                        {lang === 'vi'
-                          ? `Kết quả: ${cat.passed}/${cat.total} kịch bản đạt chuẩn (${cat.passRatePercent}%)`
-                          : `Result: ${cat.passed}/${cat.total} scenarios passed (${cat.passRatePercent}%)`}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: '12px',
-                    padding: '14px',
+                    padding: '12px 14px',
                     borderRadius: '12px',
                     backgroundColor: resultSurfaceBg,
                     color: resultSurfaceText,
                     border: `1px solid ${resultSurfaceBorder}`,
-                    fontSize: '0.84rem',
+                    fontSize: '0.85rem',
+                    marginBottom: '12px',
+                    fontFamily: 'monospace',
                   }}
                 >
-                  <strong>{lang === 'vi' ? 'Kiểm định Bảo Mật OWASP & Khả Năng Tiếp Cận Toàn Diện WCAG 2.2 AAA:' : 'OWASP Security & WCAG 2.2 AAA Accessibility Audit:'}</strong>
-                  <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
-                    {wcagOwaspAuditReport.owaspChecklist.map((chk) => (
-                      <li key={chk.controlId}>
-                        <strong>[{chk.passed ? (lang === 'vi' ? 'ĐẠT' : 'PASS') : (lang === 'vi' ? 'CHƯA ĐẠT' : 'FAIL')} • {chk.controlId}]:</strong>{' '}
-                        {lang === 'vi' ? chk.titleVi : chk.titleEn}
-                      </li>
-                    ))}
-                    <li>
-                      <strong>[PASS • SOS-COLD-OPEN]:</strong>{' '}
-                      {lang === 'vi'
-                        ? `Độ trễ mở Cổng Cấp Cứu Nhanh = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (Đạt chuẩn < 300ms) • Điểm Tiếp Cận Accessibility ước tính: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`
-                        : `SOS Portal Cold Open Latency = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (< 300ms SLA) • Estimated Lighthouse Accessibility: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`}
-                    </li>
-                  </ul>
+                  {masterKey24.words.map((w, idx) => `${idx + 1}.${w}`).join(' ')}
                 </div>
-              </details>
+              )}
+
+              <p style={{ margin: 0, fontSize: '0.86rem', color: theme.palette.textSecondary }}>
+                {crdtDecryptedSampleText}
+              </p>
             </section>
-          </div>
+          )}
         </main>
       )}
 
