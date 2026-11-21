@@ -22,6 +22,7 @@ import 'package:equilibria_mobile_flutter/domain/engine/phase3_memory_biometrics
 import 'package:equilibria_mobile_flutter/domain/engine/phase4_e2ee_clinician_qa.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/session_state_machine.dart';
 import 'package:equilibria_mobile_flutter/domain/models/clinical_models.dart';
+import 'package:equilibria_mobile_flutter/domain/models/haven_account_model.dart';
 import 'package:equilibria_mobile_flutter/presentation/theme/adaptive_clinical_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -812,6 +813,76 @@ void main() {
       expect(qaGates.simulatedSosPortalLaunchMs, lessThan(300));
       expect(qaGates.zeroPhiTelemetryLeakageVerified, isTrue);
       expect(qaGates.externalTelemetryJournalBytesSent, equals(0));
+    });
+  });
+
+  group('9. Haven Mobile Interactive Questionnaires & Sanctuary Account Profile', () {
+    test('kClinicalScalesRegistry contains all 6 validated scales with exact question counts', () {
+      expect(kClinicalScalesRegistry.length, equals(6));
+      expect(kClinicalScalesRegistry['BMS']?.questions.length, equals(5));
+      expect(kClinicalScalesRegistry['PHQ-9']?.questions.length, equals(9));
+      expect(kClinicalScalesRegistry['GAD-7']?.questions.length, equals(7));
+      expect(kClinicalScalesRegistry['ISI']?.questions.length, equals(7));
+      expect(kClinicalScalesRegistry['ASRM']?.questions.length, equals(5));
+      expect(kClinicalScalesRegistry['MDQ']?.questions.length, equals(13));
+    });
+
+    test('scoreFromQuestionnaire triggers Safety Stop and Hypomania Guard accurately', () {
+      final phqStop = assessmentsEngine.scoreFromQuestionnaire(
+        scaleCode: 'PHQ-9',
+        rawAnswers: const [1, 1, 1, 1, 0, 1, 0, 0, 1],
+      );
+      expect(phqStop.triggersSafetyStop, isTrue);
+      expect(phqStop.totalScore, equals(6));
+
+      final bmsStop = assessmentsEngine.scoreFromQuestionnaire(
+        scaleCode: 'BMS',
+        rawAnswers: const [2, 1, 1, 1, 2],
+      );
+      expect(bmsStop.triggersSafetyStop, isTrue);
+
+      final gadModerate = assessmentsEngine.scoreFromQuestionnaire(
+        scaleCode: 'GAD-7',
+        rawAnswers: const [2, 2, 2, 2, 1, 1, 1],
+      );
+      expect(gadModerate.totalScore, equals(11));
+      expect(gadModerate.severityCode, equals('moderate'));
+
+      final asrmMania = assessmentsEngine.scoreFromQuestionnaire(
+        scaleCode: 'ASRM',
+        rawAnswers: const [2, 2, 2, 1, 1],
+      );
+      expect(asrmMania.triggersHypomaniaGuard, isTrue);
+
+      final mdqPos = assessmentsEngine.scoreFromQuestionnaire(
+        scaleCode: 'MDQ',
+        rawAnswers: const [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        mdqCoOccurred: true,
+        mdqModerateImpairment: true,
+      );
+      expect(mdqPos.triggersHypomaniaGuard, isTrue);
+    });
+
+    test('HavenAccountProfile JSON serialization & 4 personal Sanctuary presets', () {
+      expect(kHavenSanctuaryPresets.length, equals(4));
+
+      const profile = HavenAccountProfile(
+        userId: 'u-haven-1',
+        displayName: 'An',
+        email: 'an@haven.local',
+        disorderFocus: DisorderFocus.anxiety,
+        emergencyContactName: 'Gia đình',
+        emergencyContactPhone: '0901234567',
+        biometricLockEnabled: true,
+        createdAtIso: '2026-11-21T12:00:00Z',
+      );
+
+      final roundTrip = HavenAccountProfile.fromJson(profile.toJson());
+      expect(roundTrip.userId, equals('u-haven-1'));
+      expect(roundTrip.displayName, equals('An'));
+      expect(roundTrip.disorderFocus, equals(DisorderFocus.anxiety));
+      expect(roundTrip.emergencyContactPhone, equals('0901234567'));
+      expect(roundTrip.biometricLockEnabled, isTrue);
     });
   });
 }

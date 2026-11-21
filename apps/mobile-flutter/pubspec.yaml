@@ -1,6 +1,6 @@
 name: equilibria_mobile_flutter
 description: >-
-  Equilibria (Mind Anchor) — Local-First Multi-Platform CBT, TEAM-CBT, DBT &
+  Haven (Equilibria) — Local-First Multi-Platform CBT, TEAM-CBT, DBT &
   Bipolar IPSRT Clinical Companion for Anxiety, Depression, and Bipolar Disorder.
 publish_to: 'none'
 version: 1.0.0+1
@@ -15,44 +15,38 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # State Management & Immutability
+  # State Management
   flutter_riverpod: ^2.6.1
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
 
-  # Local Encrypted Storage (SQLite + SQLCipher AES-256 + Hardware Keystore)
-  drift: ^2.22.1
-  sqlcipher_flutter_libs: ^0.6.4
-  sqlite3: ^2.4.7
+  # Hardware-Backed Local Encrypted Storage & Biometrics
   flutter_secure_storage: ^9.2.2
   local_auth: ^2.3.0
-  path_provider: ^2.1.5
-  path: ^1.9.0
-  cryptography: ^2.7.0
 
-  # Biometrics, Audio, Haptics & Voice Burst
+  # Biometrics, Offline Audio & Emergency Dialer
   health: ^11.1.0
   just_audio: ^0.9.42
-  speech_to_text: ^7.0.0
+  url_launcher: ^6.3.1
 
   # Clinical Charts & Printable A4 Clinician PDF Reports
   fl_chart: ^0.69.2
   pdf: ^3.11.1
   printing: ^5.13.4
 
-  # Utilities
-  intl: ^0.19.0
-  uuid: ^4.5.1
-  collection: ^1.19.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  build_runner: ^2.4.13
-  drift_dev: ^2.22.1
-  freezed: ^2.5.7
-  json_serializable: ^6.9.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/haven_icon.png"
+  adaptive_icon_background: "#FAF9F6"
+  adaptive_icon_foreground: "assets/icon/haven_icon_foreground.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/haven_icon.png

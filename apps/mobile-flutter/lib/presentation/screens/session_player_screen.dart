@@ -14,6 +14,8 @@
 //     * TEAM-CBT `Paradoxical Agenda Setting` (Magic Button, Positive Reframing, Magic Dial)
 // - Markdown Frontmatter Exporter (`YYYYMMDD-[technique]-NN.md`).
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/engine/distortion_detector.dart';
@@ -257,9 +259,10 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
     widget.onSessionSaved(session);
     final markdown = _engine.exportSessionToMarkdown(session: session);
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
         title: const Text('Đã Lưu & Xuất Markdown (Obsidian/Notion)'),
         content: SingleChildScrollView(
           child: SelectableText(
@@ -274,6 +277,7 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -608,7 +612,7 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Định tuyến Sinh lý: DBT TIPPTrước — CBT Sau',
+              'Định tuyến Sinh lý: DBT TIPP Trước — CBT Sau',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -620,10 +624,13 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
             FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        SosPortalScreen(initialIntensity: _snapshot.preIntensity),
+                unawaited(
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SosPortalScreen(
+                        initialIntensity: _snapshot.preIntensity,
+                      ),
+                    ),
                   ),
                 );
               },
@@ -759,7 +766,7 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.18),
+                  color: Colors.amber.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.amber.shade700),
                 ),

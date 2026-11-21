@@ -125,7 +125,7 @@ class HapticBreathingController extends ValueNotifier<BreathingTickState> {
     _timer?.cancel();
     _timer = null;
     try {
-      _ambientPlayer.stop();
+      unawaited(_ambientPlayer.stop());
     } catch (_) {}
     value = value.copyWith(
       phase: BreathingPhase.idle,
@@ -153,7 +153,7 @@ class HapticBreathingController extends ValueNotifier<BreathingTickState> {
 
     if (_elapsedInCycle < p.inhaleSeconds) {
       // Inhale phase: gentle tactile tick each second
-      HapticFeedback.selectionClick();
+      unawaited(HapticFeedback.selectionClick());
       value = value.copyWith(
         phase: BreathingPhase.inhale,
         secondsRemainingInPhase: p.inhaleSeconds - _elapsedInCycle,
@@ -188,13 +188,13 @@ class HapticBreathingController extends ValueNotifier<BreathingTickState> {
     try {
       switch (nextPhase) {
         case BreathingPhase.inhale:
-          HapticFeedback.mediumImpact();
+          unawaited(HapticFeedback.mediumImpact());
           break;
         case BreathingPhase.hold:
-          HapticFeedback.lightImpact();
+          unawaited(HapticFeedback.lightImpact());
           break;
         case BreathingPhase.exhale:
-          HapticFeedback.heavyImpact();
+          unawaited(HapticFeedback.heavyImpact());
           break;
         case BreathingPhase.idle:
           break;
@@ -208,7 +208,7 @@ class HapticBreathingController extends ValueNotifier<BreathingTickState> {
   void dispose() {
     _timer?.cancel();
     try {
-      _ambientPlayer.dispose();
+      unawaited(_ambientPlayer.dispose());
     } catch (_) {}
     super.dispose();
   }

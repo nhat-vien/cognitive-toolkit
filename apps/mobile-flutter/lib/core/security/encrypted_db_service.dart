@@ -4,8 +4,10 @@
 //   via `flutter_secure_storage`
 // - SQLCipher AES-256 database pragma configuration (`PRAGMA key = "x'...'";`)
 // - Biometric unlock (`local_auth` FaceID / Fingerprint) with fallback
+// - Hardware-backed persistence for HavenAccountProfile & offline clinical vault
 // - Zero-Knowledge End-to-End Encrypted (E2EE) payload encryption before sync.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -15,6 +17,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../domain/models/clinical_models.dart';
+import '../../domain/models/haven_account_model.dart';
 
 class EncryptedSyncEnvelope {
   final String recordId;
@@ -46,6 +49,8 @@ class EncryptedSyncEnvelope {
 class EncryptedDbService {
   static const String _sqlCipherKeyStorageSlot =
       'equilibria_sqlcipher_aes256_master_key_v1';
+  static const String _accountProfileStorageSlot = 'haven_account_profile_v1';
+  static const String _clinicalVaultStorageSlot = 'haven_clinical_vault_v1';
 
   final FlutterSecureStorage _secureStorage;
   final LocalAuthentication _localAuth;
@@ -76,7 +81,7 @@ class EncryptedDbService {
   bool get isInitialized => _isInitialized;
 
   /// Initializes or retrieves the 256-bit SQLCipher key from hardware-backed secure storage
-  /// and returns the SQLCipher `PRAGMA key` setup statement for Drift / SQLite3.
+  /// and returns the SQLCipher `PRAGMA key` setup statement.
   Future<String> initializeSqlCipherPragma() async {
     if (_cachedHexKey != null) {
       _isInitialized = true;
@@ -87,6 +92,8 @@ class EncryptedDbService {
     try {
       existingKey = await _secureStorage.read(key: _sqlCipherKeyStorageSlot);
     } on PlatformException {
+      existingKey = null;
+    } catch (_) {
       existingKey = null;
     }
 
@@ -99,12 +106,117 @@ class EncryptedDbService {
         );
       } on PlatformException {
         // Fallback when running in headless test environments without platform channel
-      }
+      } catch (_) {}
     }
 
     _cachedHexKey = existingKey;
     _isInitialized = true;
     return "PRAGMA key = \"x'$_cachedHexKey'\"; PRAGMA cipher_page_size = 4096; PRAGMA kdf_iter = 256000;";
+  }
+
+  /// Loads persisted HavenAccountProfile from hardware-backed secure storage.
+  Future<HavenAccountProfile?> loadAccountProfile() async {
+    try {
+      final raw = await _secureStorage.read(key: _accountProfileStorageSlot);
+      if (raw == null || raw.trim().isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        return HavenAccountProfile.fromJson(
+          Map<String, dynamic>.from(decoded),
+        );
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Persists HavenAccountProfile into hardware-backed secure storage.
+  Future<void> saveAccountProfile(HavenAccountProfile profile) async {
+    try {
+      await _secureStorage.write(
+        key: _accountProfileStorageSlot,
+        value: jsonEncode(profile.toJson()),
+      );
+    } catch (_) {
+      // Safe no-op in headless unit tests
+    }
+  }
+
+  /// Clears stored HavenAccountProfile on sign out.
+  Future<void> clearAccountProfile() async {
+    try {
+      await _secureStorage.delete(key: _accountProfileStorageSlot);
+    } catch (_) {}
+  }
+
+  /// Hydrates mood logs, assessments, and impulse vault items from encrypted local storage.
+  Future<void> hydrateVaultFromSecureStorage() async {
+    try {
+      final raw = await _secureStorage.read(key: _clinicalVaultStorageSlot);
+      if (raw == null || raw.trim().isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      final map = Map<String, dynamic>.from(decoded);
+
+      final rawLogs = map['moodLogs'];
+      if (rawLogs is List) {
+        _moodLogs
+          ..clear()
+          ..addAll(
+            rawLogs.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => DailyMoodAndRhythmLog.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
+
+      final rawAssessments = map['assessments'];
+      if (rawAssessments is List) {
+        _assessments
+          ..clear()
+          ..addAll(
+            rawAssessments.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => AssessmentRecord.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
+
+      final rawVault = map['impulseVaultItems'];
+      if (rawVault is List) {
+        _impulseVaultItems
+          ..clear()
+          ..addAll(
+            rawVault.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => ImpulseVaultItem.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
+    } catch (_) {
+      // Gracefully keep in-memory state if no secure storage backend
+    }
+  }
+
+  Future<void> _persistVaultSnapshot() async {
+    try {
+      final snapshot = <String, dynamic>{
+        'moodLogs': _moodLogs.take(90).map((e) => e.toJson()).toList(),
+        'assessments': _assessments.take(60).map((e) => e.toJson()).toList(),
+        'impulseVaultItems':
+            _impulseVaultItems.take(40).map((e) => e.toJson()).toList(),
+      };
+      await _secureStorage.write(
+        key: _clinicalVaultStorageSlot,
+        value: jsonEncode(snapshot),
+      );
+    } catch (_) {
+      // Safe no-op in headless unit tests
+    }
   }
 
   /// Requests biometric unlock (FaceID / TouchID / Android BiometricPrompt).
@@ -128,6 +240,8 @@ class EncryptedDbService {
       );
     } on PlatformException {
       return false;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -135,6 +249,7 @@ class EncryptedDbService {
   Future<void> saveDailyMoodLog(DailyMoodAndRhythmLog log) async {
     _moodLogs.removeWhere((item) => item.id == log.id);
     _moodLogs.insert(0, log);
+    unawaited(_persistVaultSnapshot());
   }
 
   List<DailyMoodAndRhythmLog> getDailyMoodLogs() =>
@@ -152,6 +267,7 @@ class EncryptedDbService {
   Future<void> saveImpulseVaultItem(ImpulseVaultItem item) async {
     _impulseVaultItems.removeWhere((e) => e.id == item.id);
     _impulseVaultItems.insert(0, item);
+    unawaited(_persistVaultSnapshot());
   }
 
   List<ImpulseVaultItem> getImpulseVaultItems() =>
@@ -178,6 +294,7 @@ class EncryptedDbService {
   Future<void> saveAssessmentRecord(AssessmentRecord record) async {
     _assessments.removeWhere((e) => e.id == record.id);
     _assessments.insert(0, record);
+    unawaited(_persistVaultSnapshot());
   }
 
   List<AssessmentRecord> getAssessments() => List.unmodifiable(_assessments);

@@ -1,33 +1,31 @@
 // lib/presentation/theme/adaptive_clinical_theme.dart
-// Dynamic Clinical Theme Engine that automatically adapts to the patient's
-// current mood polarity, energy level, and ASRM mania score:
-// 1. Standard Theme (Euthymic / Mild Range -2..+1): Calm sage & slate palette.
-// 2. Low-Energy Depression Theme (Polarity <= -3):
-//    - Collapses dashboard clutter into "One Small Step"
-//    - High-legibility warm cream/soft teal contrast
-//    - Strictly hides streak counters ("No Broken Streaks") to prevent self-blame
-// 3. Low-Stimulus Mania Dark Rest Theme (Polarity >= +2 or ASRM >= 6):
-//    - Warm dark amber/sepia palette (eliminates blue light dopaminergic stimulation)
-//    - Disables all animations, splash ripples, and celebratory badges
-//    - Surfaces the 48-Hour Impulse Vault & Dark Therapy wind-down bar.
+// Dynamic Clinical Theme Engine (Synchronized with Haven Serene Sanctuary Palette):
+// 1. Standard Haven Sanctuary Mode: Warm Alabaster Paper (#FAF9F6), Lavender-Slate (#797298),
+//    Healing Sage (#6AA882), Soft Charcoal (#2F2F2B).
+// 2. Low-Energy Depression Mode (Polarity <= -3):
+//    Soft Warm Oatmeal (#F4F1EA), extra-gentle rounded surfaces, collapses dashboard clutter
+//    into "One Small Step", strictly hides broken streaks.
+// 3. Low-Stimulus Mania Dark Rest Mode (Polarity >= +2 or ASRM >= 6):
+//    Deep Warm Obsidian-Amber (#14110F), Muted Amber (#D97706), zero blue light,
+//    NoSplash.splashFactory and zero page transition animations.
 
 import 'package:flutter/material.dart';
 
 enum ClinicalThemeMode {
   standard(
     'standard',
-    'Chế độ Tiêu chuẩn (Standard Clinical UI)',
-    'Giao diện cân bằng cho thực hành CBT / DBT hàng ngày',
+    'Haven — Không gian Bình yên',
+    'Lắng nghe & chăm sóc tâm trí mỗi ngày',
   ),
   lowEnergyDepression(
     'low_energy_depression',
-    'Chế độ Tinh gọn Cho Ngày Mệt mỏi (Low-Energy Mode: <= -3)',
-    'Thu gọn về "1 Bước Nhỏ Tiếp Theo" • Không đếm chuỗi ngày đứt (No Broken Streaks)',
+    'Không gian Dịu dàng',
+    'Hôm nay một bước nhỏ thôi là đủ • Không đếm chuỗi ngày đứt',
   ),
   lowStimulusManiaDarkRest(
     'low_stimulus_mania',
-    'Lá chắn Hạ nhiệt Hưng cảm (Low-Stimulus Dark Rest: >= +2)',
-    'Tông màu Hổ phách trầm ấm • Tắt toàn bộ hiệu ứng động • Bật Khoang Chờ 48 Giờ',
+    'Không gian Trầm ấm Hạ nhiệt',
+    'Ánh sáng hổ phách dịu mắt • Tắt hiệu ứng động • Bảo vệ giấc ngủ',
   );
 
   final String code;
@@ -68,94 +66,121 @@ class AdaptiveClinicalTheme {
   }
 
   static ThemeData _buildStandardTheme() {
-    const primarySage = Color(0xFF2C6E63);
-    const surfaceBg = Color(0xFFF6F8F7);
+    const primaryLavender = Color(0xFF797298);
+    const healingSage = Color(0xFF6AA882);
+    const warmTerracotta = Color(0xFFC56548);
+    const alabasterBg = Color(0xFFFAF9F6);
+    const softCharcoal = Color(0xFF2F2F2B);
+
     final scheme = ColorScheme.fromSeed(
-      seedColor: primarySage,
+      seedColor: primaryLavender,
       brightness: Brightness.light,
-      primary: primarySage,
-      secondary: const Color(0xFF4A7C59),
-      tertiary: const Color(0xFFB85D19),
-      surface: surfaceBg,
+      primary: primaryLavender,
+      onPrimary: Colors.white,
+      secondary: healingSage,
+      tertiary: warmTerracotta,
+      surface: alabasterBg,
+      onSurface: softCharcoal,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: surfaceBg,
-      cardTheme: CardTheme(
+      scaffoldBackgroundColor: alabasterBg,
+      cardTheme: CardThemeData(
         elevation: 0,
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE0E7E4)),
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFFE6E4DC)),
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: Color(0xFF1C2D2A),
+        backgroundColor: Color(0xFFFAF9F6),
+        foregroundColor: softCharcoal,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0xFFEBE8F2),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? primaryLavender
+                : const Color(0xFF6B6B63),
+          ),
+        ),
       ),
     );
   }
 
   static ThemeData _buildLowEnergyDepressionTheme() {
-    // Soft, gentle, spacious palette with larger touch targets and zero visual noise
-    const soothingTeal = Color(0xFF356872);
-    const warmCream = Color(0xFFFAF7F2);
+    const primaryLavender = Color(0xFF797298);
+    const healingSage = Color(0xFF6AA882);
+    const warmOatmealBg = Color(0xFFF4F1EA);
+    const warmCreamSurface = Color(0xFFFAF8F5);
+    const softCharcoal = Color(0xFF2F2F2B);
+
     final scheme = ColorScheme.fromSeed(
-      seedColor: soothingTeal,
+      seedColor: primaryLavender,
       brightness: Brightness.light,
-      primary: soothingTeal,
-      secondary: const Color(0xFF5D7A68),
-      surface: warmCream,
+      primary: primaryLavender,
+      onPrimary: Colors.white,
+      secondary: healingSage,
+      tertiary: const Color(0xFFC56548),
+      surface: warmCreamSurface,
+      onSurface: softCharcoal,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: warmCream,
-      cardTheme: CardTheme(
+      scaffoldBackgroundColor: warmOatmealBg,
+      cardTheme: CardThemeData(
         elevation: 0,
-        color: Colors.white,
+        color: warmCreamSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFFE6E0D6), width: 1.2),
+          side: const BorderSide(color: Color(0xFFE4E0D5), width: 1.2),
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: warmCream,
-        foregroundColor: Color(0xFF253538),
+        backgroundColor: warmOatmealBg,
+        foregroundColor: softCharcoal,
         elevation: 0,
+        scrolledUnderElevation: 0,
       ),
     );
   }
 
   static ThemeData _buildLowStimulusManiaTheme() {
-    // Dark Rest / Low-Stimulus Mode:
-    // - Warm dark sepia/amber background (#14110E)
-    // - Muted amber text/controls (#D8A657) — eliminates blue light wavelength
-    // - NoSplash.splashFactory and zero page transition animations
-    const darkRestBg = Color(0xFF14110E);
-    const darkRestCard = Color(0xFF1F1A15);
-    const warmAmber = Color(0xFFD8A657);
-    const softSand = Color(0xFFE5D5BE);
+    const obsidianBg = Color(0xFF14110F);
+    const warmDarkCard = Color(0xFF1E1916);
+    const warmAmber = Color(0xFFD97706);
+    const softAmber = Color(0xFFF59E0B);
+    const warmSand = Color(0xFFFAF3E0);
 
     final scheme = ColorScheme.fromSeed(
       seedColor: warmAmber,
       brightness: Brightness.dark,
       primary: warmAmber,
-      onPrimary: const Color(0xFF1A140C),
-      secondary: const Color(0xFFB5894A),
-      surface: darkRestCard,
-      onSurface: softSand,
+      onPrimary: const Color(0xFF14110F),
+      secondary: softAmber,
+      tertiary: const Color(0xFFC56548),
+      surface: warmDarkCard,
+      onSurface: warmSand,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: darkRestBg,
+      scaffoldBackgroundColor: obsidianBg,
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
@@ -168,18 +193,19 @@ class AdaptiveClinicalTheme {
           TargetPlatform.linux: _ZeroAnimationPageTransitionsBuilder(),
         },
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
-        color: darkRestCard,
+        color: warmDarkCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0xFF3A2F23)),
+          side: const BorderSide(color: Color(0xFF38302A)),
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: darkRestBg,
-        foregroundColor: softSand,
+        backgroundColor: obsidianBg,
+        foregroundColor: warmSand,
         elevation: 0,
+        scrolledUnderElevation: 0,
       ),
     );
   }

@@ -1,15 +1,19 @@
 // lib/main.dart
-// Equilibria (Mind Anchor) — Multi-Platform Flutter Application Entry Point
-// Wires Riverpod State Management, SQLCipher Encrypted Database Service,
-// Adaptive Clinical Theme Engine (Standard / Low-Energy Depression / Low-Stimulus Mania),
+// Haven (Equilibria) — Multi-Platform Flutter Application Entry Point
+// Wires Riverpod State Management, Hardware-Backed EncryptedDbService,
+// Welcome Gate Sanctuary Onboarding, Adaptive Clinical Theme Engine,
 // and the Persistent 1-Tap SOS Portal.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/security/encrypted_db_service.dart';
 import 'domain/models/clinical_models.dart';
+import 'domain/models/haven_account_model.dart';
 import 'presentation/screens/main_shell_screen.dart';
+import 'presentation/screens/welcome_gate_screen.dart';
 import 'presentation/theme/adaptive_clinical_theme.dart';
 
 final encryptedDbServiceProvider = Provider<EncryptedDbService>((ref) {
@@ -17,6 +21,7 @@ final encryptedDbServiceProvider = Provider<EncryptedDbService>((ref) {
 });
 
 class AppClinicalState {
+  final HavenAccountProfile? accountProfile;
   final int currentMoodPolarity;
   final int currentEnergyLevel;
   final double lastSleepDurationHours;
@@ -31,6 +36,7 @@ class AppClinicalState {
   final UlyssesContract ulyssesContract;
 
   const AppClinicalState({
+    this.accountProfile,
     required this.currentMoodPolarity,
     required this.currentEnergyLevel,
     required this.lastSleepDurationHours,
@@ -54,6 +60,8 @@ class AppClinicalState {
       );
 
   AppClinicalState copyWith({
+    HavenAccountProfile? accountProfile,
+    bool clearAccountProfile = false,
     int? currentMoodPolarity,
     int? currentEnergyLevel,
     double? lastSleepDurationHours,
@@ -68,6 +76,8 @@ class AppClinicalState {
     UlyssesContract? ulyssesContract,
   }) {
     return AppClinicalState(
+      accountProfile:
+          clearAccountProfile ? null : (accountProfile ?? this.accountProfile),
       currentMoodPolarity: currentMoodPolarity ?? this.currentMoodPolarity,
       currentEnergyLevel: currentEnergyLevel ?? this.currentEnergyLevel,
       lastSleepDurationHours:
@@ -88,57 +98,44 @@ class AppClinicalState {
 class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
   final EncryptedDbService _db;
 
-  AppClinicalStateNotifier(this._db)
-      : super(
+  AppClinicalStateNotifier(
+    this._db, {
+    HavenAccountProfile? initialProfile,
+  }) : super(
           AppClinicalState(
+            accountProfile: initialProfile,
             currentMoodPolarity: 0,
             currentEnergyLevel: 0,
             lastSleepDurationHours: 7.5,
             feltNeedForSleep: FeltNeedForSleep.normal,
             latestAsrmScore: 2,
-            moodLogs: [
-              DailyMoodAndRhythmLog.createValidated(
-                id: 'log-seed-1',
-                userId: 'local-user',
-                loggedAt: DateTime.now().subtract(const Duration(days: 2)),
-                moodPolarity: -1,
-                energyLevel: -1,
-                irritabilityIntensity: 2,
-                anxietyIntensity: 4,
-                sleepDurationHours: 7.0,
-                feltNeedForSleep: FeltNeedForSleep.normal,
-                ipsrtAnchors: const IpsrtAnchors(
-                  outOfBedTime: '07:00',
-                  firstSocialContactTime: '08:00',
-                  workOrStudyStartTime: '09:00',
-                  dinnerTime: '19:00',
-                  bedTime: '23:00',
-                ),
-              ),
-              DailyMoodAndRhythmLog.createValidated(
-                id: 'log-seed-2',
-                userId: 'local-user',
-                loggedAt: DateTime.now().subtract(const Duration(days: 1)),
-                moodPolarity: 0,
-                energyLevel: 1,
-                irritabilityIntensity: 1,
-                anxietyIntensity: 3,
-                sleepDurationHours: 7.5,
-                feltNeedForSleep: FeltNeedForSleep.normal,
-                ipsrtAnchors: const IpsrtAnchors(
-                  outOfBedTime: '07:10',
-                  firstSocialContactTime: '08:15',
-                  workOrStudyStartTime: '09:00',
-                  dinnerTime: '19:10',
-                  bedTime: '23:05',
-                ),
-              ),
-            ],
-            sessions: const [],
-            impulseVaultItems: const [],
-            worryBoxItems: const [],
-            exposureSteps: const [],
-            assessments: const [],
+            moodLogs: _db.getDailyMoodLogs().isNotEmpty
+                ? _db.getDailyMoodLogs()
+                : [
+                    DailyMoodAndRhythmLog.createValidated(
+                      id: 'log-seed-1',
+                      userId: initialProfile?.userId ?? 'local-user',
+                      loggedAt: DateTime.now().subtract(const Duration(days: 1)),
+                      moodPolarity: 0,
+                      energyLevel: 0,
+                      irritabilityIntensity: 2,
+                      anxietyIntensity: 3,
+                      sleepDurationHours: 7.5,
+                      feltNeedForSleep: FeltNeedForSleep.normal,
+                      ipsrtAnchors: const IpsrtAnchors(
+                        outOfBedTime: '07:05',
+                        firstSocialContactTime: '08:15',
+                        workOrStudyStartTime: '09:00',
+                        dinnerTime: '19:00',
+                        bedTime: '23:00',
+                      ),
+                    ),
+                  ],
+            sessions: _db.getSessions(),
+            impulseVaultItems: _db.getImpulseVaultItems(),
+            worryBoxItems: _db.getWorryBoxItems(),
+            exposureSteps: _db.getExposureSteps(),
+            assessments: _db.getAssessments(),
             ulyssesContract: UlyssesContract(
               enabled: true,
               createdAtWhileEuthymic: DateTime.utc(2026, 1, 15),
@@ -155,12 +152,30 @@ class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
                 TrustedContact(
                   name: 'Người thân Tin cậy (Gia đình)',
                   relationship: 'Gia đình',
-                  phone: '0900000001',
+                  phone: '',
                 ),
               ],
             ),
           ),
         );
+
+  void signInWithProfile({
+    required HavenAccountProfile profile,
+    int initialMood = 0,
+    int initialEnergy = 0,
+  }) {
+    unawaited(_db.saveAccountProfile(profile));
+    state = state.copyWith(
+      accountProfile: profile,
+      currentMoodPolarity: initialMood,
+      currentEnergyLevel: initialEnergy,
+    );
+  }
+
+  void signOut() {
+    unawaited(_db.clearAccountProfile());
+    state = state.copyWith(clearAccountProfile: true);
+  }
 
   void submitQuickCheckIn({
     required int moodPolarity,
@@ -170,7 +185,7 @@ class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
   }) {
     final newLog = DailyMoodAndRhythmLog.createValidated(
       id: 'log-${DateTime.now().millisecondsSinceEpoch}',
-      userId: 'local-user',
+      userId: state.accountProfile?.userId ?? 'local-user',
       loggedAt: DateTime.now(),
       moodPolarity: moodPolarity,
       energyLevel: energyLevel,
@@ -186,7 +201,7 @@ class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
         bedTime: '23:00',
       ),
     );
-    _db.saveDailyMoodLog(newLog);
+    unawaited(_db.saveDailyMoodLog(newLog));
     state = state.copyWith(
       currentMoodPolarity: moodPolarity,
       currentEnergyLevel: energyLevel,
@@ -197,57 +212,70 @@ class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
   }
 
   void addSession(CognitiveToolkitSession session) {
-    _db.saveSession(session);
+    unawaited(_db.saveSession(session));
     state = state.copyWith(sessions: [session, ...state.sessions]);
   }
 
   void addImpulseVaultItem(ImpulseVaultItem item) {
-    _db.saveImpulseVaultItem(item);
+    unawaited(_db.saveImpulseVaultItem(item));
     state = state.copyWith(
       impulseVaultItems: [item, ...state.impulseVaultItems],
     );
   }
 
   void addWorryBoxItem(WorryBoxItem item) {
-    _db.saveWorryBoxItem(item);
+    unawaited(_db.saveWorryBoxItem(item));
     state = state.copyWith(worryBoxItems: [item, ...state.worryBoxItems]);
   }
 
   void addExposureStep(ExposureStep step) {
-    _db.saveExposureStep(step);
+    unawaited(_db.saveExposureStep(step));
     state = state.copyWith(exposureSteps: [...state.exposureSteps, step]);
   }
 
   void addAssessment(AssessmentRecord record) {
-    _db.saveAssessmentRecord(record);
+    unawaited(_db.saveAssessmentRecord(record));
     final updatedAsrm =
         record.scaleCode == 'ASRM' ? record.totalScore : state.latestAsrmScore;
+    final filtered = state.assessments
+        .where((a) => a.scaleCode != record.scaleCode)
+        .toList();
     state = state.copyWith(
       latestAsrmScore: updatedAsrm,
-      assessments: [record, ...state.assessments],
+      assessments: [record, ...filtered],
     );
   }
 
   void updateUlyssesContract(UlyssesContract contract) {
     state = state.copyWith(ulyssesContract: contract);
   }
+
+  Future<bool> authenticateBiometrics() => _db.authenticateWithBiometrics();
 }
+
+final initialHavenProfileProvider = Provider<HavenAccountProfile?>((ref) {
+  return null;
+});
 
 final appClinicalStateProvider =
     StateNotifierProvider<AppClinicalStateNotifier, AppClinicalState>((ref) {
   final db = ref.watch(encryptedDbServiceProvider);
-  return AppClinicalStateNotifier(db);
+  final initialProfile = ref.watch(initialHavenProfileProvider);
+  return AppClinicalStateNotifier(db, initialProfile: initialProfile);
 });
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final dbService = EncryptedDbService();
   await dbService.initializeSqlCipherPragma();
+  await dbService.hydrateVaultFromSecureStorage();
+  final savedProfile = await dbService.loadAccountProfile();
 
   runApp(
     ProviderScope(
       overrides: [
         encryptedDbServiceProvider.overrideWithValue(dbService),
+        initialHavenProfileProvider.overrideWithValue(savedProfile),
       ],
       child: const EquilibriaMobileApp(),
     ),
@@ -262,33 +290,45 @@ class EquilibriaMobileApp extends ConsumerWidget {
     final clinicalState = ref.watch(appClinicalStateProvider);
     final notifier = ref.read(appClinicalStateProvider.notifier);
     final themeMode = clinicalState.adaptiveThemeMode;
+    final profile = clinicalState.accountProfile;
 
     return MaterialApp(
-      title: 'Equilibria — CBT, TEAM-CBT, DBT & IPSRT',
+      title: 'Haven — Nơi Bình Yên',
       debugShowCheckedModeBanner: false,
       theme: AdaptiveClinicalTheme.buildThemeData(themeMode),
-      home: MainShellScreen(
-        moodPolarity: clinicalState.currentMoodPolarity,
-        energyLevel: clinicalState.currentEnergyLevel,
-        sleepDurationHours: clinicalState.lastSleepDurationHours,
-        feltNeedForSleep: clinicalState.feltNeedForSleep,
-        latestAsrmScore: clinicalState.latestAsrmScore,
-        activeThemeMode: themeMode,
-        moodLogs: clinicalState.moodLogs,
-        sessions: clinicalState.sessions,
-        impulseVaultItems: clinicalState.impulseVaultItems,
-        worryBoxItems: clinicalState.worryBoxItems,
-        exposureSteps: clinicalState.exposureSteps,
-        assessments: clinicalState.assessments,
-        ulyssesContract: clinicalState.ulyssesContract,
-        onQuickCheckInSubmit: notifier.submitQuickCheckIn,
-        onSessionSaved: notifier.addSession,
-        onAddImpulseVaultItem: notifier.addImpulseVaultItem,
-        onAddWorryBoxItem: notifier.addWorryBoxItem,
-        onAddExposureStep: notifier.addExposureStep,
-        onAddAssessment: notifier.addAssessment,
-        onUpdateUlyssesContract: notifier.updateUlyssesContract,
-      ),
+      home: profile == null
+          ? WelcomeGateScreen(
+              onEnterSanctuary: (payload) => notifier.signInWithProfile(
+                profile: payload.profile,
+                initialMood: payload.initialMood,
+                initialEnergy: payload.initialEnergy,
+              ),
+            )
+          : MainShellScreen(
+              accountProfile: profile,
+              moodPolarity: clinicalState.currentMoodPolarity,
+              energyLevel: clinicalState.currentEnergyLevel,
+              sleepDurationHours: clinicalState.lastSleepDurationHours,
+              feltNeedForSleep: clinicalState.feltNeedForSleep,
+              latestAsrmScore: clinicalState.latestAsrmScore,
+              activeThemeMode: themeMode,
+              moodLogs: clinicalState.moodLogs,
+              sessions: clinicalState.sessions,
+              impulseVaultItems: clinicalState.impulseVaultItems,
+              worryBoxItems: clinicalState.worryBoxItems,
+              exposureSteps: clinicalState.exposureSteps,
+              assessments: clinicalState.assessments,
+              ulyssesContract: clinicalState.ulyssesContract,
+              onQuickCheckInSubmit: notifier.submitQuickCheckIn,
+              onSessionSaved: notifier.addSession,
+              onAddImpulseVaultItem: notifier.addImpulseVaultItem,
+              onAddWorryBoxItem: notifier.addWorryBoxItem,
+              onAddExposureStep: notifier.addExposureStep,
+              onAddAssessment: notifier.addAssessment,
+              onUpdateUlyssesContract: notifier.updateUlyssesContract,
+              onAuthenticateBiometrics: notifier.authenticateBiometrics,
+              onSignOut: notifier.signOut,
+            ),
     );
   }
 }

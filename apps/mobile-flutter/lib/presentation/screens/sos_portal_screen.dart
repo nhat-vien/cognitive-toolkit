@@ -11,6 +11,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/haptics/haptic_breathing_controller.dart';
 import '../../domain/engine/session_state_machine.dart';
@@ -121,6 +122,18 @@ class _SosPortalScreenState extends State<SosPortalScreen> {
     );
   }
 
+  Future<void> _dialHotline(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+    try {
+      await launchUrl(uri);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng gọi số hỗ trợ: $phoneNumber')),
+      );
+    }
+  }
+
   Widget _buildTwoSkillSafetyBreakBanner() {
     return Container(
       width: double.infinity,
@@ -131,24 +144,47 @@ class _SosPortalScreenState extends State<SosPortalScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.redAccent),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'NGẮT VÒNG LẶP AN TOÀN (OUTCOME: STOPPED-EARLY)',
+          const Text(
+            'NGẮT VÒNG LẶP AN TOÀN — ĐÃ ĐẾN LÚC KẾT NỐI NGƯỜI HỖ TRỢ',
             style: TextStyle(
               color: Colors.amberAccent,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 6),
+          const Text(
             'Bạn đã thử 2 kỹ năng nhưng cường độ căng thẳng vẫn >= 7/10. '
-            'Hãy dừng việc cố làm thêm bài tập, ngồi hoặc nằm ở nơi an toàn và kết nối ngay với người hỗ trợ:\n'
-            '• Cấp cứu Y tế: 115\n'
-            '• Đường dây nóng Ngày Mai: 096 306 1414\n'
-            '• Tổng đài Bảo vệ & Khủng hoảng: 111',
+            'Hãy dừng việc cố làm thêm bài tập, ngồi hoặc nằm ở nơi an toàn và chạm để gọi ngay:',
             style: TextStyle(color: Colors.white, height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => unawaited(_dialHotline('115')),
+                icon: const Icon(Icons.call, size: 16),
+                label: const Text('Gọi Cấp cứu 115'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () => unawaited(_dialHotline('0963061414')),
+                icon: const Icon(Icons.support_agent, size: 16),
+                label: const Text('Đường dây nóng Ngày Mai'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () => unawaited(_dialHotline('111')),
+                icon: const Icon(Icons.phone_in_talk, size: 16),
+                label: const Text('Tổng đài 111'),
+              ),
+            ],
           ),
         ],
       ),
@@ -236,7 +272,7 @@ class _SosPortalScreenState extends State<SosPortalScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3DA58E).withOpacity(0.35),
+                    color: const Color(0xFF3DA58E).withValues(alpha: 0.35),
                     blurRadius: 28,
                     spreadRadius: 6,
                   ),
