@@ -1058,14 +1058,17 @@ test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in 
   assert.ok(goodLogin.session);
   assert.equal(goodLogin.session?.user.email, 'patient.test@sanctuary.care');
 
-  // 5. Update Profile (Display name & emergency contact)
+  // 5. Update Profile (Display name & emergency contact & role)
+  assert.equal(goodLogin.session?.user.role, 'patient');
   const updated = updateUserAccountProfile({
     displayName: 'Thảo Vy (An Nhiên)',
     emergencyContactPhone: '0999-888-777',
+    role: 'admin',
   });
   assert.equal(updated.ok, true);
   assert.equal(updated.session?.user.displayName, 'Thảo Vy (An Nhiên)');
   assert.equal(updated.session?.user.emergencyContactPhone, '0999-888-777');
+  assert.equal(updated.session?.user.role, 'admin');
 
   // 6. Immediate E2EE Sync Trigger
   const syncRes = triggerAccountE2eeSyncNow();

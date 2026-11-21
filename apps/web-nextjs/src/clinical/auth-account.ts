@@ -15,6 +15,8 @@ export type AccountDisorderFocus = 'anxiety' | 'depression' | 'bipolar';
 
 export type AccountAuthMode = 'email-password' | 'quick-demo' | 'guest-local-only';
 
+export type UserAccountRole = 'patient' | 'admin' | 'clinician';
+
 export type QuickDemoProfileId =
   | 'anxiety-calm'
   | 'depression-gentle'
@@ -96,6 +98,7 @@ export interface UserAccountProfile {
   userId: string;
   email: string;
   displayName: string;
+  role?: UserAccountRole;
   avatarMoodColor: string;
   disorderFocus: AccountDisorderFocus;
   preferredPushbackLevel: PushbackLevel;
@@ -416,6 +419,7 @@ export async function registerUserAccount(params: {
     userId,
     email: emailNormalized,
     displayName: params.displayName.trim() || emailNormalized.split('@')[0] || 'Bạn đồng hành',
+    role: (params as { role?: UserAccountRole }).role || ((emailNormalized.startsWith('admin') || emailNormalized.startsWith('quantri')) ? 'admin' : 'patient'),
     avatarMoodColor: params.avatarMoodColor || '#797298',
     disorderFocus: params.disorderFocus || 'anxiety',
     preferredPushbackLevel: params.preferredPushbackLevel || 'moderate',
@@ -595,6 +599,9 @@ export async function loginUserAccount(params: {
             data.user?.user_metadata?.display_name ||
             emailNormalized.split('@')[0] ||
             'Bạn đồng hành',
+          role:
+            (data.user?.user_metadata?.role as UserAccountRole) ||
+            ((emailNormalized.startsWith('admin') || emailNormalized.startsWith('quantri')) ? 'admin' : 'patient'),
           avatarMoodColor: '#797298',
           disorderFocus:
             (data.user?.user_metadata?.disorder_focus as AccountDisorderFocus) || 'anxiety',
@@ -654,6 +661,7 @@ export function loginWithQuickDemoProfile(
     userId: `demo_${preset.id}`,
     email: preset.email,
     displayName: lang === 'vi' ? preset.displayNameVi : preset.displayNameEn,
+    role: 'patient',
     avatarMoodColor: preset.avatarMoodColor,
     disorderFocus: preset.disorderFocus,
     preferredPushbackLevel: preset.preferredPushbackLevel,
@@ -687,6 +695,7 @@ export function loginWithQuickDemoProfile(
  */
 export function updateUserAccountProfile(params: {
   displayName?: string;
+  role?: UserAccountRole;
   avatarMoodColor?: string;
   disorderFocus?: AccountDisorderFocus;
   preferredPushbackLevel?: PushbackLevel;
@@ -712,6 +721,7 @@ export function updateUserAccountProfile(params: {
   const nowIso = new Date().toISOString();
   const updatedUser: UserAccountProfile = {
     ...current.user,
+    role: params.role ?? current.user.role ?? 'patient',
     displayName:
       params.displayName !== undefined ? params.displayName.trim() || current.user.displayName : current.user.displayName,
     avatarMoodColor: params.avatarMoodColor ?? current.user.avatarMoodColor,

@@ -104,6 +104,7 @@ import {
   updateUserAccountProfile,
   type QuickDemoProfileId,
   type UserAccountProfile,
+  type UserAccountRole,
   type UserAccountSession,
 } from '../clinical/index.ts';
 
@@ -340,6 +341,26 @@ export function EquilibriaClinicalApp() {
     if (res.ok && res.session) {
       setAccountSession(res.session);
       setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
+    }
+  };
+
+  const handleToggleAdminRole = () => {
+    if (!accountSession) return;
+    const nextRole: UserAccountRole = accountSession.user.role === 'admin' ? 'patient' : 'admin';
+    const res = updateUserAccountProfile({ role: nextRole });
+    if (res.ok && res.session) {
+      setAccountSession(res.session);
+      setAuthStatusMessage({
+        ok: true,
+        text:
+          lang === 'vi'
+            ? nextRole === 'admin'
+              ? 'Đã kích hoạt Chế độ Quản trị viên (Admin Mode).'
+              : 'Đã chuyển về Chế độ Người dùng cá nhân (Patient).'
+            : nextRole === 'admin'
+              ? 'Administrator Mode enabled.'
+              : 'Switched to Personal Patient Mode.',
+      });
     }
   };
 
@@ -4330,9 +4351,25 @@ export function EquilibriaClinicalApp() {
                   {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
-                    {accountSession?.user.displayName}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
+                      {accountSession?.user.displayName}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '0.74rem',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        backgroundColor: accountSession?.user.role === 'admin' ? 'rgba(197, 101, 72, 0.15)' : 'rgba(106, 168, 130, 0.15)',
+                        color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {accountSession?.user.role === 'admin'
+                        ? (lang === 'vi' ? '👑 Quản trị viên & Bác sĩ' : '👑 Administrator & Clinician')
+                        : (lang === 'vi' ? '👤 Tài khoản cá nhân (Người dùng duy nhất)' : '👤 Personal Account (Sole User)')}
+                    </span>
+                  </div>
                   <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
                     {accountSession?.user.email}
                   </p>
@@ -4372,6 +4409,30 @@ export function EquilibriaClinicalApp() {
               </div>
             </div>
 
+            {/* Patient Data Privacy Reassurance Banner */}
+            <div
+              style={{
+                padding: '12px 16px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(121, 114, 152, 0.08)',
+                border: `1px solid ${theme.palette.border}`,
+                fontSize: '0.84rem',
+                color: theme.palette.textSecondary,
+                lineHeight: 1.45,
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              <span style={{ fontSize: '1.3rem' }}>🔒</span>
+              <span>
+                {lang === 'vi'
+                  ? 'Không gian cá nhân riêng tư: Hồ sơ này chỉ thuộc về một mình bạn trên thiết bị này. Mọi ghi chép tâm trạng, nhật ký giấc ngủ và bài tập CBT đều được mã hóa an toàn, không bị chia sẻ trừ khi bạn chủ động gửi liên kết cho Bác sĩ điều trị.'
+                  : 'Private Sanctuary: This profile belongs exclusively to you on this device. All mood logs, sleep rhythm charts, and CBT exercises remain strictly encrypted and are never shared unless you generate a doctor link.'}
+              </span>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '16px' }}>
               <label style={{ fontSize: '0.88rem' }}>
                 {lang === 'vi' ? 'Tên gọi của bạn:' : 'Display Name:'}
@@ -4405,21 +4466,124 @@ export function EquilibriaClinicalApp() {
               </label>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSaveProfile}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  backgroundColor: theme.palette.primary,
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {lang === 'vi' ? 'Lưu Thông Tin Hồ Sơ' : 'Save Profile Changes'}
+              </button>
+
+              {authStatusMessage && (
+                <span
+                  style={{
+                    fontSize: '0.84rem',
+                    color: authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner,
+                    fontWeight: 600,
+                  }}
+                >
+                  {authStatusMessage.text}
+                </span>
+              )}
+            </div>
+
+            {/* Discrete Collapsible Admin & Clinician Sandbox */}
+            <details
               style={{
-                padding: '9px 18px',
-                borderRadius: '10px',
-                backgroundColor: theme.palette.primary,
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
+                marginTop: '18px',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(121, 114, 152, 0.05)',
+                border: `1px dashed ${theme.palette.border}`,
               }}
             >
-              {lang === 'vi' ? 'Lưu Thông Tin Hồ Sơ' : 'Save Profile Changes'}
-            </button>
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.86rem',
+                  color: theme.palette.textPrimary,
+                  userSelect: 'none',
+                }}
+              >
+                {lang === 'vi'
+                  ? '🛠️ Bảng Điều Khiển Quản Trị Viên & Bác Sĩ Lâm Sàng (Quản lý Hồ sơ Mẫu & Thử nghiệm)'
+                  : '🛠️ Admin & Clinician Sandbox (Manage Demo Cases & Diagnostic Roles)'}
+              </summary>
+
+              <div style={{ marginTop: '12px' }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: theme.palette.textSecondary, lineHeight: 1.45 }}>
+                  {lang === 'vi'
+                    ? '⚠️ Lưu ý: Đối với người dùng thông thường, bạn chỉ cần quản lý hồ sơ cá nhân của mình ở trên. Khu vực này chỉ dành cho Bác sĩ điều trị hoặc Quản trị viên hệ thống để kiểm tra nhanh các ca bệnh mẫu (Lo âu, Trầm cảm, Hưng cảm Lưỡng cực).'
+                    : '⚠️ Note: Regular patients only need to manage their personal profile above. This section is reserved for clinicians and administrators to switch between clinical demo cases.'}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>
+                    {lang === 'vi' ? 'Vai trò tài khoản:' : 'Account Role:'}{' '}
+                    <strong style={{ color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent }}>
+                      {accountSession?.user.role === 'admin'
+                        ? (lang === 'vi' ? '👑 Quản Trị Viên / Bác Sĩ (Admin)' : '👑 Administrator / Clinician')
+                        : (lang === 'vi' ? '👤 Người Dùng Cá Nhân (Patient)' : '👤 Personal Patient')}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleAdminRole}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      border: `1px solid ${theme.palette.border}`,
+                      color: theme.palette.textPrimary,
+                    }}
+                  >
+                    {accountSession?.user.role === 'admin'
+                      ? (lang === 'vi' ? 'Chuyển về Người dùng cá nhân' : 'Switch to Personal User')
+                      : (lang === 'vi' ? 'Kích hoạt quyền Quản trị viên' : 'Enable Admin Privileges')}
+                  </button>
+                </div>
+
+                <strong style={{ fontSize: '0.84rem', display: 'block', marginBottom: '8px' }}>
+                  {lang === 'vi' ? 'Chuyển đổi nhanh ca bệnh lâm sàng mẫu (1-Chạm):' : 'Switch Demo Patient Cases (1-Tap):'}
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                  {QUICK_DEMO_PROFILES.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelectQuickDemo(p.id)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: accountSession?.user.userId === `demo_${p.id}` ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                        backgroundColor: accountSession?.user.userId === `demo_${p.id}` ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{lang === 'vi' ? p.displayNameVi : p.displayNameEn}</div>
+                      <div style={{ fontSize: '0.72rem', color: theme.palette.textSecondary, marginTop: '2px' }}>
+                        {lang === 'vi' ? p.badgeVi : p.badgeEn}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
           </section>
           )}
 
@@ -4624,8 +4788,8 @@ export function EquilibriaClinicalApp() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span
                   style={{
-                    width: '40px',
-                    height: '40px',
+                    width: '42px',
+                    height: '42px',
                     borderRadius: '50%',
                     backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
                     color: '#ffffff',
@@ -4633,17 +4797,33 @@ export function EquilibriaClinicalApp() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 700,
-                    fontSize: '1.1rem',
+                    fontSize: '1.15rem',
                   }}
                 >
                   {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
                 </span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
-                    {lang === 'vi' ? 'Hồ Sơ & Tài Khoản Của Bạn' : 'Your Sanctuary Account & Profile'}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
+                      {accountSession?.user.displayName}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        backgroundColor: accountSession?.user.role === 'admin' ? 'rgba(197, 101, 72, 0.15)' : 'rgba(106, 168, 130, 0.15)',
+                        color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {accountSession?.user.role === 'admin'
+                        ? (lang === 'vi' ? '👑 Quản Trị Viên' : '👑 Administrator')
+                        : (lang === 'vi' ? '👤 Tài khoản cá nhân' : '👤 Personal Account')}
+                    </span>
+                  </div>
                   <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: theme.palette.textSecondary }}>
-                    {accountSession?.user.displayName} ({accountSession?.user.email})
+                    {accountSession?.user.email}
                   </p>
                 </div>
               </div>
@@ -4663,40 +4843,34 @@ export function EquilibriaClinicalApp() {
               </button>
             </div>
 
-            {/* Switch to 1-Tap Profiles */}
-            <div style={{ marginBottom: '16px' }}>
-              <strong style={{ fontSize: '0.88rem' }}>
-                {lang === 'vi' ? 'Chọn Hồ Sơ Đồng Hành Nhanh (1-Chạm):' : 'Switch Quick Sanctuary Profile:'}
-              </strong>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
-                {QUICK_DEMO_PROFILES.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleSelectQuickDemo(p.id)}
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      border: accountSession?.user.userId === `demo_${p.id}` ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                      backgroundColor: accountSession?.user.userId === `demo_${p.id}` ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
-                      cursor: 'pointer',
-                      fontSize: '0.82rem',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{lang === 'vi' ? p.displayNameVi : p.displayNameEn}</div>
-                    <div style={{ fontSize: '0.74rem', color: theme.palette.textSecondary, marginTop: '2px' }}>
-                      {lang === 'vi' ? p.badgeVi : p.badgeEn}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {/* Reassurance Banner for Personal Use */}
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(121, 114, 152, 0.08)',
+                border: `1px solid ${theme.palette.border}`,
+                fontSize: '0.82rem',
+                color: theme.palette.textSecondary,
+                lineHeight: 1.4,
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🔒</span>
+              <span>
+                {lang === 'vi'
+                  ? 'Không gian trị liệu riêng tư: Tài khoản này chỉ thuộc về một mình bạn. Dữ liệu tâm trạng và bài tập được lưu trữ và mã hóa an toàn trên thiết bị.'
+                  : 'Private sanctuary: This account belongs solely to you. All logs and exercises are encrypted and kept safe on your device.'}
+              </span>
             </div>
 
-            {/* Quick Profile Edit Inputs */}
+            {/* Clean Personal Profile Inputs */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
               <label style={{ fontSize: '0.85rem' }}>
-                {lang === 'vi' ? 'Tên hiển thị:' : 'Display Name:'}
+                {lang === 'vi' ? 'Tên hiển thị của bạn:' : 'Display Name:'}
                 <input
                   type="text"
                   value={profileFormName}
@@ -4742,8 +4916,8 @@ export function EquilibriaClinicalApp() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleSaveProfile}
@@ -4774,6 +4948,21 @@ export function EquilibriaClinicalApp() {
                 >
                   {lang === 'vi' ? 'Đồng bộ E2EE' : 'Sync E2EE'}
                 </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: 'transparent',
+                    color: theme.palette.textSecondary,
+                    border: `1px solid ${theme.palette.border}`,
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  {lang === 'vi' ? 'Đăng xuất' : 'Sign Out'}
+                </button>
               </div>
 
               <button
@@ -4792,9 +4981,104 @@ export function EquilibriaClinicalApp() {
                   fontSize: '0.85rem',
                 }}
               >
-                {lang === 'vi' ? 'Mở Trung tâm Bảo mật & Bác sĩ →' : 'Open Full Vault & Doctor Link →'}
+                {lang === 'vi' ? 'Trung tâm Bảo mật & Bác sĩ →' : 'Full Vault & Doctor Link →'}
               </button>
             </div>
+
+            {/* Discrete Collapsible Admin & Clinician Sandbox */}
+            <details
+              style={{
+                marginTop: '16px',
+                paddingTop: '12px',
+                borderTop: `1px dashed ${theme.palette.border}`,
+              }}
+            >
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  color: theme.palette.textSecondary,
+                  fontWeight: 600,
+                  userSelect: 'none',
+                }}
+              >
+                {lang === 'vi'
+                  ? '🛠️ Dành cho Quản trị viên & Bác sĩ (Quản lý Hồ sơ Mẫu & Phân quyền)'
+                  : '🛠️ Admin & Clinician Sandbox (Manage Demo Profiles & Roles)'}
+              </summary>
+
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(121, 114, 152, 0.06)',
+                  border: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: theme.palette.textSecondary, lineHeight: 1.4 }}>
+                  {lang === 'vi'
+                    ? '⚠️ Người dùng thông thường không cần sử dụng mục này. Mục này dành riêng cho Bác sĩ lâm sàng và Quản trị viên để kiểm tra các ca bệnh mẫu (Lo âu, Trầm cảm, Hưng cảm Lưỡng cực).'
+                    : '⚠️ Regular patients do not need to use this section. It is designed for clinicians and administrators to switch demo test profiles.'}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                    {lang === 'vi' ? 'Quyền tài khoản hiện tại:' : 'Current Role:'}{' '}
+                    <strong style={{ color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent }}>
+                      {accountSession?.user.role === 'admin'
+                        ? (lang === 'vi' ? 'Quản trị viên (Admin)' : 'Administrator')
+                        : (lang === 'vi' ? 'Người dùng cá nhân (Patient)' : 'Personal User')}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleAdminRole}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      border: `1px solid ${theme.palette.border}`,
+                      color: theme.palette.textPrimary,
+                    }}
+                  >
+                    {accountSession?.user.role === 'admin'
+                      ? (lang === 'vi' ? 'Chuyển về Người dùng cá nhân' : 'Switch to Personal User')
+                      : (lang === 'vi' ? 'Kích hoạt quyền Quản trị viên' : 'Enable Admin Role')}
+                  </button>
+                </div>
+
+                <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>
+                  {lang === 'vi' ? 'Chuyển đổi nhanh ca bệnh mẫu (Dành cho Bác sĩ kiểm tra):' : 'Switch Demo Patient Cases (For Clinicians):'}
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {QUICK_DEMO_PROFILES.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelectQuickDemo(p.id)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: accountSession?.user.userId === `demo_${p.id}` ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                        backgroundColor: accountSession?.user.userId === `demo_${p.id}` ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{lang === 'vi' ? p.displayNameVi : p.displayNameEn}</div>
+                      <div style={{ fontSize: '0.7rem', color: theme.palette.textSecondary, marginTop: '2px' }}>
+                        {lang === 'vi' ? p.badgeVi : p.badgeEn}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
           </div>
         </div>
       )}
