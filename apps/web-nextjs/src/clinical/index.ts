@@ -9,3 +9,4 @@ export * from './assessments-and-storage.ts';
 export * from './phase2-toolkit.ts';
 export * from './phase3-ai-biometrics-voice.ts';
 export * from './phase4-sync-clinician-qa.ts';
+export * from './auth-account.ts';

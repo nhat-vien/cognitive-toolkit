@@ -42,6 +42,15 @@ import {
   runFourLayerSafetyGate,
   scoreClinicalAssessment,
   sortAndProcessWorryItem,
+  QUICK_DEMO_PROFILES,
+  SANCTUARY_NAVIGATION_ITEMS,
+  getActiveAccountSession,
+  loginUserAccount,
+  loginWithQuickDemoProfile,
+  registerUserAccount,
+  signOutUserAccount,
+  triggerAccountE2eeSyncNow,
+  updateUserAccountProfile,
   type DailyMoodAndRhythmLog,
 } from '../src/clinical/index.ts';
 
@@ -989,6 +998,84 @@ test('10. Phase 4 (Sprint 7 & 8): Zero-Knowledge E2EE 24-Word Recovery Key & CRD
   assert.equal(securityAndWcag.phiBytesSentToExternalAnalytics, 0);
   assert.equal(securityAndWcag.zeroPhiTelemetryGuaranteed, true);
   assert.equal(securityAndWcag.criticalOrHighVulnerabilitiesCount, 0);
+});
+
+test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in Sanctuary Navigation', async () => {
+  // 1. Verify Zero "Phase xx", "Sprint", or "Milestone" labels in sanctuary navigation items
+  assert.equal(SANCTUARY_NAVIGATION_ITEMS.length, 6);
+  for (const item of SANCTUARY_NAVIGATION_ITEMS) {
+    assert.doesNotMatch(item.titleVi, /phase/i);
+    assert.doesNotMatch(item.titleEn, /phase/i);
+    assert.doesNotMatch(item.subtitleVi, /phase/i);
+    assert.doesNotMatch(item.subtitleEn, /phase/i);
+    assert.doesNotMatch(item.titleVi, /sprint/i);
+    assert.doesNotMatch(item.titleEn, /sprint/i);
+    assert.doesNotMatch(item.subtitleVi, /sprint/i);
+    assert.doesNotMatch(item.subtitleEn, /sprint/i);
+  }
+
+  // 2. 1-Tap Quick Sanctuary Profiles (Anxiety, Depression, Bipolar, Local-Only Guest)
+  assert.equal(QUICK_DEMO_PROFILES.length, 4);
+  const demoDepression = loginWithQuickDemoProfile('depression-gentle', 'vi');
+  assert.equal(demoDepression.isAuthenticated, true);
+  assert.equal(demoDepression.user.disorderFocus, 'depression');
+  assert.equal(demoDepression.user.defaultMoodPolarity, -3);
+  assert.equal(demoDepression.user.preferredPushbackLevel, 'gentle');
+
+  const activeSess = getActiveAccountSession();
+  assert.ok(activeSess);
+  assert.equal(activeSess?.user.userId, 'demo_depression-gentle');
+
+  // 3. User Account Registration with PBKDF2-HMAC-SHA256
+  const regResult = await registerUserAccount({
+    email: 'patient.test@sanctuary.care',
+    password: 'SecurePassword123!',
+    displayName: 'Thảo Vy',
+    disorderFocus: 'anxiety',
+    preferredPushbackLevel: 'gentle',
+    emergencyContactName: 'Bác sĩ Minh',
+    emergencyContactPhone: '0988-111-222',
+  });
+  assert.equal(regResult.ok, true);
+  assert.ok(regResult.session);
+  assert.equal(regResult.session?.user.displayName, 'Thảo Vy');
+  assert.equal(regResult.session?.user.authMode, 'email-password');
+  assert.equal(regResult.session?.user.e2eeSyncEnabled, true);
+
+  // 4. User Account Login: correct password vs wrong password
+  const badLogin = await loginUserAccount({
+    email: 'patient.test@sanctuary.care',
+    password: 'WrongPassword!',
+  });
+  assert.equal(badLogin.ok, false);
+  assert.equal(badLogin.session, null);
+
+  const goodLogin = await loginUserAccount({
+    email: 'patient.test@sanctuary.care',
+    password: 'SecurePassword123!',
+  });
+  assert.equal(goodLogin.ok, true);
+  assert.ok(goodLogin.session);
+  assert.equal(goodLogin.session?.user.email, 'patient.test@sanctuary.care');
+
+  // 5. Update Profile (Display name & emergency contact)
+  const updated = updateUserAccountProfile({
+    displayName: 'Thảo Vy (An Nhiên)',
+    emergencyContactPhone: '0999-888-777',
+  });
+  assert.equal(updated.ok, true);
+  assert.equal(updated.session?.user.displayName, 'Thảo Vy (An Nhiên)');
+  assert.equal(updated.session?.user.emergencyContactPhone, '0999-888-777');
+
+  // 6. Immediate E2EE Sync Trigger
+  const syncRes = triggerAccountE2eeSyncNow();
+  assert.equal(syncRes.ok, true);
+  assert.ok(syncRes.syncedAt);
+
+  // 7. Sign Out
+  const out = signOutUserAccount();
+  assert.equal(out.signedOut, true);
+  assert.equal(getActiveAccountSession(), null);
 });
 
 

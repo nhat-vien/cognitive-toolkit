@@ -6,55 +6,58 @@ import type {
 } from './types.ts';
 
 /**
- * 1. Adaptive Theme & UI Mode System
- * - Standard Mode: Balanced calming slate/teal palette
+ * 1. Adaptive Theme & UI Mode System (Inspired by KazKozDev/cbt-assistant, irolinski/Well_CBT & Andrew-FungKinHo/whynot)
+ * - Standard Serene Sanctuary Mode: Warm Alabaster Paper (#FAF9F6), Soft Charcoal ink (#2F2F2B),
+ *   Muted Sage/Stone secondary (#6B6B63), Soft Lavender-Slate therapeutic accent (#797298),
+ *   Healing Sage green (#6AA882), Terracotta warm alert (#C56548), Warm Cream cards (#FFFFFF with #E6E4DC border).
  * - Low-Energy Depression Mode: Auto-activates when Mood Polarity <= -3
- *   (Simplified "One Small Step" view, Voice Burst input priority, Affect Labeling cards, No Broken Streaks)
+ *   (Soft Warm Oatmeal #F4F1EA, extra-spacious comforting layout, "Hôm nay một bước nhỏ thôi là đủ",
+ *   large Voice Burst pill, 5-family Affect Cards, zero broken streaks).
  * - Low-Stimulus Mania / Dark Rest Mode: Auto-activates when Mood Polarity >= +2 or ASRM >= 6
- *   (Warm dark amber palette, zero flashy animations, 48-Hour Impulse Vault banner, Dark Therapy wind-down timer)
- * - Persistent 1-Tap SOS Portal Button at the top/corner of every screen.
+ *   (Deep Warm Obsidian-Amber #14110F background, #1E1916 card, #D97706 muted amber accent, zero blue light, zero animations).
+ * - Persistent 1-Tap SOS Bình tĩnh Ngay Button at the top header of every screen.
  */
 
 export const FIVE_FAMILY_AFFECT_CARDS: AffectLabelCard[] = [
   {
     id: 'affect-sadness',
     family: 'Sadness',
-    labelVi: 'Buồn bã / Trống rỗng / Mất mát',
-    labelEn: 'Sadness / Emptiness / Grief',
-    clinicalNoteVi: 'Cảm xúc tự nhiên khi mất đi điều quan trọng hoặc cạn kiệt năng lượng.',
+    labelVi: 'Buồn bã • Trống rỗng • Mất mát',
+    labelEn: 'Sadness • Emptiness • Grief',
+    clinicalNoteVi: 'Cảm xúc tự nhiên khi mất đi điều quan trọng hoặc khi cơ thể cạn kiệt năng lượng.',
     clinicalNoteEn: 'Natural response to loss, disconnection, or biological exhaustion.',
   },
   {
     id: 'affect-anxiety',
     family: 'Anxiety',
-    labelVi: 'Lo âu / Bất an / Sợ hãi',
-    labelEn: 'Anxiety / Dread / Fear',
-    clinicalNoteVi: 'Hệ thần kinh đang báo động về một mối đe dọa trong tương lai.',
-    clinicalNoteEn: 'Nervous system scanning for future threat or uncertainty.',
+    labelVi: 'Lo âu • Bất an • Căng thẳng',
+    labelEn: 'Anxiety • Unease • Worry',
+    clinicalNoteVi: 'Hệ thần kinh đang cố gắng bảo vệ bạn trước một điều chưa chắc chắn trong tương lai.',
+    clinicalNoteEn: 'Nervous system scanning to protect you from future uncertainty.',
   },
   {
     id: 'affect-anger',
     family: 'Anger',
-    labelVi: 'Giận dữ / Bực bội / Bất công',
-    labelEn: 'Anger / Frustration / Resentment',
-    clinicalNoteVi: 'Dấu hiệu ranh giới cá nhân hoặc giá trị quan trọng bị xâm phạm.',
-    clinicalNoteEn: 'Signal that a boundary, need, or fairness standard feels violated.',
+    labelVi: 'Giận dữ • Bức bối • Tổn thương',
+    labelEn: 'Anger • Frustration • Hurt',
+    clinicalNoteVi: 'Tín hiệu cho thấy một ranh giới cá nhân hoặc giá trị quan trọng của bạn đang cần được tôn trọng.',
+    clinicalNoteEn: 'Signal that a personal boundary, need, or fairness value needs respect.',
   },
   {
     id: 'affect-shame',
     family: 'Shame',
-    labelVi: 'Xấu hổ ("Tôi là người tồi tệ")',
-    labelEn: 'Shame ("I am bad / flawed")',
-    clinicalNoteVi: 'Phân biệt rõ: Xấu hổ tấn công toàn bộ con người bạn. Thôi thúc ẩn mình.',
-    clinicalNoteEn: 'Crucial distinction: Shame attacks your entire self-worth ("I am bad").',
+    labelVi: 'Xấu hổ ("Mình thật kém cỏi")',
+    labelEn: 'Shame ("I am flawed / not enough")',
+    clinicalNoteVi: 'Xấu hổ khiến ta muốn thu mình lại vì tự phán xét toàn bộ giá trị bản thân. Bạn xứng đáng được thấu cảm.',
+    clinicalNoteEn: 'Shame attacks your whole self-worth ("I am bad"). You deserve gentle compassion.',
   },
   {
     id: 'affect-guilt',
     family: 'Guilt',
-    labelVi: 'Tội lỗi ("Tôi đã làm sai một việc")',
+    labelVi: 'Áy náy ("Mình lỡ làm chưa đúng")',
     labelEn: 'Guilt ("I made a mistake in action")',
-    clinicalNoteVi: 'Phân biệt rõ: Tội lỗi chỉ nhận xét về 1 hành vi cụ thể và có thể sửa chữa.',
-    clinicalNoteEn: 'Crucial distinction: Guilt focuses on a specific behavior ("I did something wrong").',
+    clinicalNoteVi: 'Áy náy chỉ hướng về một hành động cụ thể — và mọi hành động đều có thể học hỏi hoặc sửa chữa.',
+    clinicalNoteEn: 'Guilt focuses on a specific action — and actions can always be repaired or learned from.',
   },
 ];
 
@@ -62,7 +65,7 @@ export function resolveAdaptiveTheme(params: {
   moodPolarity: MoodPole;
   asrmScore?: number;
   manualOverride?: UIThemeMode | null;
-   maniaThreshold?: number;
+  maniaThreshold?: number;
   depressionThreshold?: number;
 }): AdaptiveThemeConfig {
   const maniaPole = params.maniaThreshold ?? 2;
@@ -81,21 +84,21 @@ export function resolveAdaptiveTheme(params: {
   if (mode === 'low-energy-depression') {
     return {
       mode: 'low-energy-depression',
-      titleVi: 'Chế độ Trầm cảm Nặng — Một Bước Nhỏ Tiếp Theo (Low-Energy Mode)',
-      titleEn: 'Low-Energy Depression Mode — One Small Step',
+      titleVi: 'Không gian Dịu dàng Năng lượng Thấp — Hôm nay một bước nhỏ thôi là đủ',
+      titleEn: 'Gentle Low-Energy Sanctuary — One Small Step Today Is Enough',
       reasonVi:
-        'Tự động kích hoạt khi Cực khí sắc <= -3. Đã ẩn toàn bộ bảng điều khiển phức tạp và tắt đếm chuỗi ngày (No Broken Streaks) để tránh áp lực.',
+        'Giao diện tự động chuyển sang tông Kem Yến mạch ấm áp khi khí sắc trầm xuống (<= -3). Đã ẩn mọi thống kê gây áp lực và tắt đếm chuỗi ngày để bạn được nghỉ ngơi thoải mái.',
       reasonEn:
-        'Auto-activated because Mood Polarity <= -3. Complex dashboards and streak counters are hidden (No Broken Streaks) to eliminate self-blame.',
+        'Automatically shifted to a warm oatmeal sanctuary because mood is low (<= -3). Complex grids and streak counters are hidden so you can breathe without pressure.',
       palette: {
-        background: '#0f172a',
-        surface: '#1e293b',
-        primary: '#38bdf8',
-        accent: '#7dd3fc',
-        textPrimary: '#f1f5f9',
-        textSecondary: '#cbd5e1',
-        border: '#334155',
-        sosBanner: '#e11d48',
+        background: '#F4F1EA',
+        surface: '#FAF8F5',
+        primary: '#797298',
+        accent: '#6AA882',
+        textPrimary: '#2F2F2B',
+        textSecondary: '#6B6B63',
+        border: '#E4E0D5',
+        sosBanner: '#C56548',
       },
       animationsEnabled: false,
       showStreaks: false, // NO BROKEN STREAKS in Depression Mode
@@ -112,21 +115,21 @@ export function resolveAdaptiveTheme(params: {
   if (mode === 'low-stimulus-mania') {
     return {
       mode: 'low-stimulus-mania',
-      titleVi: 'Chế độ Bảo vệ Hưng cảm — Giảm Kích thích & Nghỉ Tối (Low-Stimulus / Dark Rest)',
-      titleEn: 'Low-Stimulus Mania / Dark Rest Mode (Hypomania Guard)',
+      titleVi: 'Không gian Trầm ấm Hạ nhiệt — Giảm Kích thích & Bảo vệ Giấc ngủ',
+      titleEn: 'Low-Stimulus Warm Amber Rest — Gentle Wind-Down & Rhythm Guard',
       reasonVi:
-        'Tự động kích hoạt khi Cực khí sắc >= +2 hoặc ASRM >= 6. Bảng màu hổ phách trầm ấm (loại bỏ ánh sáng xanh), tắt 100% animation và kích hoạt Khoang Chờ 48 Giờ.',
+        'Tự động bật chế độ Hổ phách Trầm ấm (không ánh sáng xanh, không hiệu ứng chuyển động) khi năng lượng/khí sắc tăng cao (>= +2 hoặc ASRM >= 6), kèm Khoang Chờ Quyết định 48 Giờ.',
       reasonEn:
-        'Auto-activated because Mood Polarity >= +2 or ASRM >= 6. Warm dark amber palette (zero blue light), zero flashy animations, 48-Hour Impulse Vault banner active.',
+        'Warm Obsidian-Amber rest palette active (zero blue light, zero animations) while energy/mood is elevated (>= +2 or ASRM >= 6), with 48-Hour Impulse Vault protection.',
       palette: {
-        background: '#14110f',
-        surface: '#1c1917',
-        primary: '#d97706',
-        accent: '#f59e0b',
-        textPrimary: '#fef3c7',
-        textSecondary: '#d6d3d1',
-        border: '#44403c',
-        sosBanner: '#dc2626',
+        background: '#14110F',
+        surface: '#1E1916',
+        primary: '#D97706',
+        accent: '#F59E0B',
+        textPrimary: '#FAF3E0',
+        textSecondary: '#C8C2B8',
+        border: '#38302A',
+        sosBanner: '#C56548',
       },
       animationsEnabled: false, // ZERO FLASHY ANIMATIONS
       showStreaks: false,
@@ -142,19 +145,21 @@ export function resolveAdaptiveTheme(params: {
 
   return {
     mode: 'standard',
-    titleVi: 'Chế độ Tiêu chuẩn — Cân bằng & Phản tư (Standard Mode)',
-    titleEn: 'Standard Mode — Balanced Calming Slate & Teal',
-    reasonVi: 'Khí sắc trong vùng ổn định (-2 đến +1). Mở đầy đủ các phân hệ CBT, TEAM-CBT, DBT và IPSRT.',
-    reasonEn: 'Mood polarity within stable range (-2 to +1). Full CBT, TEAM-CBT, DBT, and IPSRT modules available.',
+    titleVi: 'Không gian Bình yên — Cân bằng & Thấu cảm',
+    titleEn: 'Serene Sanctuary — Balanced & Empathetic',
+    reasonVi:
+      'Tông màu Giấy Alabaster ấm áp (#FAF9F6) và Tím Oải hương dịu nhẹ (#797298) giúp mắt thư giãn, giảm mỏi mệt nhận thức.',
+    reasonEn:
+      'Warm Alabaster Paper (#FAF9F6) and Soft Lavender-Slate (#797298) reduce visual fatigue and support calm reflection.',
     palette: {
-      background: '#f8fafc',
-      surface: '#ffffff',
-      primary: '#0f766e',
-      accent: '#0d9488',
-      textPrimary: '#0f172a',
-      textSecondary: '#475569',
-      border: '#e2e8f0',
-      sosBanner: '#e11d48',
+      background: '#FAF9F6',
+      surface: '#FFFFFF',
+      primary: '#797298',
+      accent: '#6AA882',
+      textPrimary: '#2F2F2B',
+      textSecondary: '#6B6B63',
+      border: '#E6E4DC',
+      sosBanner: '#C56548',
     },
     animationsEnabled: true,
     showStreaks: true,
@@ -190,7 +195,6 @@ export function computeDarkTherapyTimer(
   const tarTotal = tarH * 60 + tarM;
 
   let diff = tarTotal - curTotal;
-  // Between target hour and 06:00 AM is active Dark Therapy rest period
   const isNightRest = curTotal >= tarTotal || curTotal < 360;
   if (diff < 0) {
     diff = 0;
@@ -201,10 +205,10 @@ export function computeDarkTherapyTimer(
     minutesRemaining: isNightRest ? 0 : diff,
     isDarkRestActiveNow: isNightRest,
     bannerTextVi: isNightRest
-      ? `Đang trong khung giờ Liêu pháp Bóng tối (Dark Therapy sau ${targetShutdownHour}). Hãy giảm độ sáng màn hình, dừng làm việc và để não bộ nghỉ ngơi.`
-      : `Còn ${diff} phút nữa đến giờ Hạ nhiệt Bóng tối (${targetShutdownHour}) — giữ vững mốc ngủ IPSRT.`,
+      ? `Đang trong khung giờ Nghỉ tối Bảo vệ Nhịp Sinh học (sau ${targetShutdownHour}). Hãy giảm độ sáng màn hình, tạm gác công việc và để tâm trí lắng dịu.`
+      : `Còn ${diff} phút nữa đến giờ Hạ nhiệt Nghỉ tối (${targetShutdownHour}) — giữ vững nhịp ngủ sinh học của bạn.`,
     bannerTextEn: isNightRest
-      ? `Dark Therapy Rest Window active (after ${targetShutdownHour}). Dim screens, pause projects, and protect circadian sleep.`
-      : `${diff} minutes until Dark Therapy Wind-Down (${targetShutdownHour}) — protect your IPSRT sleep anchor.`,
+      ? `Evening Rest Window active (after ${targetShutdownHour}). Dim screens, pause projects, and let your nervous system rest.`
+      : `${diff} minutes until Evening Wind-Down (${targetShutdownHour}) — protect your sleep rhythm anchor.`,
   };
 }

@@ -93,6 +93,18 @@ import {
   type Web36ToolCategory,
   type WiseMindResolutionType,
   type ZeroKnowledgeClinicianSharePackage,
+  QUICK_DEMO_PROFILES,
+  SANCTUARY_NAVIGATION_ITEMS,
+  getActiveAccountSession,
+  loginUserAccount,
+  loginWithQuickDemoProfile,
+  registerUserAccount,
+  signOutUserAccount,
+  triggerAccountE2eeSyncNow,
+  updateUserAccountProfile,
+  type QuickDemoProfileId,
+  type UserAccountProfile,
+  type UserAccountSession,
 } from '../clinical/index.ts';
 
 export type ActiveHubTab =
@@ -101,6 +113,8 @@ export type ActiveHubTab =
   | 'bipolar-ipsrt-hub'
   | 'assessments-report'
   | 'tools-36-team-cbt'
+  | 'ai-companion-biometrics'
+  | 'account-privacy-vault'
   | 'phase3-ai-biometrics-voice'
   | 'phase4-e2ee-clinician-qa';
 
@@ -109,6 +123,18 @@ export function EquilibriaClinicalApp() {
   const [lang, setLang] = useState<Language>('vi');
   const [activeTab, setActiveTab] = useState<ActiveHubTab>('session-player');
   const [sosOpen, setSosOpen] = useState<boolean>(false);
+
+  // Patient Account Authentication & Profile State
+  const [accountSession, setAccountSession] = useState<UserAccountSession | null>(null);
+  const [accountModalOpen, setAccountModalOpen] = useState<boolean>(false);
+  const [authView, setAuthView] = useState<'profile' | 'login' | 'register'>('profile');
+  const [authEmail, setAuthEmail] = useState<string>('');
+  const [authPassword, setAuthPassword] = useState<string>('');
+  const [authDisplayName, setAuthDisplayName] = useState<string>('');
+  const [authStatusMessage, setAuthStatusMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [profileFormName, setProfileFormName] = useState<string>('');
+  const [profileEmergencyName, setProfileEmergencyName] = useState<string>('');
+  const [profileEmergencyPhone, setProfileEmergencyPhone] = useState<string>('');
 
   // Mood Polarity (-5 to +5), Energy (-5 to +5), Distress Intensity (0 to 10), ASRM score
   const [moodPolarity, setMoodPolarity] = useState<MoodPole>(0);
@@ -120,6 +146,111 @@ export function EquilibriaClinicalApp() {
     useState<DailyMoodAndRhythmLog['feltNeedForSleep']>('normal');
   const [asrmScore, setAsrmScore] = useState<number>(2);
   const [manualThemeOverride, setManualThemeOverride] = useState<UIThemeMode | null>(null);
+
+  // Initialize Account Session from Storage or Safe Gentle Profile
+  useEffect(() => {
+    const sess = getActiveAccountSession() || loginWithQuickDemoProfile('depression-gentle', lang);
+    setAccountSession(sess);
+    if (sess) {
+      setProfileFormName(sess.user.displayName);
+      setProfileEmergencyName(sess.user.emergencyContactName);
+      setProfileEmergencyPhone(sess.user.emergencyContactPhone);
+      if (sess.user.defaultMoodPolarity !== undefined) {
+        setMoodPolarity(sess.user.defaultMoodPolarity);
+      }
+      setPushbackLevel(sess.user.preferredPushbackLevel);
+    }
+  }, []);
+
+  const handleSelectQuickDemo = (profileId: QuickDemoProfileId) => {
+    const sess = loginWithQuickDemoProfile(profileId, lang);
+    setAccountSession(sess);
+    setProfileFormName(sess.user.displayName);
+    setProfileEmergencyName(sess.user.emergencyContactName);
+    setProfileEmergencyPhone(sess.user.emergencyContactPhone);
+    if (sess.user.defaultMoodPolarity !== undefined) {
+      setMoodPolarity(sess.user.defaultMoodPolarity);
+    }
+    setPushbackLevel(sess.user.preferredPushbackLevel);
+    setAuthStatusMessage({
+      ok: true,
+      text: lang === 'vi'
+        ? `Đã kích hoạt hồ sơ: ${sess.user.displayName}.`
+        : `Activated profile: ${sess.user.displayName}.`,
+    });
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await loginUserAccount({ email: authEmail, password: authPassword });
+    if (res.ok && res.session) {
+      setAccountSession(res.session);
+      setProfileFormName(res.session.user.displayName);
+      setProfileEmergencyName(res.session.user.emergencyContactName);
+      setProfileEmergencyPhone(res.session.user.emergencyContactPhone);
+      setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
+      setAuthView('profile');
+    } else {
+      setAuthStatusMessage({ ok: false, text: lang === 'vi' ? res.messageVi : res.messageEn });
+    }
+  };
+
+  const handleEmailRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await registerUserAccount({
+      email: authEmail,
+      password: authPassword,
+      displayName: authDisplayName || authEmail.split('@')[0] || 'Người bạn',
+      disorderFocus: 'anxiety',
+      preferredPushbackLevel: pushbackLevel,
+    });
+    if (res.ok && res.session) {
+      setAccountSession(res.session);
+      setProfileFormName(res.session.user.displayName);
+      setProfileEmergencyName(res.session.user.emergencyContactName);
+      setProfileEmergencyPhone(res.session.user.emergencyContactPhone);
+      setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
+      setAuthView('profile');
+    } else {
+      setAuthStatusMessage({ ok: false, text: lang === 'vi' ? res.messageVi : res.messageEn });
+    }
+  };
+
+  const handleSaveProfile = () => {
+    const res = updateUserAccountProfile({
+      displayName: profileFormName,
+      emergencyContactName: profileEmergencyName,
+      emergencyContactPhone: profileEmergencyPhone,
+      preferredPushbackLevel: pushbackLevel,
+    });
+    if (res.ok && res.session) {
+      setAccountSession(res.session);
+      setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
+    }
+  };
+
+  const handleSyncNow = () => {
+    const res = triggerAccountE2eeSyncNow();
+    if (res.ok && res.session) {
+      setAccountSession(res.session);
+      setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
+    }
+  };
+
+  const handleSignOut = () => {
+    signOutUserAccount({ wipeLocalData: false });
+    const guest = loginWithQuickDemoProfile('guest-local-only', lang);
+    setAccountSession(guest);
+    setProfileFormName(guest.user.displayName);
+    setProfileEmergencyName(guest.user.emergencyContactName);
+    setProfileEmergencyPhone(guest.user.emergencyContactPhone);
+    setAuthStatusMessage({
+      ok: true,
+      text: lang === 'vi'
+        ? 'Đã đăng xuất. Bạn đang ở chế độ Khách Ẩn danh tại chỗ.'
+        : 'Signed out. You are now in Local Anonymous Guest mode.',
+    });
+  };
 
   // 1. Adaptive Theme & UI Mode System
   const theme = useMemo(
@@ -717,7 +848,7 @@ export function EquilibriaClinicalApp() {
     }
   };
 
-  // 7. Phase 2 Expansion State: 36 Interactive Tools, TEAM-CBT M/P & Anti-Procrastination, Downward Arrow SDBs, DBT ABC PLEASE / ACCEPTS / Urge Surfing & CBT-I
+  // 7. Interactive 36 Tools State: TEAM-CBT M/P & Anti-Procrastination, Downward Arrow SDBs, DBT ABC PLEASE / ACCEPTS / Urge Surfing & CBT-I
   const [selectedToolCategory, setSelectedToolCategory] = useState<Web36ToolCategory | 'ALL'>('ALL');
   const [selectedToolId, setSelectedToolId] = useState<string>('pleasure-predicting-mp-sheet');
   const [toolUserInput, setToolUserInput] = useState<string>(
@@ -881,7 +1012,7 @@ export function EquilibriaClinicalApp() {
     [moodPolarity, energyLevel, sleepHours, feltNeedForSleep]
   );
 
-  // 8. Phase 3 State: Grounded AI Companion (Local Ollama / RAG 0.46), 2-Tier Memory Inspector, Voice Burst WPM Studio & Baseline HRV/Sleep Context
+  // 8. Grounded AI Companion State: Local Ollama / RAG 0.46, 2-Tier Memory Inspector, Voice Burst WPM Studio & Baseline HRV/Sleep Context
   const [phase3Provider, setPhase3Provider] =
     useState<Phase3CompanionProvider>('offline-deterministic');
   const [ollamaModelName, setOllamaModelName] = useState<string>('qwen3.5:9b');
@@ -973,7 +1104,7 @@ export function EquilibriaClinicalApp() {
     setPhase3Memory((prev) => eraseDerivedProfileMemory(prev, true));
   };
 
-  // 9. Phase 4 State: Zero-Knowledge E2EE Sync (24-Word Key & CRDT), Clinician Portal (#key=... Decryptor) & 105-Case Red-Team / WCAG 2.2 AAA Audit
+  // 9. Zero-Knowledge E2EE Sync State: 24-Word Key & CRDT, Clinician Portal (#key=... Decryptor) & 105-Case Red-Team / WCAG 2.2 AAA Audit
   const [masterKey24, setMasterKey24] = useState<MasterRecoveryKey24Words | null>(null);
   const [crdtSyncPreview, setCrdtSyncPreview] = useState<CrdtMergeResult<unknown> | null>(null);
   const [crdtDecryptedSampleText, setCrdtDecryptedSampleText] = useState<string>(
@@ -1107,7 +1238,7 @@ export function EquilibriaClinicalApp() {
           zIndex: 50,
           backgroundColor: theme.palette.surface,
           borderBottom: `2px solid ${theme.palette.border}`,
-          padding: '12px 20px',
+          padding: '12px 24px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
@@ -1115,16 +1246,76 @@ export function EquilibriaClinicalApp() {
           gap: '12px',
         }}
       >
-        <div>
-          <strong style={{ fontSize: '1.15rem', color: theme.palette.primary }}>
-            Equilibria (Mind Anchor)
-          </strong>
-          <span style={{ marginLeft: '10px', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
-            {lang === 'vi' ? theme.titleVi : theme.titleEn}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '1.7rem' }}>🌿</span>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <strong style={{ fontSize: '1.2rem', color: theme.palette.textPrimary, letterSpacing: '-0.01em' }}>
+                Equilibria Care
+              </strong>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(121, 114, 152, 0.12)',
+                  color: theme.palette.primary,
+                  fontWeight: 600,
+                }}
+              >
+                {lang === 'vi' ? 'Trị Liệu Nhận Thức CBT & DBT' : 'Clinical CBT & DBT Sanctuary'}
+              </span>
+            </div>
+            <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+              {lang === 'vi' ? theme.titleVi : theme.titleEn}
+            </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Patient Account Quick Profile Pill */}
+          <button
+            type="button"
+            onClick={() => setAccountModalOpen(true)}
+            title={lang === 'vi' ? 'Quản lý Tài khoản & Hồ sơ cá nhân' : 'Manage Account & Personal Profile'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '24px',
+              border: `1px solid ${theme.palette.border}`,
+              backgroundColor: theme.palette.surface,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+            }}
+          >
+            <span
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+              }}
+            >
+              {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
+            </span>
+            <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 600, color: theme.palette.textPrimary }}>
+                {accountSession?.user.displayName || (lang === 'vi' ? 'Tài khoản' : 'Account')}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: theme.palette.accent }}>
+                {accountSession?.user.e2eeSyncEnabled ? '🟢 E2EE Đã bật' : '🔒 Lưu tại máy'}
+              </div>
+            </div>
+          </button>
+
           {/* Mood Polarity Quick Simulator (-5 to +5) */}
           <label style={{ fontSize: '0.85rem' }}>
             {lang === 'vi' ? 'Cực Khí Sắc (-5..+5): ' : 'Mood Pole (-5..+5): '}
@@ -1178,8 +1369,8 @@ export function EquilibriaClinicalApp() {
                 ? 'Đóng Cổng SOS'
                 : 'Close SOS Portal'
               : lang === 'vi'
-                ? 'SOS 1-CHẠM (DBT TIPP / THỞ 4-6)'
-                : '1-TAP SOS (DBT TIPP / BREATHE)'}
+                ? '🚨 BÌNH TĨNH NGAY (SOS)'
+                : '🚨 CALM NOW (SOS)'}
           </button>
         </div>
       </header>
@@ -1188,27 +1379,50 @@ export function EquilibriaClinicalApp() {
       <section
         className="no-print"
         style={{
-          maxWidth: '1200px',
+          maxWidth: '1240px',
           margin: '16px auto',
-          padding: '12px 16px',
-          borderRadius: '8px',
+          padding: '12px 18px',
+          borderRadius: '16px',
           backgroundColor: theme.palette.surface,
           border: `1px solid ${theme.palette.border}`,
         }}
       >
-        <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem' }}>
-          <strong>{lang === 'vi' ? 'Trạng thái Giao diện Thích ứng: ' : 'Adaptive UI Mode: '}</strong>
-          {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>
+            <strong>{lang === 'vi' ? 'Trạng thái Không gian Trị liệu: ' : 'Sanctuary Status: '}</strong>
+            {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+              {lang === 'vi' ? 'Hồ sơ đang dùng:' : 'Active Profile:'}
+            </span>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(106, 168, 130, 0.15)',
+                color: theme.palette.accent,
+                fontWeight: 600,
+              }}
+            >
+              {accountSession?.user.disorderFocus === 'depression'
+                ? (lang === 'vi' ? '🌱 Vượt Trầm cảm' : 'Depression Recovery')
+                : accountSession?.user.disorderFocus === 'bipolar'
+                  ? (lang === 'vi' ? '🌙 Cân bằng Lưỡng cực' : 'Bipolar & Rhythm')
+                  : (lang === 'vi' ? '🌊 Làm dịu Lo âu' : 'Anxiety Relief')}
+            </span>
+          </div>
+        </div>
 
         {theme.show48hImpulseVaultBanner && (
           <div
             style={{
-              padding: '10px 12px',
-              borderRadius: '6px',
+              padding: '12px 16px',
+              borderRadius: '12px',
               backgroundColor: '#451a03',
               color: '#fef3c7',
-              marginBottom: '8px',
+              marginTop: '10px',
             }}
           >
             <strong>
@@ -1223,21 +1437,30 @@ export function EquilibriaClinicalApp() {
         {theme.simplifiedOneSmallStep && (
           <div
             style={{
-              padding: '12px',
-              borderRadius: '6px',
-              backgroundColor: '#1e293b',
-              color: '#e2e8f0',
-              border: '1px solid #38bdf8',
+              padding: '14px 18px',
+              borderRadius: '12px',
+              backgroundColor: '#F4F1EA',
+              color: '#2F2F2B',
+              border: '1px solid #E4E0D5',
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
             }}
           >
-            <strong>
-              {lang === 'vi'
-                ? 'MỘT BƯỚC NHỎ TIẾP THEO (Low-Energy Mode — Không đếm chuỗi ngày đứt / No Broken Streaks): '
-                : 'ONE SMALL STEP (Low-Energy Mode — No Broken Streaks): '}
-            </strong>
-            {lang === 'vi'
-              ? 'Bạn không cần làm hết mọi thứ hôm nay. Hãy bấm Ghi âm Giọng nói (Voice Burst) hoặc chọn 1 thẻ cảm xúc bên dưới.'
-              : 'You do not need to do everything today. Use 1-Tap Voice Burst or pick an Affect Labeling card below.'}
+            <span style={{ fontSize: '1.6rem' }}>🌱</span>
+            <div>
+              <strong style={{ fontSize: '0.98rem' }}>
+                {lang === 'vi'
+                  ? 'HÔM NAY MỘT BƯỚC NHỎ THÔI LÀ ĐỦ (Không đếm chuỗi ngày đứt đoạn): '
+                  : 'ONE GENTLE SMALL STEP IS ENOUGH TODAY (No Broken Streaks): '}
+              </strong>
+              <div style={{ marginTop: '2px', fontSize: '0.88rem', color: '#6B6B63' }}>
+                {lang === 'vi'
+                  ? 'Bạn không cần làm hết mọi thứ hôm nay. Bạn có thể chỉ cần ghi lại cảm xúc bằng giọng nói, hoặc chọn 1 thẻ cảm xúc bên dưới.'
+                  : 'You do not need to do everything today. You can simply record your thought with Voice Burst or pick an Affect Labeling card below.'}
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -1323,7 +1546,13 @@ export function EquilibriaClinicalApp() {
                   transform: `scale(${breathingFrame.circleScale})`,
                 }}
               >
-                <strong style={{ fontSize: '1.2rem' }}>{breathingFrame.phase.toUpperCase()}</strong>
+                <strong style={{ fontSize: '1.2rem' }}>
+                  {breathingFrame.phase === 'inhale'
+                    ? (lang === 'vi' ? 'HÍT VÀO' : 'INHALE')
+                    : breathingFrame.phase === 'hold'
+                      ? (lang === 'vi' ? 'GIỮ HƠI' : 'HOLD')
+                      : (lang === 'vi' ? 'THỞ RA' : 'EXHALE')}
+                </strong>
                 <span>{breathingFrame.phaseRemainingSeconds}s</span>
               </div>
               <p style={{ textAlign: 'center' }}>
@@ -1439,52 +1668,65 @@ export function EquilibriaClinicalApp() {
         </section>
       )}
 
-      {/* Main Clinical Module Navigation Tabs */}
+      {/* Main Clinical Module Sanctuary Navigation Tabs */}
       <nav
         className="no-print"
         style={{
-          maxWidth: '1200px',
-          margin: '16px auto',
+          maxWidth: '1240px',
+          margin: '18px auto 8px',
           display: 'flex',
-          gap: '10px',
+          gap: '8px',
           flexWrap: 'wrap',
           padding: '0 16px',
         }}
       >
         {(
           [
-            ['session-player', '1. DBT-First / CBT-Second Session Player (7 Phác Đồ)'],
-            ['anxiety-hub', '2. Phân Hệ Lo Âu (Worry Box • ERP • Prediction Calibration)'],
-            ['bipolar-ipsrt-hub', '3. Phân Hệ Lưỡng Cực & IPSRT (-5..+5 • 48h Vault • Ulysses)'],
-            ['assessments-report', '4. Thang Đo Lâm Sàng • Mã Hóa AES-GCM • Báo Cáo In A4'],
-            ['tools-36-team-cbt', '5. Kho 36 Công cụ CBT/TEAM-CBT/DBT & Trầm cảm Chuyên sâu (36 Tools & TEAM-CBT Hub)'],
-            ['phase3-ai-biometrics-voice', '6. Phase 3: Grounded AI Companion (Ollama / RAG 0.46) • 2-Tier Memory • Voice WPM & HRV'],
-            ['phase4-e2ee-clinician-qa', '7. Phase 4: Zero-Knowledge E2EE Sync (24-Word Key & CRDT) • Cổng Bác sĩ (#key=...) • Red-Team 105 & WCAG AAA'],
+            ['session-player', '🌿', lang === 'vi' ? 'Không gian Trò chuyện & Phác đồ' : 'Sanctuary & Guided Practice'],
+            ['anxiety-hub', '🌊', lang === 'vi' ? 'Góc Bình yên Lo âu' : 'Anxiety Relief'],
+            ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Nhật ký Khí sắc & Nhịp Sinh học' : 'Mood & Circadian Rhythm'],
+            ['tools-36-team-cbt', '✨', lang === 'vi' ? 'Thư viện 36 Bài tập Tự lực' : '36 Self-Care Tools'],
+            ['assessments-report', '📋', lang === 'vi' ? 'Trắc nghiệm & Báo cáo Bác sĩ' : 'Assessments & Doctor Report'],
+            ['ai-companion-biometrics', '🤖', lang === 'vi' ? 'Người bạn Trí tuệ AI & Sinh trắc' : 'Grounded AI & Biometrics'],
+            ['account-privacy-vault', '🔐', lang === 'vi' ? 'Tài khoản & Bảo mật Dữ liệu' : 'Account & Privacy Vault'],
           ] as const
-        ).map(([tabId, label]) => (
-          <button
-            key={tabId}
-            type="button"
-            onClick={() => setActiveTab(tabId)}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: `1px solid ${theme.palette.border}`,
-              backgroundColor: activeTab === tabId ? theme.palette.primary : theme.palette.surface,
-              color: activeTab === tabId ? '#ffffff' : theme.palette.textPrimary,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {label}
-          </button>
-        ))}
+        ).map(([tabId, icon, label]) => {
+          const isSelected =
+            activeTab === tabId ||
+            (tabId === 'ai-companion-biometrics' && activeTab === 'phase3-ai-biometrics-voice') ||
+            (tabId === 'account-privacy-vault' && activeTab === 'phase4-e2ee-clinician-qa');
+          return (
+            <button
+              key={tabId}
+              type="button"
+              onClick={() => setActiveTab(tabId as ActiveHubTab)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '16px',
+                border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
+                color: isSelected ? '#ffffff' : theme.palette.textPrimary,
+                fontWeight: 600,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                boxShadow: isSelected ? '0 4px 12px rgba(121, 114, 152, 0.22)' : 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span>{icon}</span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* TAB 1: DBT-FIRST, CBT-SECOND INTERACTIVE SESSION PLAYER */}
       {activeTab === 'session-player' && (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          {/* Phase 0: Expressive vs Instrumental + Voice Burst + Mood Palette + Safety Gate */}
+          {/* Expressive vs Instrumental + Voice Burst + Mood Palette + Safety Gate */}
           <section
             style={{
               padding: '16px',
@@ -1496,8 +1738,8 @@ export function EquilibriaClinicalApp() {
           >
             <h2>
               {lang === 'vi'
-                ? 'Phase 0 & 1: Chọn Chế Độ (Expressive EAR vs. Instrumental) • Voice Burst & Mood-Palette'
-                : 'Phase 0 & 1: Expressive EAR vs. Instrumental Mode • Voice Burst & Mood-Palette'}
+                ? 'Chọn Chế Độ Lắng Nghe & Đồng Hành (Thấu cảm EAR vs. Thực hành Kỹ năng) • Xả Cảm xúc & Bảng màu Tâm trạng'
+                : 'Empathy vs. Skill Practice Mode (Expressive EAR vs. Instrumental) • Voice Burst & Mood-Palette'}
             </h2>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
               <button
@@ -2406,7 +2648,7 @@ export function EquilibriaClinicalApp() {
             <div className="no-print" style={{ marginTop: '12px' }}>
               <button
                 type="button"
-                onClick={() => setActiveTab('phase4-e2ee-clinician-qa')}
+                onClick={() => setActiveTab('account-privacy-vault')}
                 style={{
                   padding: '8px 14px',
                   borderRadius: '6px',
@@ -2417,7 +2659,9 @@ export function EquilibriaClinicalApp() {
                   cursor: 'pointer',
                 }}
               >
-                Mở Phase 4: Zero-Knowledge E2EE Sync (24-Word Key &amp; CRDT), Cổng Bác sĩ (#key=... Decryptor) &amp; Kiểm định Red-Team 105 Kịch bản / WCAG AAA
+                {lang === 'vi'
+                  ? 'Mở Trung tâm Tài khoản & Bảo mật Dữ liệu (Đồng bộ E2EE, Cổng Bác sĩ & An toàn)'
+                  : 'Open Account & Privacy Vault (E2EE Sync, Clinician Portal & Safety Audit)'}
               </button>
             </div>
           </section>
@@ -2776,8 +3020,8 @@ export function EquilibriaClinicalApp() {
         </main>
       )}
 
-      {/* TAB 6: PHASE 3 — GROUNDED AI COMPANION (LOCAL OLLAMA / RAG 0.46), 2-TIER MEMORY INSPECTOR, VOICE BURST WPM STUDIO & BASELINE HRV/SLEEP CONTEXT */}
-      {activeTab === 'phase3-ai-biometrics-voice' && (
+      {/* TAB 6: GROUNDED AI COMPANION (LOCAL OLLAMA / RAG 0.46), 2-TIER MEMORY INSPECTOR, VOICE BURST WPM STUDIO & BASELINE HRV/SLEEP CONTEXT */}
+      {(activeTab === 'ai-companion-biometrics' || activeTab === 'phase3-ai-biometrics-voice') && (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
           <section
             style={{
@@ -2789,10 +3033,14 @@ export function EquilibriaClinicalApp() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>
-              Phase 3: Grounded AI Companion (Local Ollama / RAG 0.46), 2-Tier Memory Inspector, Voice Burst WPM Studio &amp; Baseline HRV/Sleep Context
+              {lang === 'vi'
+                ? 'Người bạn Trí tuệ AI Thấu cảm (RAG 0.46 / Ollama), Bộ nhớ Cuộn 2 Tầng, Phân tích Nhịp nói & Sinh trắc HRV'
+                : 'Grounded AI Companion (RAG 0.46 / Ollama), 2-Tier Memory, Voice WPM Studio & Baseline HRV Context'}
             </h2>
             <p style={{ fontSize: '0.88rem', color: theme.palette.textSecondary, margin: 0 }}>
-              Tích hợp AI đồng hành đa chế độ (100% Offline Deterministic • Local Ollama 127.0.0.1:11434 • Vercel + Supabase Cloud RAG ngưỡng 0.46), Bộ nhớ Cuộn 2 tầng (20 tin nhắn + Tóm tắt mỗi 15 tin nhắn + Hồ sơ cá nhân có thể xóa 1 chạm), Phân tích Nhịp nói Hưng cảm (&gt; 30% WPM spike) kèm Bảng màu 5 Sắc thái và Sinh trắc học HRV phân vị P25–P75.
+              {lang === 'vi'
+                ? 'Tích hợp AI đồng hành đa chế độ (100% Offline Deterministic • Local Ollama 127.0.0.1:11434 • Vercel + Supabase Cloud RAG ngưỡng 0.46), Bộ nhớ Cuộn 2 tầng (20 tin nhắn + Tóm tắt mỗi 15 tin nhắn + Hồ sơ cá nhân có thể xóa 1 chạm), Phân tích Nhịp nói Hưng cảm (> 30% WPM spike) kèm Bảng màu 5 Sắc thái và Sinh trắc học HRV phân vị P25–P75.'
+                : 'Multimodal AI Companion (100% Offline Deterministic • Local Ollama • Vercel/Supabase Cloud RAG 0.46), 2-Tier Rolling Memory (20 messages + 15-message rolling summary + One-click profile eraser), Pressured Speech Analysis (>30% WPM spike), 5-Swatch Mood-Palette, and Baseline-Relative HRV Percentiles (P25-P75).'}
             </p>
           </section>
 
@@ -3193,8 +3441,8 @@ export function EquilibriaClinicalApp() {
         </main>
       )}
 
-      {/* TAB 7: PHASE 4 — ZERO-KNOWLEDGE E2EE SYNC (24-WORD KEY & CRDT), CLINICIAN PORTAL (#KEY=... DECRYPTOR) & 105-CASE RED-TEAM / WCAG 2.2 AAA AUDIT */}
-      {activeTab === 'phase4-e2ee-clinician-qa' && (
+      {/* TAB 7: ZERO-KNOWLEDGE E2EE SYNC (24-WORD KEY & CRDT), CLINICIAN PORTAL (#KEY=... DECRYPTOR) & 105-CASE RED-TEAM / WCAG 2.2 AAA AUDIT */}
+      {(activeTab === 'account-privacy-vault' || activeTab === 'phase4-e2ee-clinician-qa') && (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
           <section
             className="no-print"
@@ -3207,11 +3455,315 @@ export function EquilibriaClinicalApp() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>
-              Phase 4: Zero-Knowledge E2EE Sync (24-Word Key &amp; CRDT), Cổng Bác sĩ (<code>#key=...</code> Decryptor) &amp; Kiểm định Red-Team 105 Kịch bản / WCAG AAA
+              {lang === 'vi'
+                ? 'Trung tâm Tài khoản, Đồng bộ Mã hóa Đầu-cuối & Cổng Kết nối Bác sĩ'
+                : 'Account Sanctuary, End-to-End Encrypted Sync & Clinician Portal'}
             </h2>
             <p style={{ fontSize: '0.88rem', color: theme.palette.textSecondary, margin: 0 }}>
-              Hoàn thiện Sprint 7 &amp; Sprint 8: Sinh khóa khôi phục chủ 24 từ (PBKDF2 100.000 vòng + WebCrypto AES-GCM-256), hợp nhất xung đột đa thiết bị Flutter Mobile &lt;-&gt; Web Next.js bằng CRDT Version Vector + Last-Write-Wins, Cổng Bác sĩ Zero-Knowledge giải mã tại trình duyệt qua khóa nằm ở URL fragment (<code>#key=...</code>) kèm xuất PDF A4, và Kiểm định An toàn Lâm sàng 105 kịch bản đối kháng + Chuẩn WCAG 2.2 AAA / OWASP Zero-PHI-Telemetry.
+              {lang === 'vi'
+                ? 'Quản lý tài khoản cá nhân, sinh khóa khôi phục 24 từ (WebCrypto AES-GCM-256), hợp nhất dữ liệu đa thiết bị bằng thuật toán CRDT không độ trễ, Cổng Bác sĩ giải mã an toàn qua URL fragment (#key=...) và Kiểm định an toàn lâm sàng 105 kịch bản đối kháng.'
+                : 'Personal account management, 24-word master recovery key (WebCrypto AES-GCM-256), zero-latency CRDT multi-device sync, client-side encrypted Clinician Portal (#key=...), and 105-scenario clinical safety audit.'}
             </p>
+          </section>
+
+          {/* Account Management & Sanctuary Profiles Card */}
+          <section
+            className="no-print"
+            style={{
+              padding: '20px',
+              borderRadius: '16px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div
+                  style={{
+                    width: '54px',
+                    height: '54px',
+                    borderRadius: '50%',
+                    backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
+                      {accountSession?.user.displayName || (lang === 'vi' ? 'Chưa đăng nhập' : 'Not signed in')}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(106, 168, 130, 0.15)',
+                        color: theme.palette.accent,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {accountSession?.user.authMode === 'guest-local-only'
+                        ? (lang === 'vi' ? 'Khách Ẩn Danh Tại Chỗ' : 'Anonymous Guest')
+                        : accountSession?.user.authMode === 'email-password'
+                          ? (lang === 'vi' ? 'Tài Khoản Email Đã Xác Thực' : 'Verified Email Account')
+                          : (lang === 'vi' ? 'Hồ Sơ Mẫu 1-Chạm' : 'Quick Sanctuary Profile')}
+                    </span>
+                  </div>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
+                    {accountSession?.user.email} • ID: <code>{accountSession?.user.userId}</code> • {lang === 'vi' ? 'Đồng bộ lúc:' : 'Last sync:'}{' '}
+                    {accountSession?.user.lastE2eeSyncAt ? accountSession.user.lastE2eeSyncAt.slice(11, 19) + ' UTC' : 'Chưa có'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleSyncNow}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    backgroundColor: theme.palette.accent,
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? '🔄 Đồng bộ E2EE Ngay' : '🔄 Sync Now'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    backgroundColor: 'transparent',
+                    color: theme.palette.textSecondary,
+                    border: `1px solid ${theme.palette.border}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? 'Đăng xuất / Về Ẩn danh' : 'Sign Out / Guest'}
+                </button>
+              </div>
+            </div>
+
+            {/* 1-Tap Quick Profiles Switcher */}
+            <div style={{ marginTop: '16px', padding: '14px', borderRadius: '12px', backgroundColor: theme.palette.background }}>
+              <strong style={{ fontSize: '0.9rem' }}>
+                {lang === 'vi' ? '⚡ Chuyển Đổi Nhanh Hồ Sơ Trị Liệu (1-Chạm):' : '⚡ 1-Tap Quick Sanctuary Profiles:'}
+              </strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px', marginTop: '10px' }}>
+                {QUICK_DEMO_PROFILES.map((p) => {
+                  const isActive =
+                    accountSession?.user.userId === `demo_${p.id}` ||
+                    (p.id === 'guest-local-only' && accountSession?.user.authMode === 'guest-local-only');
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelectQuickDemo(p.id)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        border: isActive ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                        backgroundColor: isActive ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.avatarMoodColor }} />
+                        <strong style={{ fontSize: '0.88rem', color: theme.palette.textPrimary }}>
+                          {lang === 'vi' ? p.displayNameVi : p.displayNameEn}
+                        </strong>
+                      </div>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: theme.palette.textSecondary }}>
+                        {lang === 'vi' ? p.descriptionVi : p.descriptionEn}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Forms: Profile Editor & Email Auth */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              {/* Edit Profile Form */}
+              <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid ${theme.palette.border}` }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem' }}>
+                  {lang === 'vi' ? '✏️ Chỉnh Sửa Hồ Sơ Cá Nhân' : '✏️ Personal Profile Settings'}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <label style={{ fontSize: '0.85rem' }}>
+                    {lang === 'vi' ? 'Tên hiển thị:' : 'Display Name:'}
+                    <input
+                      type="text"
+                      value={profileFormName}
+                      onChange={(e) => setProfileFormName((e.target as HTMLInputElement).value)}
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+                  <label style={{ fontSize: '0.85rem' }}>
+                    {lang === 'vi' ? 'Người thân hỗ trợ khẩn cấp:' : 'Emergency Contact Name:'}
+                    <input
+                      type="text"
+                      value={profileEmergencyName}
+                      onChange={(e) => setProfileEmergencyName((e.target as HTMLInputElement).value)}
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+                  <label style={{ fontSize: '0.85rem' }}>
+                    {lang === 'vi' ? 'Số điện thoại khẩn cấp:' : 'Emergency Phone:'}
+                    <input
+                      type="text"
+                      value={profileEmergencyPhone}
+                      onChange={(e) => setProfileEmergencyPhone((e.target as HTMLInputElement).value)}
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSaveProfile}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: theme.palette.primary,
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Lưu Thông Tin Hồ Sơ' : 'Save Profile Changes'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Sign In / Sign Up Form */}
+              <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid ${theme.palette.border}` }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAuthView('login')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: authView === 'login' ? theme.palette.primary : 'transparent',
+                      color: authView === 'login' ? '#ffffff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Đăng Nhập' : 'Sign In'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthView('register')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: authView === 'register' ? theme.palette.primary : 'transparent',
+                      color: authView === 'register' ? '#ffffff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Đăng Ký Mới' : 'Create Account'}
+                  </button>
+                </div>
+
+                <form onSubmit={authView === 'login' ? handleEmailLogin : handleEmailRegister} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {authView === 'register' && (
+                    <label style={{ fontSize: '0.85rem' }}>
+                      {lang === 'vi' ? 'Họ và tên / Biệt danh:' : 'Full Name / Nickname:'}
+                      <input
+                        type="text"
+                        value={authDisplayName}
+                        onChange={(e) => setAuthDisplayName((e.target as HTMLInputElement).value)}
+                        placeholder="Nguyễn Văn A"
+                        className="sanctuary-input"
+                        style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
+                      />
+                    </label>
+                  )}
+                  <label style={{ fontSize: '0.85rem' }}>
+                    {lang === 'vi' ? 'Email:' : 'Email Address:'}
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail((e.target as HTMLInputElement).value)}
+                      placeholder="ban@example.com"
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+                  <label style={{ fontSize: '0.85rem' }}>
+                    {lang === 'vi' ? 'Mật khẩu:' : 'Password:'}
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword((e.target as HTMLInputElement).value)}
+                      placeholder="••••••••"
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '3px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: theme.palette.primary,
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      marginTop: '6px',
+                    }}
+                  >
+                    {authView === 'login'
+                      ? (lang === 'vi' ? 'Đăng Nhập Tài Khoản' : 'Sign In')
+                      : (lang === 'vi' ? 'Tạo Tài Khoản Mới' : 'Create Account')}
+                  </button>
+                </form>
+
+                {authStatusMessage && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.82rem',
+                      backgroundColor: authStatusMessage.ok ? 'rgba(106, 168, 130, 0.15)' : 'rgba(197, 101, 72, 0.15)',
+                      color: authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner,
+                    }}
+                  >
+                    {authStatusMessage.text}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '16px' }}>
@@ -3504,6 +4056,218 @@ export function EquilibriaClinicalApp() {
             </section>
           </div>
         </main>
+      )}
+
+      {/* Patient Account Sanctuary Quick Modal */}
+      {accountModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setAccountModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              backgroundColor: theme.palette.surface,
+              borderRadius: '20px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              border: `1px solid ${theme.palette.border}`,
+              padding: '24px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
+                </span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
+                    {lang === 'vi' ? 'Hồ Sơ & Tài Khoản Của Bạn' : 'Your Sanctuary Account & Profile'}
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+                    {accountSession?.user.displayName} ({accountSession?.user.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAccountModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.3rem',
+                  cursor: 'pointer',
+                  color: theme.palette.textSecondary,
+                  padding: '4px 8px',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Switch to 1-Tap Profiles */}
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ fontSize: '0.88rem' }}>
+                {lang === 'vi' ? 'Chọn Hồ Sơ Đồng Hành Nhanh (1-Chạm):' : 'Switch Quick Sanctuary Profile:'}
+              </strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                {QUICK_DEMO_PROFILES.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSelectQuickDemo(p.id)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: accountSession?.user.userId === `demo_${p.id}` ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                      backgroundColor: accountSession?.user.userId === `demo_${p.id}` ? 'rgba(121, 114, 152, 0.12)' : theme.palette.surface,
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{lang === 'vi' ? p.displayNameVi : p.displayNameEn}</div>
+                    <div style={{ fontSize: '0.74rem', color: theme.palette.textSecondary, marginTop: '2px' }}>
+                      {lang === 'vi' ? p.badgeVi : p.badgeEn}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Profile Edit Inputs */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <label style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? 'Tên hiển thị:' : 'Display Name:'}
+                <input
+                  type="text"
+                  value={profileFormName}
+                  onChange={(e) => setProfileFormName((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                />
+              </label>
+              <label style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? 'Người thân liên hệ khẩn cấp:' : 'Emergency Contact:'}
+                <input
+                  type="text"
+                  value={profileEmergencyName}
+                  onChange={(e) => setProfileEmergencyName((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                />
+              </label>
+              <label style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? 'Số điện thoại khẩn cấp:' : 'Emergency Phone:'}
+                <input
+                  type="text"
+                  value={profileEmergencyPhone}
+                  onChange={(e) => setProfileEmergencyPhone((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                />
+              </label>
+            </div>
+
+            {authStatusMessage && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  backgroundColor: authStatusMessage.ok ? 'rgba(106, 168, 130, 0.15)' : 'rgba(197, 101, 72, 0.15)',
+                  color: authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner,
+                }}
+              >
+                {authStatusMessage.text}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveProfile}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    backgroundColor: theme.palette.primary,
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? 'Lưu Hồ Sơ' : 'Save Profile'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSyncNow}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: theme.palette.accent,
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? 'Đồng bộ E2EE' : 'Sync E2EE'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('account-privacy-vault');
+                  setAccountModalOpen(false);
+                }}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: 'transparent',
+                  color: theme.palette.primary,
+                  border: `1px solid ${theme.palette.border}`,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                }}
+              >
+                {lang === 'vi' ? 'Mở Trung tâm Bảo mật & Bác sĩ →' : 'Open Full Vault & Doctor Link →'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

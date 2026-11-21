@@ -1,12 +1,15 @@
 :root {
-  --bg-color: #f8fafc;
-  --surface-color: #ffffff;
-  --primary-color: #0f766e;
-  --accent-color: #0d9488;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: #e2e8f0;
-  --sos-color: #e11d48;
+  --bg-color: #FAF9F6;
+  --surface-color: #FFFFFF;
+  --primary-color: #797298;
+  --primary-pill-bg: #EEECF4;
+  --accent-color: #6AA882;
+  --accent-pill-bg: #EAF3ED;
+  --text-primary: #2F2F2B;
+  --text-secondary: #6B6B63;
+  --border-color: #E6E4DC;
+  --sos-color: #C56548;
+  --card-shadow: 0 4px 20px rgba(47, 47, 43, 0.05);
 }
 
 * {
@@ -15,10 +18,66 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-primary);
+  line-height: 1.65;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Serene Sanctuary Layout (KazKozDev/cbt-assistant + irolinski/Well_CBT inspired) */
+.sanctuary-shell {
+  display: flex;
+  min-height: calc(100vh - 68px);
+  max-width: 1440px;
+  margin: 0 auto;
+  gap: 24px;
+  padding: 20px 24px 56px;
+}
+
+.sanctuary-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.sanctuary-workspace {
+  flex: 1;
+  max-width: 1060px;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.sanctuary-card {
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sanctuary-input {
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.94rem;
   line-height: 1.5;
+  outline: none;
+}
+
+.sanctuary-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(121, 114, 152, 0.16);
+}
+
+@media (max-width: 960px) {
+  .sanctuary-shell {
+    flex-direction: column;
+    padding: 14px 16px 40px;
+  }
+
+  .sanctuary-sidebar {
+    width: 100%;
+  }
 }
 
 /* Low-Stimulus Mania / Dark Rest Mode disables all flashy transitions & blue light */
