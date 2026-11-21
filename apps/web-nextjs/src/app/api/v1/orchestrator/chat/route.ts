@@ -5,12 +5,12 @@ import {
   routeDbtFirstCbtSecond,
   type IntensityScore,
   type MoodPole,
-} from '../../../../clinical/index.ts';
+} from '../../../../../clinical/index.ts';
 import {
   appendSafetyAuditLog,
   getSupabaseConfig,
   retrieveGroundedClinicalChunks,
-} from '../../../../lib/supabase-edge.ts';
+} from '../../../../../lib/supabase-edge.ts';
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
