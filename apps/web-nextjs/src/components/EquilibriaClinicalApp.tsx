@@ -123,6 +123,10 @@ export function EquilibriaClinicalApp() {
   const [lang, setLang] = useState<Language>('vi');
   const [activeTab, setActiveTab] = useState<ActiveHubTab>('session-player');
   const [sosOpen, setSosOpen] = useState<boolean>(false);
+  const [activeProtocolStep, setActiveProtocolStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 'all'>(1);
+  const [activeToolkitSubTab, setActiveToolkitSubTab] = useState<
+    'catalog-36' | 'mp-sheet' | 'anti-procrastination' | 'downward-arrow' | 'abc-please' | 'cbti-sleep' | 'all'
+  >('catalog-36');
 
   // Patient Account Authentication & Profile State (null = show Welcome Sign-In Gate on startup)
   const [accountSession, setAccountSession] = useState<UserAccountSession | null>(null);
@@ -261,6 +265,16 @@ export function EquilibriaClinicalApp() {
       }),
     [moodPolarity, asrmScore, manualThemeOverride]
   );
+
+  // Soft Sanctuary surface tokens replacing harsh dark terminal boxes (#0f172a / #1e293b)
+  const resultSurfaceBg = theme.mode === 'low-stimulus-mania' ? '#251F1B' : '#F3F1F8';
+  const resultSurfaceText = theme.mode === 'low-stimulus-mania' ? '#FAF3E0' : '#2F2F2B';
+  const resultSurfaceBorder = theme.mode === 'low-stimulus-mania' ? '#42372F' : '#DCD7E8';
+  const resultAccentColor = theme.mode === 'low-stimulus-mania' ? '#F59E0B' : '#585076';
+  const calmAlertBg = theme.mode === 'low-stimulus-mania' ? '#1E2923' : '#EAF4EE';
+  const calmAlertText = theme.mode === 'low-stimulus-mania' ? '#A7F3D0' : '#1E4631';
+  const warnAlertBg = theme.mode === 'low-stimulus-mania' ? '#3B1D16' : '#FDF1EE';
+  const warnAlertText = theme.mode === 'low-stimulus-mania' ? '#FECDD3' : '#8C2D19';
 
   const darkTherapyTimer = useMemo(() => computeDarkTherapyTimer('21:15', '22:00'), []);
 
@@ -1336,22 +1350,55 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? 'Đăng xuất' : 'Sign Out'}
               </button>
 
-              {/* Mood Polarity Quick Simulator (-5 to +5) */}
-              <label style={{ fontSize: '0.85rem' }}>
-                {lang === 'vi' ? 'Cực Khí Sắc (-5..+5): ' : 'Mood Pole (-5..+5): '}
-                <input
-                  type="number"
-                  min={-5}
-                  max={5}
-                  value={moodPolarity}
-                  onChange={(e) =>
-                    setMoodPolarity(
-                      Math.max(-5, Math.min(5, Number((e.target as HTMLInputElement).value))) as MoodPole
-                    )
-                  }
-                  style={{ width: '56px', marginLeft: '4px', padding: '4px' }}
-                />
-              </label>
+              {/* Gentle 1-Tap Mood State Switcher (Replaces raw developer number input on Header) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px',
+                  borderRadius: '12px',
+                  backgroundColor: theme.palette.background,
+                  border: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                {(
+                  [
+                    [-3 as MoodPole, '🌱', lang === 'vi' ? 'Trầm mệt' : 'Low Energy'],
+                    [0 as MoodPole, '🌿', lang === 'vi' ? 'Cân bằng' : 'Balanced'],
+                    [3 as MoodPole, '🌙', lang === 'vi' ? 'Hạ nhiệt' : 'Wind-Down'],
+                  ] as const
+                ).map(([poleVal, icon, label]) => {
+                  const isCurrentMode =
+                    (poleVal <= -3 && moodPolarity <= -3) ||
+                    (poleVal === 0 && moodPolarity > -3 && moodPolarity < 2) ||
+                    (poleVal >= 2 && moodPolarity >= 2);
+                  return (
+                    <button
+                      key={poleVal}
+                      type="button"
+                      onClick={() => setMoodPolarity(poleVal)}
+                      title={
+                        lang === 'vi'
+                          ? 'Chuyển chế độ giao diện theo trạng thái năng lượng của bạn'
+                          : 'Switch sanctuary interface mode to match your energy level'
+                      }
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '9px',
+                        border: 'none',
+                        backgroundColor: isCurrentMode ? theme.palette.primary : 'transparent',
+                        color: isCurrentMode ? '#ffffff' : theme.palette.textSecondary,
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {icon} {label}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
 
@@ -2265,9 +2312,89 @@ export function EquilibriaClinicalApp() {
             </div>
           </section>
 
-          {/* 7 Interactive Guided Protocols Grid */}
+          {/* Progressive Disclosure Step Selector for 7 Guided Protocols (One Gentle Step at a Time) */}
+          <section
+            style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem' }}>
+                  {lang === 'vi'
+                    ? '🌱 Chọn 1 Bài Tập Nhẹ Nhàng Để Thực Hành (Không cần làm tất cả cùng lúc)'
+                    : '🌱 Choose One Gentle Exercise to Practice (One Step at a Time)'}
+                </h3>
+                <p style={{ margin: '3px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
+                  {lang === 'vi'
+                    ? 'Chạm vào một phương pháp bên dưới để mở không gian thực hành riêng cho bài tập đó:'
+                    : 'Tap any method below to open a focused practice space for that single skill:'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveProtocolStep(activeProtocolStep === 'all' ? 1 : 'all')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: activeProtocolStep === 'all' ? theme.palette.primary : 'transparent',
+                  color: activeProtocolStep === 'all' ? '#ffffff' : theme.palette.textSecondary,
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {activeProtocolStep === 'all'
+                  ? (lang === 'vi' ? 'Thu gọn về 1 bài tập' : 'Focus on 1 Exercise')
+                  : (lang === 'vi' ? 'Xem tất cả 7 bài tập' : 'Show All 7 Exercises')}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {(
+                [
+                  [1, '📝', lang === 'vi' ? '1. Nhật ký Suy nghĩ 7 bước' : '1. 7-Step Thought Record'],
+                  [2, '🌱', lang === 'vi' ? '2. Kích hoạt Hành vi & Nghỉ ngơi' : '2. Behavioral Activation'],
+                  [3, '🎯', lang === 'vi' ? '3. Đặt Mục tiêu Nghịch lý' : '3. Paradoxical Agenda'],
+                  [4, '🔄', lang === 'vi' ? '4. Hành động Đối lập DBT' : '4. Opposite Action'],
+                  [5, '🧘', lang === 'vi' ? '5. Trí tuệ Sáng suốt Wise Mind' : '5. Wise Mind'],
+                  [6, '🔗', lang === 'vi' ? '6. Phân tích Chuỗi hành vi' : '6. Chain Analysis'],
+                  [7, '💬', lang === 'vi' ? '7. Giao tiếp DEAR MAN & AI' : '7. DEAR MAN Roleplay'],
+                ] as const
+              ).map(([num, icon, title]) => {
+                const isSelected = activeProtocolStep === num;
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setActiveProtocolStep(num)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                      backgroundColor: isSelected ? theme.palette.primary : theme.palette.background,
+                      color: isSelected ? '#ffffff' : theme.palette.textPrimary,
+                      fontWeight: 600,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {icon} {title}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 7 Interactive Guided Protocols Grid (Filtered by activeProtocolStep for low cognitive load) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
             {/* 1. CBT 7-Step Thought Record with Accuracy Check */}
+            {(activeProtocolStep === 1 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2303,11 +2430,11 @@ export function EquilibriaClinicalApp() {
               </label>
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '8px',
-                  backgroundColor: trIsObjectivelyTrue ? '#fef3c7' : '#ecfdf5',
-                  color: '#0f172a',
-                  fontSize: '0.85rem',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: trIsObjectivelyTrue ? warnAlertBg : calmAlertBg,
+                  color: trIsObjectivelyTrue ? warnAlertText : calmAlertText,
+                  fontSize: '0.86rem',
                 }}
               >
                 <strong>{lang === 'vi' ? 'Kết quả thẩm định: ' : 'Clinical Outcome: '}`{thoughtRecordEval.outcome}`</strong>
@@ -2318,8 +2445,10 @@ export function EquilibriaClinicalApp() {
                 </p>
               </div>
             </article>
+            )}
 
             {/* 2. CBT Behavioral Activation 6-Step with Mandatory Rest Check & Confidence >= 7/10 */}
+            {(activeProtocolStep === 2 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2363,11 +2492,12 @@ export function EquilibriaClinicalApp() {
               </label>
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '8px',
-                  backgroundColor: '#f1f5f9',
-                  color: '#0f172a',
-                  fontSize: '0.85rem',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: resultSurfaceBg,
+                  color: resultSurfaceText,
+                  border: `1px solid ${resultSurfaceBorder}`,
+                  fontSize: '0.86rem',
                 }}
               >
                 <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}`{behavioralActivationEval.outcome}`</strong>
@@ -2378,8 +2508,10 @@ export function EquilibriaClinicalApp() {
                 </p>
               </div>
             </article>
+            )}
 
             {/* 3. TEAM-CBT Paradoxical Agenda Setting */}
+            {(activeProtocolStep === 3 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2409,8 +2541,10 @@ export function EquilibriaClinicalApp() {
                 %
               </label>
             </article>
+            )}
 
             {/* 4. DBT Opposite Action (4 steps with Justified Check) */}
+            {(activeProtocolStep === 4 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2439,8 +2573,10 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? oppositeActionEval.directiveVi : oppositeActionEval.directiveEn}
               </p>
             </article>
+            )}
 
             {/* 5. DBT Wise Mind (6 steps with Harsh Self-Critic Guard & "Nothing yet") */}
+            {(activeProtocolStep === 5 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2475,8 +2611,10 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? wiseMindEval.closingSummaryVi : wiseMindEval.closingSummaryEn}
               </p>
             </article>
+            )}
 
             {/* 6. DBT Chain Analysis (6 steps + Hard Stops for self-harm/victimization + Shame Protocol) */}
+            {(activeProtocolStep === 6 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2507,8 +2645,10 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? chainAnalysisEval.summaryVi : chainAnalysisEval.summaryEn}
               </p>
             </article>
+            )}
 
             {/* 7. DBT DEAR MAN + TEAM-CBT EAR with Interactive AI Roleplay Rehearsal */}
+            {(activeProtocolStep === 7 || activeProtocolStep === 'all') && (
             <article
               style={{
                 padding: '16px',
@@ -2562,6 +2702,7 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? `${dearManEval.coachingStrengthVi} | ${dearManEval.coachingTweakVi}` : `${dearManEval.coachingStrengthEn} | ${dearManEval.coachingTweakEn}`}
               </p>
             </article>
+            )}
           </div>
         </main>
       )}
@@ -2730,7 +2871,13 @@ export function EquilibriaClinicalApp() {
             </h3>
             <svg
               viewBox={`0 0 ${bipolarMultiAxisSvgChart.width} ${bipolarMultiAxisSvgChart.height}`}
-              style={{ width: '100%', maxHeight: '240px', backgroundColor: '#0f172a', borderRadius: '8px' }}
+              style={{
+                width: '100%',
+                maxHeight: '240px',
+                backgroundColor: resultSurfaceBg,
+                border: `1px solid ${resultSurfaceBorder}`,
+                borderRadius: '14px',
+              }}
               role="img"
               aria-label="SVG Multi-Axis Dual-Pole (-5..+5) Mood, Energy and Sleep Chart"
             >
@@ -2777,7 +2924,7 @@ export function EquilibriaClinicalApp() {
                     x={pt.x}
                     y={bipolarMultiAxisSvgChart.height - 8}
                     textAnchor="middle"
-                    fill="#cbd5e1"
+                    fill={resultSurfaceText}
                     fontSize="11"
                   >
                     {pt.dateLabel} ({pt.sleepHours}h)
@@ -3069,12 +3216,13 @@ export function EquilibriaClinicalApp() {
               </summary>
               <pre
                 style={{
-                  padding: '12px',
-                  backgroundColor: '#0f172a',
-                  color: '#e2e8f0',
-                  borderRadius: '6px',
+                  padding: '14px',
+                  backgroundColor: resultSurfaceBg,
+                  color: resultSurfaceText,
+                  border: `1px solid ${resultSurfaceBorder}`,
+                  borderRadius: '12px',
                   overflowX: 'auto',
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                 }}
               >
                 {markdownExport.markdownContent}
@@ -3138,7 +3286,85 @@ export function EquilibriaClinicalApp() {
       {/* TAB 5: 36 INTERACTIVE CBT/TEAM-CBT/DBT TOOLS & DEPRESSION GOLD-STANDARD SUITE */}
       {activeTab === 'tools-36-team-cbt' && (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          {/* Sub-Navigation Selector for Tab 5 to prevent cognitive overload */}
+          <section
+            style={{
+              padding: '16px 20px',
+              borderRadius: '18px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem' }}>
+                  {lang === 'vi'
+                    ? '✨ Chọn Công Cụ Tự Lực Để Thực Hành (Tập trung 1 công cụ mỗi lúc)'
+                    : '✨ Choose a Self-Care Tool to Practice (One Tool at a Time)'}
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
+                  {lang === 'vi'
+                    ? 'Chuyển đổi nhẹ nhàng giữa Thư viện 36 bài tập nhanh và 5 bảng thực hành chuyên sâu:'
+                    : 'Switch gently between the 36 quick tools catalog and the 5 deep practice sheets:'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveToolkitSubTab(activeToolkitSubTab === 'all' ? 'catalog-36' : 'all')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: activeToolkitSubTab === 'all' ? theme.palette.primary : 'transparent',
+                  color: activeToolkitSubTab === 'all' ? '#ffffff' : theme.palette.textSecondary,
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {activeToolkitSubTab === 'all'
+                  ? (lang === 'vi' ? 'Thu gọn về 1 công cụ' : 'Focus on 1 Tool')
+                  : (lang === 'vi' ? 'Xem tất cả trên 1 trang' : 'Show All on 1 Page')}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {(
+                [
+                  ['catalog-36', '🧰', lang === 'vi' ? '1. Kho 36 Bài Tập Nhanh' : '1. 36 Quick Tools'],
+                  ['mp-sheet', '☀️', lang === 'vi' ? '2. Dự Đoán Niềm Vui' : '2. Pleasure-Predicting'],
+                  ['anti-procrastination', '⏱️', lang === 'vi' ? '3. Vượt Trì Hoãn 5 Phút' : '3. 5-Min Anti-Procrastination'],
+                  ['downward-arrow', '🏹', lang === 'vi' ? '4. Mũi Tên Đi Xuống' : '4. Downward Arrow'],
+                  ['abc-please', '🌿', lang === 'vi' ? '5. Chăm Sóc ABC PLEASE' : '5. ABC PLEASE & ACCEPTS'],
+                  ['cbti-sleep', '🌙', lang === 'vi' ? '6. Giấc Ngủ CBT-I' : '6. CBT-I Sleep Diary'],
+                ] as const
+              ).map(([subId, icon, label]) => {
+                const isSelected = activeToolkitSubTab === subId;
+                return (
+                  <button
+                    key={subId}
+                    type="button"
+                    onClick={() => setActiveToolkitSubTab(subId)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                      backgroundColor: isSelected ? theme.palette.primary : theme.palette.background,
+                      color: isSelected ? '#ffffff' : theme.palette.textPrimary,
+                      fontWeight: 600,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {icon} {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* 1. 36 Interactive CBT, TEAM-CBT, DBT & Bipolar Toolkit Hub (0ms execution) */}
+          {(activeToolkitSubTab === 'catalog-36' || activeToolkitSubTab === 'all') && (
           <section
             style={{
               padding: '16px',
@@ -3241,11 +3467,12 @@ export function EquilibriaClinicalApp() {
 
             <div
               style={{
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: '#0f172a',
-                color: '#f8fafc',
-                fontSize: '0.86rem',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                backgroundColor: resultSurfaceBg,
+                color: resultSurfaceText,
+                border: `1px solid ${resultSurfaceBorder}`,
+                fontSize: '0.88rem',
               }}
             >
               <div>
@@ -3260,12 +3487,12 @@ export function EquilibriaClinicalApp() {
                   ? toolExecutionResult.reframeOrActionCardVi
                   : toolExecutionResult.reframeOrActionCardEn}
               </p>
-              <p style={{ margin: '6px 0', color: '#38bdf8' }}>
+              <p style={{ margin: '6px 0', color: resultAccentColor }}>
                 <strong>{lang === 'vi' ? 'Bước hành động tiếp theo:' : 'Next Action Step:'}</strong>{' '}
                 {lang === 'vi' ? toolExecutionResult.nextMicroStepVi : toolExecutionResult.nextMicroStepEn}
               </p>
               {toolExecutionResult.bipolarSafetyNoteVi && (
-                <p style={{ margin: '6px 0 0 0', color: '#fbbf24' }}>
+                <p style={{ margin: '6px 0 0 0', color: theme.palette.sosBanner, fontWeight: 600 }}>
                   {lang === 'vi'
                     ? toolExecutionResult.bipolarSafetyNoteVi
                     : toolExecutionResult.bipolarSafetyNoteEn}
@@ -3273,9 +3500,11 @@ export function EquilibriaClinicalApp() {
               )}
             </div>
           </section>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
             {/* 2. TEAM-CBT Pleasure-Predicting & Mastery/Pleasure (M/P) Sheet */}
+            {(activeToolkitSubTab === 'mp-sheet' || activeToolkitSubTab === 'all') && (
             <section
               style={{
                 padding: '16px',
@@ -3333,8 +3562,10 @@ export function EquilibriaClinicalApp() {
                   : pleasurePredictingEval.clinicalInsightEn}
               </p>
             </section>
+            )}
 
             {/* 3. David Burns Anti-Procrastination 5-Minute Sheet */}
+            {(activeToolkitSubTab === 'anti-procrastination' || activeToolkitSubTab === 'all') && (
             <section
               style={{
                 padding: '16px',
@@ -3380,8 +3611,10 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? antiProcrastinationEval.coachingVi : antiProcrastinationEval.coachingEn}
               </p>
             </section>
+            )}
 
             {/* 4. Uncovering 23 Self-Defeating Beliefs (Downward Arrow + Cost-Benefit Analysis) */}
+            {(activeToolkitSubTab === 'downward-arrow' || activeToolkitSubTab === 'all') && (
             <section
               style={{
                 padding: '16px',
@@ -3426,8 +3659,10 @@ export function EquilibriaClinicalApp() {
                 {lang === 'vi' ? downwardArrowEval.summaryVi : downwardArrowEval.summaryEn}
               </p>
             </section>
+            )}
 
             {/* 5. DBT ABC PLEASE Daily Resilience Tracker + ACCEPTS & 5-Senses Self-Soothe */}
+            {(activeToolkitSubTab === 'abc-please' || activeToolkitSubTab === 'all') && (
             <section
               style={{
                 padding: '16px',
@@ -3471,8 +3706,10 @@ export function EquilibriaClinicalApp() {
                 {acceptsAndSoothePlan.fiveSensesCards.map((s) => lang === 'vi' ? s.senseVi : s.senseEn).join(' • ')}
               </div>
             </section>
+            )}
 
             {/* 6. CBT-I Sleep Diary & Sleep Efficiency Calculator with Bipolar Mania Contraindication Guard */}
+            {(activeToolkitSubTab === 'cbti-sleep' || activeToolkitSubTab === 'all') && (
             <section
               style={{
                 padding: '16px',
@@ -3519,18 +3756,21 @@ export function EquilibriaClinicalApp() {
               </div>
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
                   backgroundColor: cbtiEvaluation.sleepRestrictionContraindicatedByManiaGuard
-                    ? '#7f1d1d'
-                    : '#064e3b',
-                  color: '#ffffff',
+                    ? warnAlertBg
+                    : calmAlertBg,
+                  color: cbtiEvaluation.sleepRestrictionContraindicatedByManiaGuard
+                    ? warnAlertText
+                    : calmAlertText,
                   fontSize: '0.86rem',
                 }}
               >
                 {lang === 'vi' ? cbtiEvaluation.guidanceVi : cbtiEvaluation.guidanceEn}
               </div>
             </section>
+            )}
           </div>
         </main>
       )}
@@ -3651,24 +3891,26 @@ export function EquilibriaClinicalApp() {
 
               <div
                 style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#0f172a',
-                  color: '#f8fafc',
-                  fontSize: '0.86rem',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: resultSurfaceBg,
+                  color: resultSurfaceText,
+                  border: `1px solid ${resultSurfaceBorder}`,
+                  fontSize: '0.88rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
                   <strong>
                     {lang === 'vi' ? `Điểm Bằng Chứng RAG: ${phase3LastTopScore.toFixed(2)} (Ngưỡng: 0.46)` : `RAG Score: ${phase3LastTopScore.toFixed(2)} (Threshold: 0.46)`}
                   </strong>
                   <span
                     style={{
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: phase3LastAbstained ? '#b45309' : '#0d9488',
+                      padding: '2px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: phase3LastAbstained ? '#b45309' : theme.palette.accent,
                       color: '#fff',
                       fontSize: '0.78rem',
+                      fontWeight: 600,
                     }}
                   >
                     {phase3LastAbstained
@@ -3700,12 +3942,13 @@ export function EquilibriaClinicalApp() {
                   onClick={handleErasePhase3Memory}
                   style={{
                     padding: '6px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: '#e11d48',
+                    borderRadius: '8px',
+                    backgroundColor: theme.palette.sosBanner,
                     color: '#fff',
                     border: 'none',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
+                    fontWeight: 600,
                   }}
                 >
                   {lang === 'vi' ? 'Xóa Bộ Nhớ Hội Thoại' : 'Clear Memory (DELETE)'}
@@ -3719,14 +3962,15 @@ export function EquilibriaClinicalApp() {
                     ? `${phase3Memory.recentMessagesWindow.length}/20 tin nhắn gần nhất (Đã xử lý: ${phase3Memory.totalMessagesProcessed} tin | Lần làm mới tóm tắt: ${phase3Memory.summaryRefreshCount})`
                     : `${phase3Memory.recentMessagesWindow.length}/20 messages (Processed: ${phase3Memory.totalMessagesProcessed} | Summary refreshes: ${phase3Memory.summaryRefreshCount})`}
                 </div>
-                <div style={{ marginTop: '6px' }}>
+                <div style={{ marginTop: '8px' }}>
                   <strong>{lang === 'vi' ? 'Tóm tắt cuộn ngữ cảnh:' : 'Rolling Context Summary:'}</strong>
                   <div
                     style={{
-                      padding: '8px',
-                      backgroundColor: '#1e293b',
-                      color: '#e2e8f0',
-                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      backgroundColor: resultSurfaceBg,
+                      color: resultSurfaceText,
+                      border: `1px solid ${resultSurfaceBorder}`,
+                      borderRadius: '10px',
                       marginTop: '4px',
                     }}
                   >
@@ -3924,11 +4168,12 @@ export function EquilibriaClinicalApp() {
 
               <div
                 style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#0f172a',
-                  color: '#f8fafc',
-                  fontSize: '0.85rem',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: resultSurfaceBg,
+                  color: resultSurfaceText,
+                  border: `1px solid ${resultSurfaceBorder}`,
+                  fontSize: '0.86rem',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
@@ -3941,9 +4186,11 @@ export function EquilibriaClinicalApp() {
                   </span>
                   <span
                     style={{
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: phase3HrvEval.isFreshUnder12Hours ? '#0d9488' : '#64748b',
+                      padding: '2px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: phase3HrvEval.isFreshUnder12Hours ? theme.palette.accent : '#64748b',
+                      color: '#ffffff',
+                      fontWeight: 600,
                     }}
                   >
                     {phase3HrvEval.isFreshUnder12Hours
@@ -3956,7 +4203,7 @@ export function EquilibriaClinicalApp() {
                     ? phase3HrvEval.gentleCheckInMentionVi
                     : phase3HrvEval.gentleCheckInMentionEn}
                 </p>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: '#38bdf8' }}>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: resultAccentColor }}>
                   {lang === 'vi'
                     ? phase3HrvEval.clinicalComplianceRuleNoteVi
                     : phase3HrvEval.clinicalComplianceRuleNoteEn}
@@ -4330,11 +4577,12 @@ export function EquilibriaClinicalApp() {
               {masterKey24 && (
                 <div
                   style={{
-                    padding: '10px',
-                    borderRadius: '8px',
-                    backgroundColor: '#0f172a',
-                    color: '#f8fafc',
-                    fontSize: '0.82rem',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: resultSurfaceBg,
+                    color: resultSurfaceText,
+                    border: `1px solid ${resultSurfaceBorder}`,
+                    fontSize: '0.84rem',
                     marginBottom: '10px',
                   }}
                 >
@@ -4343,7 +4591,7 @@ export function EquilibriaClinicalApp() {
                     <strong>{lang === 'vi' ? 'Mã nhận diện:' : 'Fingerprint:'}</strong> <code>{masterKey24.keyFingerprintHex}</code> •{' '}
                     <strong>{lang === 'vi' ? 'Thuật toán:' : 'Algorithm:'}</strong> <code>{masterKey24.algorithm}</code>
                   </div>
-                  <div style={{ marginTop: '6px', fontFamily: 'monospace', color: '#38bdf8' }}>
+                  <div style={{ marginTop: '6px', fontFamily: 'monospace', color: resultAccentColor, fontWeight: 600 }}>
                     <strong>{lang === 'vi' ? 'Cụm 24 Từ Khôi Phục Bí Mật:' : '24-Word Master Recovery Mnemonic:'}</strong>
                     <br />
                     {masterKey24.words.map((w, idx) => `${idx + 1}.${w}`).join(' ')}
@@ -4353,11 +4601,12 @@ export function EquilibriaClinicalApp() {
 
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '8px',
-                  backgroundColor: '#1e293b',
-                  color: '#e2e8f0',
-                  fontSize: '0.84rem',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: resultSurfaceBg,
+                  color: resultSurfaceText,
+                  border: `1px solid ${resultSurfaceBorder}`,
+                  fontSize: '0.85rem',
                 }}
               >
                 <div>
@@ -4365,7 +4614,7 @@ export function EquilibriaClinicalApp() {
                 </div>
                 <p style={{ margin: '6px 0' }}>{crdtDecryptedSampleText}</p>
                 {crdtSyncPreview && (
-                  <div style={{ fontSize: '0.79rem', color: '#cbd5e1' }}>
+                  <div style={{ fontSize: '0.79rem', color: theme.palette.textSecondary }}>
                     {lang === 'vi'
                       ? `Tổng bản ghi hợp nhất: ${crdtSyncPreview.stats.totalMerged} | Bản ghi hoạt động: ${crdtSyncPreview.activeRecords.length} | Bản ghi đã xóa: ${crdtSyncPreview.stats.tombstonesAppliedCount} | Thời gian đồng bộ: ${crdtSyncPreview.stats.syncDurationMs}ms (Đạt chuẩn < 5s: ${crdtSyncPreview.stats.underFiveSecondSlaPassed ? 'ĐẠT' : 'CHƯA ĐẠT'})`
                       : `Total merged: ${crdtSyncPreview.stats.totalMerged} | Active records: ${crdtSyncPreview.activeRecords.length} | Tombstones: ${crdtSyncPreview.stats.tombstonesAppliedCount} | Sync latency: ${crdtSyncPreview.stats.syncDurationMs}ms (Under 5s SLA: ${crdtSyncPreview.stats.underFiveSecondSlaPassed ? 'PASS' : 'FAIL'})`}
@@ -4440,7 +4689,7 @@ export function EquilibriaClinicalApp() {
                     style={{
                       padding: '8px 12px',
                       borderRadius: '6px',
-                      backgroundColor: '#e11d48',
+                      backgroundColor: theme.palette.sosBanner,
                       color: '#fff',
                       border: 'none',
                       cursor: 'pointer',
@@ -4468,11 +4717,12 @@ export function EquilibriaClinicalApp() {
               {clinicianSharePkg && (
                 <div
                   style={{
-                    padding: '10px',
-                    borderRadius: '8px',
-                    backgroundColor: '#0f172a',
-                    color: '#f8fafc',
-                    fontSize: '0.82rem',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: resultSurfaceBg,
+                    color: resultSurfaceText,
+                    border: `1px solid ${resultSurfaceBorder}`,
+                    fontSize: '0.84rem',
                   }}
                 >
                   <div>
@@ -4481,7 +4731,7 @@ export function EquilibriaClinicalApp() {
                         ? 'Đường dẫn chia sẻ an toàn (Khóa giải mã chỉ nằm trên trình duyệt của bạn và bác sĩ):'
                         : 'Zero-Knowledge URL (Key resides only in browser fragment #key=...):'}
                     </strong>
-                    <div style={{ wordBreak: 'break-all', color: '#38bdf8', fontFamily: 'monospace', marginTop: '4px' }}>
+                    <div style={{ wordBreak: 'break-all', color: resultAccentColor, fontFamily: 'monospace', marginTop: '4px', fontWeight: 600 }}>
                       {clinicianSharePkg.fullShareUrlWithFragment}
                     </div>
                   </div>
@@ -4491,14 +4741,14 @@ export function EquilibriaClinicalApp() {
                     <code>{clinicianDecryptedView?.status.toUpperCase()}</code>
                   </div>
                   {clinicianDecryptedView?.status === 'decrypted' && clinicianDecryptedView.report && (
-                    <div style={{ marginTop: '6px', color: '#a7f3d0' }}>
+                    <div style={{ marginTop: '6px', color: theme.palette.accent, fontWeight: 600 }}>
                       {lang === 'vi'
                         ? `Đã giải mã thành công báo cáo ${clinicianDecryptedView.report.periodDays} ngày của ${clinicianDecryptedView.report.patientAlias} • Độ ổn định nhịp sinh học: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}% • Tỉ lệ tuân thủ điều trị: ${clinicianDecryptedView.report.medicationAdherencePercent}%`
                         : `Decrypted ${clinicianDecryptedView.report.periodDays}-day report for ${clinicianDecryptedView.report.patientAlias} • IPSRT Stability: ${clinicianDecryptedView.report.ipsrtAverageStabilityPercent}% • Medication Adherence: ${clinicianDecryptedView.report.medicationAdherencePercent}%`}
                     </div>
                   )}
                   {clinicianDecryptedView?.errorMessageVi && (
-                    <div style={{ marginTop: '6px', color: '#fda4af' }}>
+                    <div style={{ marginTop: '6px', color: theme.palette.sosBanner, fontWeight: 600 }}>
                       {lang === 'vi'
                         ? clinicianDecryptedView.errorMessageVi
                         : clinicianDecryptedView.errorMessageEn}
@@ -4508,7 +4758,7 @@ export function EquilibriaClinicalApp() {
               )}
             </section>
 
-            {/* 3. 105-Case Adversarial Clinical Red-Teaming Scorecard & WCAG 2.2 AAA / OWASP Compliance Auditor */}
+            {/* 3. 105-Case Adversarial Clinical Red-Teaming Scorecard & WCAG 2.2 AAA / OWASP Compliance Auditor (Collapsed in <details> for clean patient UI) */}
             <section
               className="no-print"
               style={{
@@ -4519,83 +4769,86 @@ export function EquilibriaClinicalApp() {
                 gridColumn: '1 / -1',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <h3 style={{ margin: 0 }}>
-                  {lang === 'vi'
-                    ? `3. Bảng Điểm Kiểm Định An Toàn 105 Kịch Bản Đối Kháng (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} = ${redTeamAuditReport.passRatePercent}%) & Chuẩn Tiếp Cận WCAG 2.2 AAA`
-                    : `3. 105-Case Adversarial Safety Scorecard (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} = ${redTeamAuditReport.passRatePercent}%) & WCAG 2.2 AAA / OWASP`}
-                </h3>
-                <span
+              <details>
+                <summary style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontWeight: 600 }}>
+                  <span>
+                    {lang === 'vi'
+                      ? `🛡️ Xem Chứng Nhận Kiểm Định An Toàn Lâm Sàng (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} Kịch Bản = ${redTeamAuditReport.passRatePercent}%) & Chuẩn Tiếp Cận WCAG 2.2 AAA`
+                      : `🛡️ View Clinical Safety Audit Certificate (${redTeamAuditReport.passedCases}/${redTeamAuditReport.totalCases} Scenarios = ${redTeamAuditReport.passRatePercent}%) & WCAG 2.2 AAA`}
+                  </span>
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      backgroundColor:
+                        redTeamAuditReport.passRatePercent === 100 && wcagOwaspAuditReport.wcag22AaaCompliant
+                          ? theme.palette.accent
+                          : '#991b1b',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    {redTeamAuditReport.passedCases}/{redTeamAuditReport.totalCases} {lang === 'vi' ? 'ĐẠT' : 'PASS'} • WCAG 2.2 AAA ({wcagOwaspAuditReport.minimumContrastRatioMeasured}:1)
+                  </span>
+                </summary>
+
+                <div
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    backgroundColor:
-                      redTeamAuditReport.passRatePercent === 100 && wcagOwaspAuditReport.wcag22AaaCompliant
-                        ? '#065f46'
-                        : '#991b1b',
-                    color: '#fff',
-                    fontWeight: 700,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
+                    gap: '10px',
+                    marginTop: '14px',
+                  }}
+                >
+                  {redTeamAuditReport.categoryBreakdown.map((cat) => (
+                    <div
+                      key={cat.category}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${theme.palette.border}`,
+                        fontSize: '0.83rem',
+                      }}
+                    >
+                      <strong>{lang === 'vi' ? cat.labelVi : cat.labelEn}</strong>
+                      <div style={{ marginTop: '4px', color: theme.palette.accent, fontWeight: 700 }}>
+                        {lang === 'vi'
+                          ? `Kết quả: ${cat.passed}/${cat.total} kịch bản đạt chuẩn (${cat.passRatePercent}%)`
+                          : `Result: ${cat.passed}/${cat.total} scenarios passed (${cat.passRatePercent}%)`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    backgroundColor: resultSurfaceBg,
+                    color: resultSurfaceText,
+                    border: `1px solid ${resultSurfaceBorder}`,
                     fontSize: '0.84rem',
                   }}
                 >
-                  {redTeamAuditReport.passedCases}/{redTeamAuditReport.totalCases} {lang === 'vi' ? 'ĐẠT' : 'PASS'} (0 {lang === 'vi' ? 'Lỗi Nghiêm Trọng' : 'Critical Failures'}) • WCAG 2.2 AAA (&ge; 7.0:1, Min {wcagOwaspAuditReport.minimumContrastRatioMeasured}:1) • 0 Bytes {lang === 'vi' ? 'Dữ Liệu Y Tế Bị Rò Rỉ' : 'PHI Telemetry'}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
-                  gap: '10px',
-                  marginTop: '12px',
-                }}
-              >
-                {redTeamAuditReport.categoryBreakdown.map((cat) => (
-                  <div
-                    key={cat.category}
-                    style={{
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: `1px solid ${theme.palette.border}`,
-                      fontSize: '0.83rem',
-                    }}
-                  >
-                    <strong>{lang === 'vi' ? cat.labelVi : cat.labelEn}</strong>
-                    <div style={{ marginTop: '4px', color: '#0d9488', fontWeight: 700 }}>
+                  <strong>{lang === 'vi' ? 'Kiểm định Bảo Mật OWASP & Khả Năng Tiếp Cận Toàn Diện WCAG 2.2 AAA:' : 'OWASP Security & WCAG 2.2 AAA Accessibility Audit:'}</strong>
+                  <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
+                    {wcagOwaspAuditReport.owaspChecklist.map((chk) => (
+                      <li key={chk.controlId}>
+                        <strong>[{chk.passed ? (lang === 'vi' ? 'ĐẠT' : 'PASS') : (lang === 'vi' ? 'CHƯA ĐẠT' : 'FAIL')} • {chk.controlId}]:</strong>{' '}
+                        {lang === 'vi' ? chk.titleVi : chk.titleEn}
+                      </li>
+                    ))}
+                    <li>
+                      <strong>[PASS • SOS-COLD-OPEN]:</strong>{' '}
                       {lang === 'vi'
-                        ? `Kết quả: ${cat.passed}/${cat.total} kịch bản đạt chuẩn (${cat.passRatePercent}%)`
-                        : `Result: ${cat.passed}/${cat.total} scenarios passed (${cat.passRatePercent}%)`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#0f172a',
-                  color: '#f8fafc',
-                  fontSize: '0.83rem',
-                }}
-              >
-                <strong>{lang === 'vi' ? 'Kiểm định Bảo Mật OWASP & Khả Năng Tiếp Cận Toàn Diện WCAG 2.2 AAA:' : 'OWASP Security & WCAG 2.2 AAA Accessibility Audit:'}</strong>
-                <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
-                  {wcagOwaspAuditReport.owaspChecklist.map((chk) => (
-                    <li key={chk.controlId}>
-                      <strong>[{chk.passed ? (lang === 'vi' ? 'ĐẠT' : 'PASS') : (lang === 'vi' ? 'CHƯA ĐẠT' : 'FAIL')} • {chk.controlId}]:</strong>{' '}
-                      {lang === 'vi' ? chk.titleVi : chk.titleEn}
+                        ? `Độ trễ mở Cổng Cấp Cứu Nhanh = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (Đạt chuẩn < 300ms) • Điểm Tiếp Cận Accessibility ước tính: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`
+                        : `SOS Portal Cold Open Latency = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (< 300ms SLA) • Estimated Lighthouse Accessibility: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`}
                     </li>
-                  ))}
-                  <li>
-                    <strong>[PASS • SOS-COLD-OPEN]:</strong>{' '}
-                    {lang === 'vi'
-                      ? `Độ trễ mở Cổng Cấp Cứu Nhanh = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (Đạt chuẩn < 300ms) • Điểm Tiếp Cận Accessibility ước tính: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`
-                      : `SOS Portal Cold Open Latency = ${wcagOwaspAuditReport.sosColdOpenLatencyMs}ms (< 300ms SLA) • Estimated Lighthouse Accessibility: ${wcagOwaspAuditReport.lighthouseAccessibilityEstimate}/100.`}
-                  </li>
-                </ul>
-              </div>
+                  </ul>
+                </div>
+              </details>
             </section>
           </div>
         </main>

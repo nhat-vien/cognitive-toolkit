@@ -54,19 +54,73 @@ body {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.sanctuary-input {
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-  padding: 10px 14px;
-  font-family: inherit;
-  font-size: 0.94rem;
-  line-height: 1.5;
-  outline: none;
+main section,
+main article {
+  border-radius: 18px !important;
+  padding: 20px 22px !important;
+  box-shadow: 0 6px 22px rgba(47, 47, 43, 0.035);
 }
 
+h1, h2, h3, h4 {
+  letter-spacing: -0.015em;
+  line-height: 1.38;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select,
+.sanctuary-input {
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  outline: none;
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-low-stimulus-mania input[type="text"],
+.theme-low-stimulus-mania input[type="email"],
+.theme-low-stimulus-mania input[type="password"],
+.theme-low-stimulus-mania input[type="number"],
+.theme-low-stimulus-mania textarea,
+.theme-low-stimulus-mania select,
+.theme-low-stimulus-mania .sanctuary-input {
+  background-color: #251F1B;
+  color: #FAF3E0;
+  border-color: #38302A;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus,
 .sanctuary-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(121, 114, 152, 0.16);
+}
+
+input[type="range"] {
+  accent-color: var(--primary-color);
+  height: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--primary-color);
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
 @media (max-width: 960px) {
