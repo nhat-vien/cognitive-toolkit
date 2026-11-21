@@ -1,0 +1,22 @@
+{
+  "name": "@equilibria/clinical-core-ts",
+  "version": "1.0.0",
+  "description": "Zero-dependency TypeScript Clinical Engine for CBT, TEAM-CBT, DBT & Bipolar IPSRT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/models.ts",
+    "./detectors": "./src/detectors/distortion-detector.ts",
+    "./engine": "./src/engine/session-engine.ts",
+    "./assessments": "./src/assessments/assessments.ts",
+    "./bipolar": "./src/bipolar/bipolar-engine.ts"
+  },
+  "scripts": {
+    "test": "node --test tests/clinical-core.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

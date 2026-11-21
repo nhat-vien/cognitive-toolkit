@@ -1,0 +1,277 @@
+{
+  "version": "1.0.0",
+  "description": "Grounded RAG Evaluation Benchmark for Equilibria CBT/TEAM-CBT/DBT/IPSRT Knowledge Base (Threshold = 0.46, Target Recall@3 >= 85%, Target Abstention Accuracy = 100%)",
+  "threshold": 0.46,
+  "test_cases": [
+    {
+      "id": "pos_01_tipp_cold_water_medical_screen",
+      "category": "in_scope_dbt_tipp",
+      "language": "vi",
+      "query": "Tôi đang hoảng loạn cực độ 9/10 muốn dùng kỹ thuật nước lạnh TIPP Temperature thì cần sàng lọc bệnh tim mạch và thuốc chẹn beta-blockers như thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["tipp", "session-engine"],
+      "expected_keywords": ["beta-blockers", "15", "30", "Paced Breathing"]
+    },
+    {
+      "id": "pos_02_tipp_paced_breathing_en",
+      "category": "in_scope_dbt_tipp",
+      "language": "en",
+      "query": "My panic attack intensity is 9 out of 10 and my heart is racing. How do I use DBT TIPP paced breathing and mammalian dive reflex safely?",
+      "should_abstain": false,
+      "expected_protocols": ["tipp", "session-engine"],
+      "expected_keywords": ["Paced Breathing", "4", "6", "Medical Exclusion"]
+    },
+    {
+      "id": "pos_03_thought_record_accuracy_check_vi",
+      "category": "in_scope_cbt_thought_record",
+      "language": "vi",
+      "query": "Trong nhật ký suy nghĩ 7 bước CBT Thought Record, cổng kiểm tra tính chính xác thực tế Accuracy Check hoạt động ra sao khi suy nghĩ tiêu cực là sự thật khách quan?",
+      "should_abstain": false,
+      "expected_protocols": ["thought-record", "session-engine"],
+      "expected_keywords": ["Accuracy Check", "accurate-thought-exit", "Problem-Solving"]
+    },
+    {
+      "id": "pos_04_thought_record_evidence_against_en",
+      "category": "in_scope_cbt_thought_record",
+      "language": "en",
+      "query": "How do I complete a 7-step CBT thought record to challenge automatic thoughts with evidence for and evidence against?",
+      "should_abstain": false,
+      "expected_protocols": ["thought-record"],
+      "expected_keywords": ["Automatic Thought", "Evidence", "Balanced"]
+    },
+    {
+      "id": "pos_05_behavioral_activation_rest_check_vi",
+      "category": "in_scope_cbt_ba",
+      "language": "vi",
+      "query": "Khi làm kích hoạt hành vi Behavioral Activation chống trầm cảm mà tôi bị kiệt sức thiếu ngủ sinh học thì cổng Rest Check xử lý thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["behavioral-activation"],
+      "expected_keywords": ["Rest Check", "justified-exit", "7/10"]
+    },
+    {
+      "id": "pos_06_behavioral_activation_confidence_scaling_en",
+      "category": "in_scope_cbt_ba",
+      "language": "en",
+      "query": "In CBT behavioral activation for depression, what is confidence scaling 7/10, Mastery and Pleasure rating, and the If-Then barrier plan?",
+      "should_abstain": false,
+      "expected_protocols": ["behavioral-activation"],
+      "expected_keywords": ["Mastery", "Pleasure", "Confidence", "If-Then"]
+    },
+    {
+      "id": "pos_07_opposite_action_justified_check_vi",
+      "category": "in_scope_dbt_opposite_action",
+      "language": "vi",
+      "query": "Kỹ thuật hành động đối nghịch DBT Opposite Action có bước Justified Check kiểm tra thôi thúc hành động và nguy hiểm thực tế như thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["opposite-action"],
+      "expected_keywords": ["Justified Check", "Action Urge", "justified-exit"]
+    },
+    {
+      "id": "pos_08_wise_mind_self_critic_guard_en",
+      "category": "in_scope_dbt_wise_mind",
+      "language": "en",
+      "query": "How does DBT Wise Mind balance Emotion Mind and Reasonable Mind while filtering out the Harsh Self-Critic and allowing a 'Nothing yet' outcome?",
+      "should_abstain": false,
+      "expected_protocols": ["wise-mind"],
+      "expected_keywords": ["Emotion Mind", "Reasonable Mind", "Harsh Self-Critic", "Nothing yet"]
+    },
+    {
+      "id": "pos_09_chain_analysis_hard_stops_vi",
+      "category": "in_scope_dbt_chain_analysis",
+      "language": "vi",
+      "query": "Phân tích chuỗi hành vi DBT Chain Analysis có những cổng chặn cứng Hard Stops nào đối với hành vi tự hại self-harm và giao thức xấu hổ Shame Protocol?",
+      "should_abstain": false,
+      "expected_protocols": ["chain-analysis"],
+      "expected_keywords": ["Hard Stop", "Shame Protocol", "safety-stop", "Vulnerabilities"]
+    },
+    {
+      "id": "pos_10_dear_man_ear_roleplay_en",
+      "category": "in_scope_dbt_dear_man",
+      "language": "en",
+      "query": "How do I write an interpersonal boundary script using DBT DEAR MAN combined with David Burns TEAM-CBT EAR disarming and roleplay rehearsal?",
+      "should_abstain": false,
+      "expected_protocols": ["dear-man"],
+      "expected_keywords": ["Describe", "Express", "Assert", "Reinforce", "EAR"]
+    },
+    {
+      "id": "pos_11_hypomania_guard_48h_vault_vi",
+      "category": "in_scope_bipolar_hypomania",
+      "language": "vi",
+      "query": "Khi tôi đang ở pha hưng cảm nhẹ rối loạn lưỡng cực ngủ dưới 4 tiếng và muốn đầu tư hết tiền lúc 2 giờ sáng, lá chắn Hypomania Guard và Khoang trì hoãn 48 giờ Impulse Vault hoạt động thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["hypomania-guard", "crisis-pros-cons"],
+      "expected_keywords": ["48", "Impulse Vault", "Devil's Advocate", "Grandiosity"]
+    },
+    {
+      "id": "pos_12_bipolar_positive_distortions_en",
+      "category": "in_scope_bipolar_hypomania",
+      "language": "en",
+      "query": "What are the 5 Bipolar Positive Cognitive Distortions in Hypomania Guard and how does Devil's Advocate reality testing work with Two-Person Reality Check?",
+      "should_abstain": false,
+      "expected_protocols": ["hypomania-guard"],
+      "expected_keywords": ["Grandiosity", "Invulnerability", "Hyper-Optimism", "Devil's Advocate"]
+    },
+    {
+      "id": "pos_13_paradoxical_agenda_setting_magic_dial_vi",
+      "category": "in_scope_team_cbt_agenda",
+      "language": "vi",
+      "query": "Kỹ thuật Paradoxical Agenda Setting của David Burns trong TEAM-CBT dùng câu hỏi Nút bấm phép thuật Magic Button, Positive Reframing và chiếc núm vặn Magic Dial để làm tan kháng cự như thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["paradoxical-agenda-setting"],
+      "expected_keywords": ["Magic Button", "Positive Reframing", "Acid Test", "Magic Dial"]
+    },
+    {
+      "id": "pos_14_worry_postponement_box_en",
+      "category": "in_scope_cbt_worry_box",
+      "language": "en",
+      "query": "How do I use the CBT Worry Box and 15-minute scheduled worry postponement window to separate productive actionable worries from hypothetical what-if worries?",
+      "should_abstain": false,
+      "expected_protocols": ["worry-postponement"],
+      "expected_keywords": ["Worry Box", "15", "Productive", "Hypothetical"]
+    },
+    {
+      "id": "pos_15_exposure_hierarchy_safety_behaviors_vi",
+      "category": "in_scope_cbt_exposure",
+      "language": "vi",
+      "query": "Cách xây dựng thang tiếp xúc sợ hãi Exposure Hierarchy SUDS 0-100, tiếp xúc nội cảm Interoceptive Exposure và phát hiện hành vi an toàn Safety Behavior Detector?",
+      "should_abstain": false,
+      "expected_protocols": ["exposure-hierarchy"],
+      "expected_keywords": ["SUDS", "Interoceptive Exposure", "Safety Behavior"]
+    },
+    {
+      "id": "pos_16_pleasure_predicting_sheet_en",
+      "category": "in_scope_team_cbt_pleasure",
+      "language": "en",
+      "query": "How does the TEAM-CBT Pleasure-Predicting and Anti-Procrastination Sheet compare predicted difficulty and satisfaction against actual ratings?",
+      "should_abstain": false,
+      "expected_protocols": ["pleasure-predicting"],
+      "expected_keywords": ["Predicted Difficulty", "Predicted Pleasure", "Prediction Error"]
+    },
+    {
+      "id": "pos_17_abc_please_biological_shield_vi",
+      "category": "in_scope_dbt_abc_please",
+      "language": "vi",
+      "query": "Kỹ năng DBT ABC PLEASE giúp tích lũy trải nghiệm tích cực, làm chủ Build Mastery, Cope Ahead và bảo vệ giấc ngủ nhịp sinh học như thế nào?",
+      "should_abstain": false,
+      "expected_protocols": ["abc-please"],
+      "expected_keywords": ["Accumulate Positive", "Build Mastery", "Cope Ahead", "PLEASE"]
+    },
+    {
+      "id": "pos_18_crisis_pros_cons_4_grid_en",
+      "category": "in_scope_dbt_crisis_pros_cons",
+      "language": "en",
+      "query": "How do I use the DBT Crisis Pros and Cons 4-square matrix and STOP skill to resist an impulsive urge for 48 hours?",
+      "should_abstain": false,
+      "expected_protocols": ["crisis-pros-cons", "hypomania-guard"],
+      "expected_keywords": ["STOP", "Pros", "Cons", "48"]
+    },
+    {
+      "id": "pos_19_socratic_pushback_zones_vi",
+      "category": "in_scope_core_pushback",
+      "language": "vi",
+      "query": "Ma trận Socratic Pushback 4 cấp độ off, gentle, moderate, firm hoạt động khác nhau như thế nào ở 3 vùng Supportive, Core và Closing?",
+      "should_abstain": false,
+      "expected_protocols": ["pushback-config"],
+      "expected_keywords": ["Supportive", "Core", "Closing", "Double-Standard"]
+    },
+    {
+      "id": "pos_20_hrv_baseline_percentile_rules_en",
+      "category": "in_scope_biometrics_hrv",
+      "language": "en",
+      "query": "What are the clinical rules for interpreting HealthKit HRV using the 14-30 day personal 25th-75th percentile baseline and 12-hour freshness gate?",
+      "should_abstain": false,
+      "expected_protocols": ["health-integration"],
+      "expected_keywords": ["25th", "75th", "12", "below-baseline"]
+    },
+    {
+      "id": "neg_01_out_of_scope_kubernetes_bgp",
+      "category": "out_of_scope_tech",
+      "language": "en",
+      "query": "How do I configure Calico BGP peering and eBPF service mesh routing on a bare-metal Kubernetes 1.31 cluster?",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_02_out_of_scope_cooking_pho",
+      "category": "out_of_scope_cooking",
+      "language": "vi",
+      "query": "Công thức nấu nước dùng phở bò Hà Nội truyền thống hầm xương ống với thảo quả, hoa hồi và quế trong bao nhiêu tiếng?",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_03_out_of_scope_solidity_smart_contract",
+      "category": "out_of_scope_crypto",
+      "language": "en",
+      "query": "Write an ERC-4337 Account Abstraction Paymaster smart contract in Solidity using Foundry and OpenZeppelin.",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_04_out_of_scope_car_transmission",
+      "category": "out_of_scope_automotive",
+      "language": "vi",
+      "query": "Hướng dẫn tháo lắp biến mô thủy lực và thay dầu hộp số tự động ZF 8 cấp trên xe BMW Series 3.",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_05_out_of_scope_astrophysics_neutron_star",
+      "category": "out_of_scope_physics",
+      "language": "en",
+      "query": "Calculate the Tolman-Oppenheimer-Volkoff equation of state limit for degenerate neutron star matter with quark cores.",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_06_out_of_scope_tax_accounting",
+      "category": "out_of_scope_finance",
+      "language": "vi",
+      "query": "Cách kê khai khấu trừ thuế giá trị gia tăng đầu vào và quyết toán thuế thu nhập doanh nghiệp theo thông tư kế toán mới nhất?",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_07_out_of_scope_chess_sicilian_najdorf",
+      "category": "out_of_scope_games",
+      "language": "en",
+      "query": "What is the main theoretical line in the Sicilian Defense Najdorf Variation Poisoned Pawn 6.Bg5 e6 7.f4 Qb6?",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_08_out_of_scope_horticulture_orchid",
+      "category": "out_of_scope_gardening",
+      "language": "vi",
+      "query": "Kỹ thuật ghép lan hồ điệp lên gỗ lũa và pha phân bón NPK kích rễ vào mùa mưa miền Nam.",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_09_out_of_scope_compiler_llvm_simd",
+      "category": "out_of_scope_compilers",
+      "language": "en",
+      "query": "How does LLVM's LoopVectorize pass lower AVX-512 intrinsics for strided matrix multiplication?",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    },
+    {
+      "id": "neg_10_out_of_scope_fifa_world_cup",
+      "category": "out_of_scope_sports",
+      "language": "vi",
+      "query": "Danh sách các cầu thủ ghi bàn trong trận chung kết World Cup 1998 giữa đội tuyển Pháp và Brazil tại sân Stade de France.",
+      "should_abstain": true,
+      "expected_protocols": [],
+      "expected_keywords": []
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+/**
+ * @equilibria/clinical-core-ts
+ * Main Public API Barrel for Shared TypeScript Clinical Engine
+ */
+
+export * from './schemas/models.ts';
+export * from './detectors/distortion-detector.ts';
+export * from './engine/session-engine.ts';
+export * from './assessments/assessments.ts';
+export * from './bipolar/bipolar-engine.ts';

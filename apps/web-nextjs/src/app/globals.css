@@ -1,0 +1,54 @@
+:root {
+  --bg-color: #f8fafc;
+  --surface-color: #ffffff;
+  --primary-color: #0f766e;
+  --accent-color: #0d9488;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-color: #e2e8f0;
+  --sos-color: #e11d48;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* Low-Stimulus Mania / Dark Rest Mode disables all flashy transitions & blue light */
+.theme-low-stimulus-mania * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Print-optimized A4 Clinician Summary Report */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-a4 {
+    display: block !important;
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    padding: 16px;
+    page-break-inside: avoid;
+  }
+}

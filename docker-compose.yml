@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  postgres-pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: equilibria-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-equilibria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-equilibria_secure_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-equilibria_clinical}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-equilibria} -d ${POSTGRES_DB:-equilibria_clinical}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend-api:
+    build:
+      context: ./apps/backend-api
+      dockerfile: Dockerfile
+    container_name: equilibria-backend-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DATABASE_URL: sqlite:///./data/equilibria_clinical.db
+      POSTGRES_URL: postgresql://equilibria:equilibria_secure_2026@postgres-pgvector:5432/equilibria_clinical
+      RAG_SCORE_THRESHOLD: "0.46"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:7b
+      KNOWLEDGE_BASE_DIR: /kb/references
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+      - ./packages/clinical-protocols-kb:/kb:ro
+    depends_on:
+      postgres-pgvector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  web-nextjs:
+    build:
+      context: .
+      dockerfile: apps/web-nextjs/Dockerfile
+    container_name: equilibria-web-nextjs
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_OLLAMA_BASE_URL: http://127.0.0.1:11434
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-api
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: equilibria-ollama
+    profiles: ["local-ai"]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+volumes:
+  pgdata:
+  backend_data:
+  ollama_models:

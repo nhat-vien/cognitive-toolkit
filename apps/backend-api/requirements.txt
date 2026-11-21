@@ -1,0 +1,9 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+httpx>=0.27.0
+python-multipart>=0.0.12
+# Optional production dependencies (SQLite & deterministic TF-IDF/BM25+Cosine are built-in for zero-dependency offline/CI runs)
+# psycopg[binary]>=3.2.0
+# pgvector>=0.3.5
+# fastembed>=0.3.6

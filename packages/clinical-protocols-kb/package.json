@@ -1,0 +1,6 @@
+{
+  "name": "@equilibria/clinical-protocols-kb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Declarative CBT, TEAM-CBT, DBT, and IPSRT Clinical Protocols Knowledge Base and Grounded RAG Evaluation Suite"
+}

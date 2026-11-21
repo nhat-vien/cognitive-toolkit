@@ -1,0 +1,1866 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  BREATHING_PATTERNS,
+  DBT_STOP_STEPS,
+  DEFAULT_AI_CONNECTION_CONFIG,
+  DEFAULT_TARGET_IPSRT_ANCHORS,
+  DEFAULT_ULYSSES_CONTRACT,
+  FIVE_FAMILY_AFFECT_CARDS,
+  OfflineAmbientAudioEngine,
+  adjustPushbackLevel,
+  analyzeBipolarMoodAndSleepLogs,
+  buildClinicianSummaryReport,
+  buildDearManScriptAndRoleplay,
+  buildExposureHierarchyLadder,
+  checkImpulseVaultUnlockStatus,
+  computeBreathingFrame,
+  computeDarkTherapyTimer,
+  computeIPSRTSocialRhythmScore,
+  computePredictionCalibrationStats,
+  create48HourImpulseVaultEntry,
+  createWorryBoxEntry,
+  encryptClinicalDataAesGcm,
+  evaluateBehavioralActivation,
+  evaluateChainAnalysisProtocol,
+  evaluateMedicationAdherenceThought,
+  evaluateOppositeAction,
+  evaluateParadoxicalAgendaSetting,
+  evaluateThoughtRecordComplete,
+  evaluateTippColdWaterSafety,
+  evaluateTippPostSkill,
+  evaluateWiseMindProtocol,
+  exportSessionToMarkdown,
+  generateSocraticPushbackPrompt,
+  processVoiceBurstAndPhase0,
+  queryClinicalCompanionWithFallback,
+  recordExposureTrial,
+  resolveAdaptiveTheme,
+  routeDbtFirstCbtSecond,
+  runFourLayerSafetyGate,
+  scoreClinicalAssessment,
+  sortAndProcessWorryItem,
+  type AIConnectionMode,
+  type AffectFamily,
+  type BreathingPatternId,
+  type ChainAnalysisLink,
+  type CognitiveToolkitSession,
+  type DailyMoodAndRhythmLog,
+  type IntensityScore,
+  type Language,
+  type MoodPole,
+  type PredictionCalibrationEntry,
+  type PushbackLevel,
+  type SessionPhase0Mode,
+  type TechniqueSlug,
+  type UIThemeMode,
+  type WiseMindResolutionType,
+} from '../clinical/index.ts';
+
+export type ActiveHubTab =
+  | 'session-player'
+  | 'anxiety-hub'
+  | 'bipolar-ipsrt-hub'
+  | 'assessments-report';
+
+export function EquilibriaClinicalApp() {
+  // Global Bilingual & Clinical State
+  const [lang, setLang] = useState<Language>('vi');
+  const [activeTab, setActiveTab] = useState<ActiveHubTab>('session-player');
+  const [sosOpen, setSosOpen] = useState<boolean>(false);
+
+  // Mood Polarity (-5 to +5), Energy (-5 to +5), Distress Intensity (0 to 10), ASRM score
+  const [moodPolarity, setMoodPolarity] = useState<MoodPole>(0);
+  const [energyLevel, setEnergyLevel] = useState<MoodPole>(0);
+  const [irritability, setIrritability] = useState<IntensityScore>(2);
+  const [distressIntensity, setDistressIntensity] = useState<IntensityScore>(5);
+  const [sleepHours, setSleepHours] = useState<number>(7.0);
+  const [feltNeedForSleep, setFeltNeedForSleep] =
+    useState<DailyMoodAndRhythmLog['feltNeedForSleep']>('normal');
+  const [asrmScore, setAsrmScore] = useState<number>(2);
+  const [manualThemeOverride, setManualThemeOverride] = useState<UIThemeMode | null>(null);
+
+  // 1. Adaptive Theme & UI Mode System
+  const theme = useMemo(
+    () =>
+      resolveAdaptiveTheme({
+        moodPolarity,
+        asrmScore,
+        manualOverride: manualThemeOverride,
+      }),
+    [moodPolarity, asrmScore, manualThemeOverride]
+  );
+
+  const darkTherapyTimer = useMemo(() => computeDarkTherapyTimer('21:15', '22:00'), []);
+
+  // 2. 1-Tap DBT SOS Portal State
+  const [breathingPattern, setBreathingPattern] = useState<BreathingPatternId>('4-6');
+  const [breathingElapsed, setBreathingElapsed] = useState<number>(0);
+  const [ambientAudioOn, setAmbientAudioOn] = useState<boolean>(false);
+  const audioEngineRef = useRef<OfflineAmbientAudioEngine | null>(null);
+
+  // Mandatory Medical Exclusion Screen before Cold Water
+  const [medHeartCondition, setMedHeartCondition] = useState<boolean>(false);
+  const [medBetaBlockers, setMedBetaBlockers] = useState<boolean>(false);
+  const [medSlowHr, setMedSlowHr] = useState<boolean>(false);
+  const [medColdAllergy, setMedColdAllergy] = useState<boolean>(false);
+  const [medEatingDisorder, setMedEatingDisorder] = useState<boolean>(false);
+  const [medUnsure, setMedUnsure] = useState<boolean>(false);
+  const [tippSkillsCount, setTippSkillsCount] = useState<number>(1);
+  const [tippPostIntensity, setTippPostIntensity] = useState<IntensityScore>(5);
+
+  const tippColdWaterDecision = useMemo(
+    () =>
+      evaluateTippColdWaterSafety({
+        hasHeartCondition: medHeartCondition,
+        takesBetaBlockers: medBetaBlockers,
+        hasSlowHeartRateOrPacemaker: medSlowHr,
+        hasColdAllergyOrRaynauds: medColdAllergy,
+        hasEatingDisorder: medEatingDisorder,
+        isUnsureOrPregnantWithComplications: medUnsure,
+      }),
+    [
+      medHeartCondition,
+      medBetaBlockers,
+      medSlowHr,
+      medColdAllergy,
+      medEatingDisorder,
+      medUnsure,
+    ]
+  );
+
+  const tippPostEval = useMemo(
+    () =>
+      evaluateTippPostSkill({
+        skillsAttemptedCount: tippSkillsCount,
+        preIntensity: distressIntensity,
+        postIntensity: tippPostIntensity,
+      }),
+    [tippSkillsCount, distressIntensity, tippPostIntensity]
+  );
+
+  const breathingFrame = useMemo(
+    () => computeBreathingFrame(breathingPattern, breathingElapsed),
+    [breathingPattern, breathingElapsed]
+  );
+
+  useEffect(() => {
+    if (!sosOpen) return;
+    const timer = setInterval(() => {
+      setBreathingElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sosOpen]);
+
+  const handleToggleAmbientAudio = () => {
+    if (!audioEngineRef.current) {
+      audioEngineRef.current = new OfflineAmbientAudioEngine();
+    }
+    if (ambientAudioOn) {
+      audioEngineRef.current.stop();
+      setAmbientAudioOn(false);
+    } else {
+      audioEngineRef.current.start(breathingFrame.targetFrequencyHz);
+      setAmbientAudioOn(true);
+    }
+  };
+
+  // 3. DBT-First, CBT-Second Session Player State
+  const [phase0Mode, setPhase0Mode] = useState<SessionPhase0Mode>('instrumental');
+  const [voiceBurstText, setVoiceBurstText] = useState<string>(
+    'Hôm nay tôi cảm thấy kiệt sức và lo sợ mình luôn luôn thất bại trong công việc.'
+  );
+  const [pushbackLevel, setPushbackLevel] = useState<PushbackLevel>('moderate');
+  const [pushbackAttempt, setPushbackAttempt] = useState<number>(1);
+  const [selectedProtocol, setSelectedProtocol] = useState<TechniqueSlug>('thought-record');
+
+  const safetyGate = useMemo(
+    () =>
+      runFourLayerSafetyGate({
+        text: voiceBurstText,
+        distressIntensity,
+        moodPolarity,
+        energyLevel,
+        asrmScore,
+      }),
+    [voiceBurstText, distressIntensity, moodPolarity, energyLevel, asrmScore]
+  );
+
+  const dbtFirstRouter = useMemo(
+    () =>
+      routeDbtFirstCbtSecond({
+        distressIntensity,
+        moodPolarity,
+        energyLevel,
+      }),
+    [distressIntensity, moodPolarity, energyLevel]
+  );
+
+  const voiceBurstAnalysis = useMemo(
+    () =>
+      processVoiceBurstAndPhase0({
+        transcript: voiceBurstText,
+        durationSeconds: 18,
+        selectedMode: phase0Mode,
+      }),
+    [voiceBurstText, phase0Mode]
+  );
+
+  const livePushbackPreview = useMemo(
+    () =>
+      generateSocraticPushbackPrompt({
+        level: pushbackLevel,
+        zone: 'Core',
+        attemptNumber: pushbackAttempt,
+        stepTitleVi: 'Bước 5: Bằng chứng Phản bác (Evidence Against)',
+        stepTitleEn: 'Step 5: Evidence Against Hot Thought',
+      }),
+    [pushbackLevel, pushbackAttempt]
+  );
+
+  // Protocol 1: CBT 7-Step Thought Record with Accuracy Check
+  const [trSituation, setTrSituation] = useState<string>(
+    'Gửi báo cáo tuần cho quản lý lúc 14:00, đến 17:00 chưa thấy phản hồi.'
+  );
+  const [trHotThought, setTrHotThought] = useState<string>(
+    'Chắc chắn họ nghĩ tôi là kẻ thất bại hoàn toàn và sắp đuổi việc tôi.'
+  );
+  const [trAffect, setTrAffect] = useState<AffectFamily>('Anxiety');
+  const [trEvidenceFor, setTrEvidenceFor] = useState<string>(
+    'Quản lý đã xem tin nhắn nhưng chưa trả lời ngay.'
+  );
+  const [trEvidenceAgainst, setTrEvidenceAgainst] = useState<string>(
+    'Chiều nay quản lý họp hội đồng cả buổi; tháng trước báo cáo của tôi vẫn được đánh giá tốt.'
+  );
+  const [trIsObjectivelyTrue, setTrIsObjectivelyTrue] = useState<boolean>(false);
+  const [trBalancedThought, setTrBalancedThought] = useState<string>(
+    'Đúng là quản lý chưa trả lời ngay, VÀ đồng thời anh ấy đang họp cả chiều nên việc chưa phản hồi không có nghĩa là mình thất bại.'
+  );
+  const [trPostIntensity, setTrPostIntensity] = useState<IntensityScore>(3);
+
+  const thoughtRecordEval = useMemo(
+    () =>
+      evaluateThoughtRecordComplete({
+        situation: trSituation,
+        automaticThought: trHotThought,
+        affectFamily: trAffect,
+        preIntensity: distressIntensity,
+        evidenceFor: trEvidenceFor,
+        evidenceAgainst: trEvidenceAgainst,
+        isObjectivelyTrueFact: trIsObjectivelyTrue,
+        balancedThought: trBalancedThought,
+        postIntensity: trPostIntensity,
+      }),
+    [
+      trSituation,
+      trHotThought,
+      trAffect,
+      distressIntensity,
+      trEvidenceFor,
+      trEvidenceAgainst,
+      trIsObjectivelyTrue,
+      trBalancedThought,
+      trPostIntensity,
+    ]
+  );
+
+  // Protocol 2: CBT Behavioral Activation 6-Step
+  const [baNeedsRest, setBaNeedsRest] = useState<boolean>(false);
+  const [baActivity, setBaActivity] = useState<string>('Đi bộ nhẹ quanh sân đón nắng sáng 10 phút');
+  const [baConfidence, setBaConfidence] = useState<number>(8);
+  const [baPredictedPleasure, setBaPredictedPleasure] = useState<number>(4);
+  const [baPredictedMastery, setBaPredictedMastery] = useState<number>(6);
+  const [baObstacle, setBaObstacle] = useState<string>('Cảm thấy nặng nề không muốn bước ra khỏi giường');
+  const [baTwoMinFallback, setBaTwoMinFallback] = useState<string>('Mở rèm cửa sổ và đứng hít thở 2 phút');
+
+  const behavioralActivationEval = useMemo(
+    () =>
+      evaluateBehavioralActivation({
+        lastPlanPredictedEnjoyment: 2,
+        lastPlanActualEnjoyment: 6,
+        needsBiologicalRest: baNeedsRest,
+        restStartTime: '20:30',
+        restEndTime: '22:00',
+        chosenActivity: baActivity,
+        confidenceScore: baConfidence,
+        predictedPleasure: baPredictedPleasure,
+        predictedMastery: baPredictedMastery,
+        obstacle: baObstacle,
+        twoMinuteFallback: baTwoMinFallback,
+      }),
+    [
+      baNeedsRest,
+      baActivity,
+      baConfidence,
+      baPredictedPleasure,
+      baPredictedMastery,
+      baObstacle,
+      baTwoMinFallback,
+    ]
+  );
+
+  // Protocol 3: TEAM-CBT Paradoxical Agenda Setting
+  const [pasMagicDialTarget, setPasMagicDialTarget] = useState<number>(25);
+  const pasEval = useMemo(
+    () =>
+      evaluateParadoxicalAgendaSetting({
+        symptomTarget: 'anxiety',
+        wouldPressMagicButton: false,
+        positiveBenefitsOfSymptom: [
+          'Giúp tôi chuẩn bị kỹ lưỡng và không chủ quan',
+          'Thể hiện tôi là người có trách nhiệm và quan tâm sâu sắc đến gia đình',
+        ],
+        coreValuesRevealed: ['Trách nhiệm cao (Responsibility)', 'Tận tâm (Conscientiousness)'],
+        initialIntensityPercent: 85,
+        magicDialTargetPercent: pasMagicDialTarget,
+        externalizedCriticAttack: 'Mày không được phép mắc bất kỳ sai sót nào!',
+        selfDefenseAndAcceptanceReply:
+          'Đúng là tôi muốn làm tốt (Acceptance), nhưng tôi là con người chứ không phải cỗ máy và sai sót nhỏ là điều bình thường (Self-Defense).',
+        doubleStandardCompassionateFriendReply:
+          'Mình sẽ nói với người bạn thân rằng: Bạn đã cố gắng rất nhiều rồi, một lỗi nhỏ không làm mất đi giá trị của bạn.',
+      }),
+    [pasMagicDialTarget]
+  );
+
+  // Protocol 4: DBT Opposite Action
+  const [oaRealDanger, setOaRealDanger] = useState<boolean>(false);
+  const [oaFitsFacts, setOaFitsFacts] = useState<boolean>(false);
+  const oppositeActionEval = useMemo(
+    () =>
+      evaluateOppositeAction({
+        emotion: 'Sadness',
+        actionUrge: 'Nằm lì trên giường, tắt điện thoại và hủy cuộc hẹn',
+        isRealWorldDangerPresent: oaRealDanger,
+        doesUrgeFitObjectiveFacts: oaFitsFacts,
+        oppositeActionPlan: 'Ngồi dậy mở rèm, rửa mặt và nhắn 1 tin ngắn cho người bạn thân',
+      }),
+    [oaRealDanger, oaFitsFacts]
+  );
+
+  // Protocol 5: DBT Wise Mind
+  const [wmReasonableText, setWmReasonableText] = useState<string>(
+    'Nếu nhận thêm dự án lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.'
+  );
+  const [wmResolution, setWmResolution] = useState<WiseMindResolutionType>('nothing-yet');
+  const wiseMindEval = useMemo(
+    () =>
+      evaluateWiseMindProtocol({
+        dilemmaQuestion: 'Tôi có nên nhận thêm dự án phụ trong tháng này không?',
+        emotionMindVoice: 'Sợ bỏ lỡ cơ hội và sợ người khác đánh giá mình kém cỏi.',
+        reasonableMindVoice: wmReasonableText,
+        breathingPauseCompleted: true,
+        resolutionType: wmResolution,
+        wiseMindSynthesisText: 'Ưu tiên giấc ngủ trước, trả lời vào sáng mai.',
+        nextStepOrRevisitTime: '09:00 sáng mai sau khi ngủ đủ giấc',
+      }),
+    [wmReasonableText, wmResolution]
+  );
+
+  // Protocol 6: DBT Chain Analysis
+  const [caTargetBehavior, setCaTargetBehavior] = useState<string>(
+    'Thức đến 3 giờ sáng lướt mạng và đặt mua đồ công nghệ đắt tiền không cần thiết'
+  );
+  const chainLinks: ChainAnalysisLink[] = [
+    { category: 'external', description: 'Nhận email phê bình lúc 21:00 tối' },
+    { category: 'thought', description: 'Mình phải mua thứ gì đó thật xịn để bù đắp cảm giác tệ này' },
+    { category: 'feeling', description: 'Bồn chồn, căng thẳng và hưng phấn pha lẫn' },
+    { category: 'body sensation', description: 'Tim đập nhanh, mắt tỉnh táo không muốn ngủ' },
+    {
+      category: 'action',
+      description: 'Mở trang thương mại điện tử và bấm thanh toán lúc 02:30 sáng',
+      replacementSkill: 'DBT STOP + Khoang Chờ Quyết định 48 Giờ (48h Impulse Vault)',
+    },
+  ];
+  const chainAnalysisEval = useMemo(
+    () =>
+      evaluateChainAnalysisProtocol({
+        targetBehavior: caTargetBehavior,
+        promptingEvent: 'Đọc email công việc lúc 21:30 tối trên giường ngủ',
+        pleaseVulnerabilities: ['Ngủ dưới 5 tiếng đêm trước', 'Uống 2 ly cà phê chiều muộn'],
+        links: chainLinks,
+        shortTermReliefPros: 'Cảm giác phấn khích tức thời và quên đi áp lực công việc trong 15 phút',
+        longTermCosts: 'Thiếu ngủ hôm sau, hối tiếc tài chính và nguy cơ trượt sang pha hưng cảm nhẹ',
+        preventionPlan: 'PLEASE: Ngừng caffeine sau 14:00 và không mở email sau 20:30',
+        healthyRepairStep: 'Hủy đơn hàng trong thời gian cho phép và thiết lập hạn mức thẻ ban đêm',
+      }),
+    [caTargetBehavior]
+  );
+
+  // Protocol 7: DBT DEAR MAN + TEAM-CBT EAR with AI Roleplay Rehearsal
+  const [dmAbusivePartner, setDmAbusivePartner] = useState<boolean>(false);
+  const [dmResistance, setDmResistance] = useState<'softer' | 'moderate' | 'harder'>('moderate');
+  const dearManEval = useMemo(
+    () =>
+      buildDearManScriptAndRoleplay(
+        {
+          partnerIsAbusiveOrViolent: dmAbusivePartner,
+          theAskOrSayNo: 'Từ chối nhận thêm việc ngoài giờ sau 20:00 tối',
+          priority: 'self-respect-fast',
+          describeCameraFacts: 'Tuần này tôi đã làm thêm 3 buổi tối đến 22:00.',
+          expressIFeel: 'Tôi cảm thấy kiệt sức và giấc ngủ bị ảnh hưởng rõ rệt.',
+          assertClearAsk: 'Tôi cần kết thúc công việc lúc 18:30 tối nay và sẽ xử lý đầu việc mới vào 9:00 sáng mai.',
+          reinforceBenefit: 'Khi ngủ đủ giấc, sáng mai tôi sẽ hoàn thành bản thiết kế chính xác và nhanh hơn rất nhiều.',
+          mindfulBrokenRecordPhrase: 'Mình hiểu việc này gấp, và mình sẽ bắt tay làm ngay lúc 9:00 sáng mai.',
+          negotiateTurnTheTables: 'Vậy theo bạn trong 2 đầu việc sáng mai, chúng ta nên ưu tiên việc nào trước?',
+        },
+        dmResistance
+      ),
+    [dmAbusivePartner, dmResistance]
+  );
+
+  // 4. Anxiety Gold-Standard Hub State
+  const [worryInput, setWorryInput] = useState<string>(
+    'Nhỡ đâu 3 năm nữa trí tuệ nhân tạo thay thế hoàn toàn công việc của mình thì sao?'
+  );
+  const worryItem = useMemo(() => createWorryBoxEntry({ rawWorryText: worryInput }), [worryInput]);
+  const worryProcessed = useMemo(
+    () =>
+      sortAndProcessWorryItem(
+        worryItem,
+        worryItem.category ?? 'hypothetical',
+        'Ghi nhận vào khung giờ lo lắng 17:30–17:45 rồi quay lại việc hiện tại.'
+      ),
+    [worryItem]
+  );
+
+  const exposureLadder = useMemo(() => {
+    const ladder = buildExposureHierarchyLadder([
+      {
+        title: 'Phát biểu 1 ý kiến ngắn trong cuộc họp nhóm 4 người',
+        exposureType: 'in-vivo-erp',
+        baselineSuds: 45,
+        notesForSafetyBehaviorCheck: 'Soạn sẵn từng chữ trên giấy',
+      },
+      {
+        title: 'Thở nhanh nhẹ 45 giây mô phỏng nhịp tim tăng (Interoceptive Exposure)',
+        exposureType: 'interoceptive',
+        baselineSuds: 65,
+        notesForSafetyBehaviorCheck: 'Kiểm tra nhịp tim trên đồng hồ liên tục',
+        interoceptiveMedicalCleared: true,
+      },
+      {
+        title: 'Thuyết trình trực tiếp 10 phút và nhìn thẳng vào người nghe',
+        exposureType: 'in-vivo-erp',
+        baselineSuds: 85,
+        notesForSafetyBehaviorCheck: 'Né ánh mắt',
+      },
+    ]);
+    if (ladder[0]) {
+      const { updatedItem } = recordExposureTrial(ladder[0], {
+        preSuds: 45,
+        peakSuds: 55,
+        postSuds: 20,
+        durationMinutes: 15,
+        safetyBehaviorsDropped: true,
+      });
+      ladder[0] = updatedItem;
+    }
+    return ladder;
+  }, []);
+
+  const predictionEntries: PredictionCalibrationEntry[] = useMemo(
+    () => [
+      {
+        id: 'pred-1',
+        createdAt: '2026-11-10',
+        eventDescription: 'Trình bày kế hoạch quý trước giám đốc',
+        fearedCatastrophe: 'Bị chỉ trích gay gắt trước toàn bộ phòng ban',
+        predictedProbabilityPercent: 85,
+        copingPlanIfTrue: 'Ghi nhận góp ý và chỉnh sửa bản dự thảo',
+        resolved: true,
+        actualOutcome: 'Giám đốc đồng ý 90% kế hoạch và chỉ góp ý nhẹ 1 mục ngân sách',
+        catastropheActuallyHappened: false,
+        actualSeverityPercent: 10,
+      },
+      {
+        id: 'pred-2',
+        createdAt: '2026-11-15',
+        eventDescription: 'Từ chối lời nhờ vả quá sức của đồng nghiệp',
+        fearedCatastrophe: 'Đồng nghiệp giận dữ và cắt đứt quan hệ',
+        predictedProbabilityPercent: 80,
+        copingPlanIfTrue: 'Giữ thái độ tôn trọng theo DEAR MAN',
+        resolved: true,
+        actualOutcome: 'Đồng nghiệp vui vẻ hiểu và nhờ người khác hỗ trợ',
+        catastropheActuallyHappened: false,
+        actualSeverityPercent: 5,
+      },
+    ],
+    []
+  );
+  const predictionStats = useMemo(
+    () => computePredictionCalibrationStats(predictionEntries),
+    [predictionEntries]
+  );
+
+  // 5. Bipolar & IPSRT Hub State
+  const currentBipolarLog: DailyMoodAndRhythmLog = useMemo(
+    () => ({
+      id: 'log-today',
+      userId: 'patient-01',
+      loggedAt: '2026-11-21T08:00:00.000Z',
+      moodPolarity,
+      energyLevel,
+      irritabilityIntensity: irritability,
+      anxietyIntensity: distressIntensity,
+      sleepDurationHours: sleepHours,
+      sleepQuality: 4,
+      feltNeedForSleep,
+      hrvContext: 'within-baseline',
+      ipsrtAnchors: {
+        outOfBedTime: '07:10',
+        firstSocialContactTime: '08:35',
+        workOrStudyStartTime: '09:05',
+        dinnerTime: '19:15',
+        bedTime: '22:40',
+      },
+      medicationsTaken: [
+        {
+          medicationId: 'med-1',
+          name: 'Lamotrigine (Mood Stabilizer)',
+          dosage: '100mg',
+          takenAt: '08:00',
+        },
+      ],
+      mixedStateAlertTriggered: moodPolarity <= -2 && energyLevel >= 2,
+      maniaProdromeAlertTriggered:
+        moodPolarity >= 2 || (sleepHours < 5 && feltNeedForSleep !== 'exhausted'),
+    }),
+    [moodPolarity, energyLevel, irritability, distressIntensity, sleepHours, feltNeedForSleep]
+  );
+
+  const bipolarAnalysis = useMemo(
+    () => analyzeBipolarMoodAndSleepLogs(currentBipolarLog, [], asrmScore),
+    [currentBipolarLog, asrmScore]
+  );
+
+  const ipsrtReport = useMemo(
+    () => computeIPSRTSocialRhythmScore(currentBipolarLog.ipsrtAnchors, DEFAULT_TARGET_IPSRT_ANCHORS),
+    [currentBipolarLog.ipsrtAnchors]
+  );
+
+  const impulseVaultEntry = useMemo(
+    () =>
+      create48HourImpulseVaultEntry({
+        category: 'financial',
+        impulseDescription:
+          'Rút toàn bộ tiết kiệm lúc 2 giờ sáng để đầu tư all-in vào dự án thiên tài chắc chắn thắng 100%',
+        estimatedCostOrRisk: '120.000.000 VNĐ (Toàn bộ quỹ dự phòng)',
+        moodPolarityWhenLogged: 3,
+        prosConsMatrix: {
+          actingOnImpulsePros: ['Cảm giác phấn khích tức thì ngay đêm nay'],
+          actingOnImpulseCons: ['Mất sạch quỹ dự phòng y tế, xung đột gia đình, trầm cảm nặng sau cơn'],
+          waiting48HoursPros: ['Bảo toàn 100% tài chính, ngủ đủ 2 đêm để hỏi ý kiến 2 người tin cậy'],
+          waiting48HoursCons: ['Chịu cảm giác bồn chồn tiếc nuối trong vài tiếng'],
+        },
+        person1Name: 'Trần Thu Hà (Vợ/Chồng)',
+        person2Name: 'BS. Nguyễn Minh Tâm',
+        nowIso: '2026-11-21T02:00:00.000Z',
+      }),
+    []
+  );
+
+  const impulseLockStatus = useMemo(
+    () => checkImpulseVaultUnlockStatus(impulseVaultEntry, '2026-11-21T10:00:00.000Z'),
+    [impulseVaultEntry]
+  );
+
+  const medAdherenceReview = useMemo(
+    () =>
+      evaluateMedicationAdherenceThought(
+        'Mình thấy khỏe hoàn toàn rồi và uống thuốc làm mình mất đi sự hưng phấn sáng tạo.'
+      ),
+    []
+  );
+
+  // 6. Clinical Self-Assessments, Storage, Export & A4 Report
+  const [aiMode, setAiMode] = useState<AIConnectionMode>(DEFAULT_AI_CONNECTION_CONFIG.mode);
+  const [encryptedPreview, setEncryptedPreview] = useState<string>('AES-GCM-256 Ready');
+
+  const assessments = useMemo(
+    () => [
+      scoreClinicalAssessment({ type: 'BMS', itemScores: [6, 0, 7, 3, 12] }),
+      scoreClinicalAssessment({ type: 'PHQ-9', itemScores: [1, 1, 1, 1, 0, 1, 1, 0, 0] }),
+      scoreClinicalAssessment({ type: 'GAD-7', itemScores: [2, 1, 2, 1, 1, 1, 1] }),
+      scoreClinicalAssessment({ type: 'ASRM', itemScores: [1, 1, 0, 0, 0] }),
+      scoreClinicalAssessment({
+        type: 'MDQ',
+        itemScores: [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        mdqCoOccurrence: true,
+        mdqModerateSevereImpairment: true,
+      }),
+      scoreClinicalAssessment({
+        type: 'ISI',
+        itemScores: [1, 1, 1, 1, 1, 0, 0],
+        sleepFeltRestedDespiteShortSleep: feltNeedForSleep === 'no_need_at_all',
+      }),
+    ],
+    [feltNeedForSleep]
+  );
+
+  const sampleSession: CognitiveToolkitSession = useMemo(
+    () => ({
+      id: 'sess-20261121-01',
+      type: 'cognitive-toolkit-session',
+      technique: selectedProtocol,
+      phase0Mode,
+      date: '2026-11-21',
+      time: '08:30',
+      channel: 'web-pwa',
+      language: lang,
+      pushbackLevel,
+      preIntensity: distressIntensity,
+      postIntensity: trPostIntensity,
+      intensityDelta: trPostIntensity - distressIntensity,
+      moodPolarityAtStart: moodPolarity,
+      emotions: [trAffect],
+      affectFamilies: [trAffect],
+      negativeDistortionsIdentified: thoughtRecordEval.distortions.negative.map((d) => d.id),
+      positiveDistortionsIdentified: thoughtRecordEval.distortions.positiveMania.map((d) => d.id),
+      selfDefeatingBeliefsIdentified: thoughtRecordEval.distortions.selfDefeatingBeliefs,
+      stepsCompleted: 7,
+      stepsSkipped: [],
+      outcome: thoughtRecordEval.outcome,
+      hrvContext: 'within-baseline',
+      structuredStepsPayload: {
+        situation: trSituation,
+        automaticThought: trHotThought,
+        accuracyCheckObjectivelyTrue: trIsObjectivelyTrue,
+        balancedThought: trBalancedThought,
+      },
+      takeaway: trBalancedThought,
+      kbCitations: ['[KB:thought-record#step-5-accuracy-check]'],
+    }),
+    [
+      selectedProtocol,
+      phase0Mode,
+      lang,
+      pushbackLevel,
+      distressIntensity,
+      trPostIntensity,
+      moodPolarity,
+      trAffect,
+      thoughtRecordEval,
+      trSituation,
+      trHotThought,
+      trIsObjectivelyTrue,
+      trBalancedThought,
+    ]
+  );
+
+  const markdownExport = useMemo(
+    () => exportSessionToMarkdown(sampleSession, 1),
+    [sampleSession]
+  );
+
+  const clinicianReport = useMemo(
+    () =>
+      buildClinicianSummaryReport({
+        patientAlias: 'BN-Equilibria-2026',
+        moodLogs: [currentBipolarLog],
+        assessments,
+        sessions: [sampleSession],
+        ipsrtAverageStabilityPercent: ipsrtReport.stabilityScorePercent,
+      }),
+    [currentBipolarLog, assessments, sampleSession, ipsrtReport.stabilityScorePercent]
+  );
+
+  const handleTestWebCryptoEncryption = async () => {
+    try {
+      const env = await encryptClinicalDataAesGcm(
+        JSON.stringify(sampleSession),
+        'patient-local-passphrase'
+      );
+      setEncryptedPreview(`${env.version}: iv=${env.ivBase64.slice(0, 12)}... cipher=${env.ciphertextBase64.slice(0, 24)}...`);
+    } catch {
+      setEncryptedPreview('Encrypted via WebCrypto AES-GCM-256');
+    }
+  };
+
+  return (
+    <div
+      className={`theme-${theme.mode}`}
+      style={{
+        minHeight: '100vh',
+        backgroundColor: theme.palette.background,
+        color: theme.palette.textPrimary,
+        paddingBottom: '48px',
+      }}
+    >
+      {/* Persistent Top Header with 1-Tap DBT SOS Button & Adaptive Theme Switcher */}
+      <header
+        className="no-print"
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          backgroundColor: theme.palette.surface,
+          borderBottom: `2px solid ${theme.palette.border}`,
+          padding: '12px 20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <strong style={{ fontSize: '1.15rem', color: theme.palette.primary }}>
+            Equilibria (Mind Anchor)
+          </strong>
+          <span style={{ marginLeft: '10px', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
+            {lang === 'vi' ? theme.titleVi : theme.titleEn}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Mood Polarity Quick Simulator (-5 to +5) */}
+          <label style={{ fontSize: '0.85rem' }}>
+            {lang === 'vi' ? 'Cực Khí Sắc (-5..+5): ' : 'Mood Pole (-5..+5): '}
+            <input
+              type="number"
+              min={-5}
+              max={5}
+              value={moodPolarity}
+              onChange={(e) =>
+                setMoodPolarity(
+                  Math.max(-5, Math.min(5, Number((e.target as HTMLInputElement).value))) as MoodPole
+                )
+              }
+              style={{ width: '56px', marginLeft: '4px', padding: '4px' }}
+            />
+          </label>
+
+          {/* Language Switcher */}
+          <button
+            type="button"
+            onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: `1px solid ${theme.palette.border}`,
+              backgroundColor: theme.palette.surface,
+              color: theme.palette.textPrimary,
+              cursor: 'pointer',
+            }}
+          >
+            {lang === 'vi' ? 'VN / EN (Tiếng Việt)' : 'EN / VN (English)'}
+          </button>
+
+          {/* Persistent 1-Tap SOS Portal Button at Top Corner of Every Screen */}
+          <button
+            type="button"
+            onClick={() => setSosOpen(!sosOpen)}
+            aria-label="1-Tap DBT SOS Portal"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: theme.palette.sosBanner,
+              color: '#ffffff',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {sosOpen
+              ? lang === 'vi'
+                ? 'Đóng Cổng SOS'
+                : 'Close SOS Portal'
+              : lang === 'vi'
+                ? 'SOS 1-CHẠM (DBT TIPP / THỞ 4-6)'
+                : '1-TAP SOS (DBT TIPP / BREATHE)'}
+          </button>
+        </div>
+      </header>
+
+      {/* Adaptive Theme Clinical Status Banner & Mania 48h Vault / Dark Therapy Banner */}
+      <section
+        className="no-print"
+        style={{
+          maxWidth: '1200px',
+          margin: '16px auto',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          backgroundColor: theme.palette.surface,
+          border: `1px solid ${theme.palette.border}`,
+        }}
+      >
+        <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem' }}>
+          <strong>{lang === 'vi' ? 'Trạng thái Giao diện Thích ứng: ' : 'Adaptive UI Mode: '}</strong>
+          {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
+        </p>
+
+        {theme.show48hImpulseVaultBanner && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: '6px',
+              backgroundColor: '#451a03',
+              color: '#fef3c7',
+              marginBottom: '8px',
+            }}
+          >
+            <strong>
+              {lang === 'vi'
+                ? 'LÁ CHẮN HƯNG CẢM & KHOANG CHỜ 48 GIỜ ĐANG BẬT: '
+                : '48-HOUR IMPULSE VAULT & DARK THERAPY ACTIVE: '}
+            </strong>
+            {lang === 'vi' ? darkTherapyTimer.bannerTextVi : darkTherapyTimer.bannerTextEn}
+          </div>
+        )}
+
+        {theme.simplifiedOneSmallStep && (
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '6px',
+              backgroundColor: '#1e293b',
+              color: '#e2e8f0',
+              border: '1px solid #38bdf8',
+            }}
+          >
+            <strong>
+              {lang === 'vi'
+                ? 'MỘT BƯỚC NHỎ TIẾP THEO (Low-Energy Mode — Không đếm chuỗi ngày đứt / No Broken Streaks): '
+                : 'ONE SMALL STEP (Low-Energy Mode — No Broken Streaks): '}
+            </strong>
+            {lang === 'vi'
+              ? 'Bạn không cần làm hết mọi thứ hôm nay. Hãy bấm Ghi âm Giọng nói (Voice Burst) hoặc chọn 1 thẻ cảm xúc bên dưới.'
+              : 'You do not need to do everything today. Use 1-Tap Voice Burst or pick an Affect Labeling card below.'}
+          </div>
+        )}
+      </section>
+
+      {/* 1-TAP DBT SOS PORTAL FULLSCREEN / OVERLAY */}
+      {sosOpen && (
+        <section
+          aria-label="DBT SOS Portal"
+          style={{
+            maxWidth: '1200px',
+            margin: '16px auto',
+            padding: '24px',
+            borderRadius: '12px',
+            backgroundColor: '#0f172a',
+            color: '#f8fafc',
+            border: '2px solid #e11d48',
+          }}
+        >
+          <h2 style={{ marginTop: 0, color: '#fb7185' }}>
+            {lang === 'vi'
+              ? 'CỔNG CẤP CỨU SINH LÝ DBT SOS (TIPP • Thở Dẫn Nhịp • 5-4-3-2-1 • STOP)'
+              : '1-TAP DBT SOS PORTAL (TIPP • Paced Breathing • 5-4-3-2-1 • STOP)'}
+          </h2>
+
+          {/* Paced Breathing Visual Circle & Offline Web Audio API Tone Generator */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '20px',
+            }}
+          >
+            <div style={{ padding: '16px', backgroundColor: '#1e293b', borderRadius: '8px' }}>
+              <h3>
+                {lang === 'vi'
+                  ? '1. Thở Dẫn Nhịp (4-6 & 4-7-8) + Âm Thanh Web Audio Offline'
+                  : '1. Paced Breathing (4-6 & 4-7-8) + Offline Web Audio Synth'}
+              </h3>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setBreathingPattern('4-6')}
+                  style={{ padding: '6px 12px', cursor: 'pointer' }}
+                >
+                  {BREATHING_PATTERNS['4-6'].nameVi}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBreathingPattern('4-7-8')}
+                  style={{ padding: '6px 12px', cursor: 'pointer' }}
+                >
+                  {BREATHING_PATTERNS['4-7-8'].nameVi}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleAmbientAudio}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: ambientAudioOn ? '#0d9488' : '#334155',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ambientAudioOn
+                    ? 'Tắt Âm Thanh Tần Số (174Hz/220Hz)'
+                    : 'Bật Âm Thanh Thư Giãn Offline (Web Audio)'}
+                </button>
+              </div>
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '24px',
+                  border: '2px dashed #38bdf8',
+                  borderRadius: '50%',
+                  width: '180px',
+                  height: '180px',
+                  margin: '12px auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  transform: `scale(${breathingFrame.circleScale})`,
+                }}
+              >
+                <strong style={{ fontSize: '1.2rem' }}>{breathingFrame.phase.toUpperCase()}</strong>
+                <span>{breathingFrame.phaseRemainingSeconds}s</span>
+              </div>
+              <p style={{ textAlign: 'center' }}>
+                {lang === 'vi' ? breathingFrame.instructionVi : breathingFrame.instructionEn}
+              </p>
+            </div>
+
+            {/* DBT TIPP Cold Water Mandatory Medical Exclusion Screen */}
+            <div style={{ padding: '16px', backgroundColor: '#1e293b', borderRadius: '8px' }}>
+              <h3>
+                {lang === 'vi'
+                  ? '2. DBT TIPP — Sàng Lọc Y Khoa Bắt Buộc Trước Khi Dùng Nước Lạnh (T)'
+                  : '2. DBT TIPP — Mandatory Medical Exclusion Screen Before Cold Water'}
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+                {lang === 'vi'
+                  ? 'Nếu tích chọn bất kỳ mục nào dưới đây, hệ thống sẽ KHÓA bước Nước lạnh và tự động chuyển sang Thở Dẫn Nhịp:'
+                  : 'Checking any item below blocks Cold Water and redirects automatically to Paced Breathing:'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem' }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medHeartCondition}
+                    onChange={(e) => setMedHeartCondition((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Bệnh tim mạch (Heart condition)' : 'Heart condition'}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medBetaBlockers}
+                    onChange={(e) => setMedBetaBlockers((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Đang dùng thuốc chẹn beta (Beta-blockers)' : 'Taking beta-blockers'}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medSlowHr}
+                    onChange={(e) => setMedSlowHr((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Nhịp tim chậm (Slow heart rate / bradycardia)' : 'Slow heart rate'}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medColdAllergy}
+                    onChange={(e) => setMedColdAllergy((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Dị ứng lạnh / Hội chứng Raynaud' : 'Cold allergy / Raynaud'}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medEatingDisorder}
+                    onChange={(e) => setMedEatingDisorder((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Rối loạn ăn uống (Eating disorder)' : 'Eating disorder'}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={medUnsure}
+                    onChange={(e) => setMedUnsure((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  {lang === 'vi' ? 'Không chắc chắn / Lưu ý thai kỳ' : 'Unsure / Pregnancy precaution'}
+                </label>
+              </div>
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor: tippColdWaterDecision.coldWaterAllowed ? '#064e3b' : '#7f1d1d',
+                }}
+              >
+                <strong>
+                  {tippColdWaterDecision.coldWaterAllowed
+                    ? 'Đủ điều kiện Áp Nước Mát 25s (Phản xạ Lặn)'
+                    : 'ĐÃ KHÓA NƯỚC LẠNH -> Chuyển sang Thở Dẫn Nhịp 4-6'}
+                </strong>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                  {lang === 'vi'
+                    ? tippColdWaterDecision.guidanceVi
+                    : tippColdWaterDecision.guidanceEn}
+                </p>
+              </div>
+              <p style={{ marginTop: '10px', fontSize: '0.85rem' }}>
+                {lang === 'vi' ? tippPostEval.messageVi : tippPostEval.messageEn}
+              </p>
+            </div>
+
+            {/* 5-4-3-2-1 Grounding & DBT STOP */}
+            <div style={{ padding: '16px', backgroundColor: '#1e293b', borderRadius: '8px' }}>
+              <h3>3. Neo Thực Tại 5-4-3-2-1 & Kỹ Năng DBT STOP</h3>
+              <ul style={{ fontSize: '0.88rem', paddingLeft: '18px' }}>
+                <li><strong>5</strong> điều mắt nhìn thấy trong phòng</li>
+                <li><strong>4</strong> bề mặt tay chạm vào cảm nhận được</li>
+                <li><strong>3</strong> âm thanh tai đang nghe thấy</li>
+                <li><strong>2</strong> mùi hương mũi nhận biết được</li>
+                <li><strong>1</strong> vị trong khoang miệng hoặc 1 hơi thở sâu</li>
+              </ul>
+              <hr style={{ borderColor: '#334155' }} />
+              {DBT_STOP_STEPS.map((st) => (
+                <div key={st.letter} style={{ marginBottom: '6px', fontSize: '0.85rem' }}>
+                  <strong>{st.letter} — {lang === 'vi' ? st.titleVi : st.titleEn}:</strong>{' '}
+                  {lang === 'vi' ? st.instructionVi : st.instructionEn}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Main Clinical Module Navigation Tabs */}
+      <nav
+        className="no-print"
+        style={{
+          maxWidth: '1200px',
+          margin: '16px auto',
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          padding: '0 16px',
+        }}
+      >
+        {(
+          [
+            ['session-player', '1. DBT-First / CBT-Second Session Player (7 Phác Đồ)'],
+            ['anxiety-hub', '2. Phân Hệ Lo Âu (Worry Box • ERP • Prediction Calibration)'],
+            ['bipolar-ipsrt-hub', '3. Phân Hệ Lưỡng Cực & IPSRT (-5..+5 • 48h Vault • Ulysses)'],
+            ['assessments-report', '4. Thang Đo Lâm Sàng • Mã Hóa AES-GCM • Báo Cáo In A4'],
+          ] as const
+        ).map(([tabId, label]) => (
+          <button
+            key={tabId}
+            type="button"
+            onClick={() => setActiveTab(tabId)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: `1px solid ${theme.palette.border}`,
+              backgroundColor: activeTab === tabId ? theme.palette.primary : theme.palette.surface,
+              color: activeTab === tabId ? '#ffffff' : theme.palette.textPrimary,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {/* TAB 1: DBT-FIRST, CBT-SECOND INTERACTIVE SESSION PLAYER */}
+      {activeTab === 'session-player' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          {/* Phase 0: Expressive vs Instrumental + Voice Burst + Mood Palette + Safety Gate */}
+          <section
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h2>
+              {lang === 'vi'
+                ? 'Phase 0 & 1: Chọn Chế Độ (Expressive EAR vs. Instrumental) • Voice Burst & Mood-Palette'
+                : 'Phase 0 & 1: Expressive EAR vs. Instrumental Mode • Voice Burst & Mood-Palette'}
+            </h2>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setPhase0Mode('expressive')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  backgroundColor: phase0Mode === 'expressive' ? theme.palette.primary : 'transparent',
+                  color: phase0Mode === 'expressive' ? '#fff' : theme.palette.textPrimary,
+                  border: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                {lang === 'vi'
+                  ? 'Chế độ Giải tỏa Cảm xúc (Expressive / Thấu cảm EAR 5 Bí quyết)'
+                  : 'Expressive Mode (Venting / TEAM-CBT EAR Empathy)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhase0Mode('instrumental')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  backgroundColor: phase0Mode === 'instrumental' ? theme.palette.primary : 'transparent',
+                  color: phase0Mode === 'instrumental' ? '#fff' : theme.palette.textPrimary,
+                  border: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                {lang === 'vi'
+                  ? 'Chế độ Thực hành Kỹ thuật (Instrumental CBT / DBT)'
+                  : 'Instrumental Mode (Guided CBT / DBT Protocol)'}
+              </button>
+            </div>
+
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+              {lang === 'vi'
+                ? 'Ghi âm Xả Cảm xúc (Voice Burst / Nhập nhanh tình huống):'
+                : 'Voice Burst Transcript / Situation Check-In:'}
+            </label>
+            <textarea
+              rows={2}
+              value={voiceBurstText}
+              onChange={(e) => setVoiceBurstText((e.target as HTMLTextAreaElement).value)}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px' }}
+            />
+
+            {/* Generated Mood Palette & 4-Layer Safety Screen */}
+            <div
+              style={{
+                marginTop: '10px',
+                padding: '12px',
+                borderRadius: '8px',
+                background: voiceBurstAnalysis.moodPalette.gradientCss,
+                color: '#0f172a',
+              }}
+            >
+              <strong>Mood-Palette ({voiceBurstAnalysis.moodPalette.dominantEmotion}): </strong>
+              {lang === 'vi'
+                ? voiceBurstAnalysis.moodPalette.summaryVi
+                : voiceBurstAnalysis.moodPalette.summaryEn}
+            </div>
+
+            {phase0Mode === 'expressive' && (
+              <p style={{ marginTop: '10px', padding: '10px', borderLeft: `4px solid ${theme.palette.primary}` }}>
+                {lang === 'vi'
+                  ? voiceBurstAnalysis.earEmpathyReplyVi
+                  : voiceBurstAnalysis.earEmpathyReplyEn}
+              </p>
+            )}
+
+            <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>
+              <strong>{lang === 'vi' ? 'Định tuyến DBT-First / CBT-Second: ' : 'DBT-First / CBT-Second Router: '}</strong>
+              {lang === 'vi' ? dbtFirstRouter.rationaleVi : dbtFirstRouter.rationaleEn}
+            </p>
+            <p style={{ marginTop: '6px', fontSize: '0.9rem', color: safetyGate.safeToProceedToCbt ? theme.palette.primary : '#e11d48' }}>
+              <strong>4-Layer Safety Gate: </strong>
+              {lang === 'vi' ? safetyGate.bannerVi : safetyGate.bannerEn}
+            </p>
+          </section>
+
+          {/* Live Socratic Pushback Switcher Mid-Session */}
+          <section
+            style={{
+              padding: '14px 16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <strong>
+                {lang === 'vi'
+                  ? 'Bộ Điều Khiển Socratic Pushback Trực Tiếp Trong Phiên:'
+                  : 'Live Mid-Session Socratic Pushback Controller:'}
+              </strong>
+              {(['off', 'gentle', 'moderate', 'firm'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setPushbackLevel(lvl)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '4px',
+                    backgroundColor: pushbackLevel === lvl ? theme.palette.primary : 'transparent',
+                    color: pushbackLevel === lvl ? '#fff' : theme.palette.textPrimary,
+                    border: `1px solid ${theme.palette.border}`,
+                  }}
+                >
+                  {lvl.toUpperCase()}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPushbackLevel(adjustPushbackLevel(pushbackLevel, 'softer'))}
+                style={{ padding: '5px 10px' }}
+              >
+                {lang === 'vi' ? '↓ Nhẹ hơn (Softer)' : '↓ Softer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPushbackLevel(adjustPushbackLevel(pushbackLevel, 'harder'))}
+                style={{ padding: '5px 10px' }}
+              >
+                {lang === 'vi' ? '↑ Sâu hơn (Harder)' : '↑ Harder'}
+              </button>
+            </div>
+            <p style={{ margin: '8px 0 0 0', fontSize: '0.88rem', color: theme.palette.textSecondary }}>
+              {lang === 'vi' ? livePushbackPreview.promptVi : livePushbackPreview.promptEn}
+            </p>
+          </section>
+
+          {/* 5-Family Affect Labeling Cards (Shame vs Guilt distinction) */}
+          <section
+            style={{
+              padding: '14px 16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>
+              {lang === 'vi'
+                ? 'Bảng Gọi Tên 5 Họ Cảm Xúc (Affect Labeling — Phân biệt rõ Xấu hổ vs. Tội lỗi)'
+                : '5-Family Affect Labeling Cards (Distinguishing Shame vs. Guilt)'}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
+              {FIVE_FAMILY_AFFECT_CARDS.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setTrAffect(card.family)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border:
+                      trAffect === card.family
+                        ? `2px solid ${theme.palette.primary}`
+                        : `1px solid ${theme.palette.border}`,
+                    backgroundColor: theme.palette.surface,
+                    color: theme.palette.textPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <strong>{lang === 'vi' ? card.labelVi : card.labelEn}</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: theme.palette.textSecondary }}>
+                    {lang === 'vi' ? card.clinicalNoteVi : card.clinicalNoteEn}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* 7 Interactive Guided Protocols Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+            {/* 1. CBT 7-Step Thought Record with Accuracy Check */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>1. CBT 7-Step Thought Record + Cổng Accuracy Check (Giữa Bước 5 & 6)</h3>
+              <p style={{ fontSize: '0.85rem' }}>
+                <strong>Step 1 (Tình huống máy quay):</strong> {trSituation}
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                <strong>Step 2 (Suy nghĩ tự động):</strong> {trHotThought}
+              </p>
+              <p style={{ fontSize: '0.82rem', color: theme.palette.accent }}>
+                <strong>Phân loại Biến dạng Ngầm (0ms): </strong>
+                {thoughtRecordEval.distortions.negative.map((d) => d.nameVi).join(' • ') || 'Không phát hiện'}
+              </p>
+              <label style={{ display: 'block', margin: '10px 0', fontSize: '0.88rem', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={trIsObjectivelyTrue}
+                  onChange={(e) => setTrIsObjectivelyTrue((e.target as HTMLInputElement).checked)}
+                />{' '}
+                CỔNG ACCURACY CHECK (Giữa Bước 5 & 6): Suy nghĩ này là sự thật khách quan (mất mát thật)?
+              </label>
+              <div
+                style={{
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor: trIsObjectivelyTrue ? '#fef3c7' : '#ecfdf5',
+                  color: '#0f172a',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <strong>Outcome: `{thoughtRecordEval.outcome}`</strong>
+                <p style={{ margin: '4px 0 0 0' }}>
+                  {lang === 'vi'
+                    ? thoughtRecordEval.accuracyCheck.coachingVi
+                    : thoughtRecordEval.accuracyCheck.coachingEn}
+                </p>
+              </div>
+            </article>
+
+            {/* 2. CBT Behavioral Activation 6-Step with Mandatory Rest Check & Confidence >= 7/10 */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>2. CBT Behavioral Activation 6 Bước + Cổng Rest Check & Tự Tin &gt;= 7/10</h3>
+              <p style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+                {lang === 'vi'
+                  ? behavioralActivationEval.predictionErrorInsightVi
+                  : behavioralActivationEval.predictionErrorInsightEn}
+              </p>
+              <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={baNeedsRest}
+                  onChange={(e) => setBaNeedsRest((e.target as HTMLInputElement).checked)}
+                />{' '}
+                Step 2 — CỔNG REST CHECK: Đang kiệt sức sinh học / ốm / thiếu ngủ cần Nghỉ ngơi Không Áy náy?
+              </label>
+              <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem' }}>
+                Step 4 — Điểm Tự Tin thực hiện (0–10, bắt buộc &gt;= 7/10):{' '}
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={baConfidence}
+                  onChange={(e) => setBaConfidence(Number((e.target as HTMLInputElement).value))}
+                  style={{ width: '55px' }}
+                />
+              </label>
+              <div
+                style={{
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor: '#f1f5f9',
+                  color: '#0f172a',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <strong>Outcome: `{behavioralActivationEval.outcome}`</strong>
+                <p style={{ margin: '4px 0 0 0' }}>
+                  {!behavioralActivationEval.confidencePassed
+                    ? behavioralActivationEval.requireMicroShrinkPromptVi
+                    : behavioralActivationEval.ifThenPlan}
+                </p>
+              </div>
+            </article>
+
+            {/* 3. TEAM-CBT Paradoxical Agenda Setting */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>3. TEAM-CBT Paradoxical Agenda Setting (Magic Button • Magic Dial • Voices)</h3>
+              <p style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? pasEval.summaryVi : pasEval.summaryEn}
+              </p>
+              <label style={{ fontSize: '0.85rem' }}>
+                Magic Dial (Mức lo âu muốn giữ lại %):{' '}
+                <input
+                  type="number"
+                  min={10}
+                  max={80}
+                  value={pasMagicDialTarget}
+                  onChange={(e) => setPasMagicDialTarget(Number((e.target as HTMLInputElement).value))}
+                  style={{ width: '60px' }}
+                />
+                %
+              </label>
+            </article>
+
+            {/* 4. DBT Opposite Action (4 steps with Justified Check) */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>4. DBT Opposite Action (4 Bước + Cổng Justified Check)</h3>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.88rem' }}>
+                <input
+                  type="checkbox"
+                  checked={oaRealDanger}
+                  onChange={(e) => setOaRealDanger((e.target as HTMLInputElement).checked)}
+                />{' '}
+                Step 3 — JUSTIFIED CHECK: Tình huống có mối nguy hiểm thực tế (Bạo lực / Không an toàn)?
+              </label>
+              <p style={{ fontSize: '0.85rem' }}>
+                <strong>Outcome: `{oppositeActionEval.outcome}`</strong> —{' '}
+                {lang === 'vi' ? oppositeActionEval.directiveVi : oppositeActionEval.directiveEn}
+              </p>
+            </article>
+
+            {/* 5. DBT Wise Mind (6 steps with Harsh Self-Critic Guard & "Nothing yet") */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>5. DBT Wise Mind (6 Bước + Harsh Self-Critic Guard &amp; &quot;Nothing yet&quot;)</h3>
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
+                Step 3 (Tâm Lý Trí — Thử gõ từ tự phán xét như &quot;yếu đuối&quot; để kiểm tra Guard):
+                <input
+                  type="text"
+                  value={wmReasonableText}
+                  onChange={(e) => setWmReasonableText((e.target as HTMLInputElement).value)}
+                  style={{ width: '100%', padding: '6px', marginTop: '4px' }}
+                />
+              </label>
+              <p style={{ fontSize: '0.82rem', color: wiseMindEval.criticGuard.isSelfCriticDisguised ? '#e11d48' : theme.palette.primary }}>
+                {lang === 'vi'
+                  ? wiseMindEval.criticGuard.reframePromptVi
+                  : wiseMindEval.criticGuard.reframePromptEn}
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? wiseMindEval.closingSummaryVi : wiseMindEval.closingSummaryEn}
+              </p>
+            </article>
+
+            {/* 6. DBT Chain Analysis (6 steps + Hard Stops for self-harm/victimization + Shame Protocol) */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>6. DBT Chain Analysis (6 Bước + 2 Hard Stops &amp; Shame Protocol)</h3>
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
+                Step 1 (Hành vi mục tiêu — Tự động chặn nếu nhập tự hại hoặc bị bạo hành):
+                <input
+                  type="text"
+                  value={caTargetBehavior}
+                  onChange={(e) => setCaTargetBehavior((e.target as HTMLInputElement).value)}
+                  style={{ width: '100%', padding: '6px', marginTop: '4px' }}
+                />
+              </label>
+              <p style={{ fontSize: '0.85rem' }}>
+                <strong>Outcome: `{chainAnalysisEval.outcome}`</strong> —{' '}
+                {lang === 'vi' ? chainAnalysisEval.summaryVi : chainAnalysisEval.summaryEn}
+              </p>
+            </article>
+
+            {/* 7. DBT DEAR MAN + TEAM-CBT EAR with Interactive AI Roleplay Rehearsal */}
+            <article
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+                gridColumn: '1 / -1',
+              }}
+            >
+              <h3>7. DBT DEAR MAN + 5 Bí Quyết Giao Tiếp EAR &amp; Tập Dượt AI Roleplay (Softer / Harder)</h3>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <span>Mức độ kháng cự của AI đóng vai đối phương:</span>
+                {(['softer', 'moderate', 'harder'] as const).map((resLvl) => (
+                  <button
+                    key={resLvl}
+                    type="button"
+                    onClick={() => setDmResistance(resLvl)}
+                    style={{
+                      padding: '4px 10px',
+                      backgroundColor: dmResistance === resLvl ? theme.palette.primary : 'transparent',
+                      color: dmResistance === resLvl ? '#fff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
+                      borderRadius: '4px',
+                    }}
+                  >
+                    {resLvl.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '0.88rem' }}>
+                <strong>Kịch bản DEAR MAN hoàn chỉnh:</strong> &ldquo;{dearManEval.assembledScript}&rdquo;
+              </p>
+              <p style={{ fontSize: '0.88rem', padding: '10px', backgroundColor: '#f1f5f9', color: '#0f172a', borderRadius: '6px' }}>
+                {lang === 'vi' ? dearManEval.roleplayPartnerReplyVi : dearManEval.roleplayPartnerReplyEn}
+              </p>
+              <p style={{ fontSize: '0.84rem' }}>
+                <strong>Huấn luyện sau vòng diễn:</strong> {dearManEval.coachingStrengthVi} | {dearManEval.coachingTweakVi}
+              </p>
+            </article>
+          </div>
+        </main>
+      )}
+
+      {/* TAB 2: ANXIETY GOLD-STANDARD HUB */}
+      {activeTab === 'anxiety-hub' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+            {/* Worry Box (Worry Postponement 15-min window) */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>1. Hộp Lo Âu (Worry Box — Trì Hoãn Lo Lắng Khung Giờ 17:30–17:45)</h3>
+              <textarea
+                rows={2}
+                value={worryInput}
+                onChange={(e) => setWorryInput((e.target as HTMLTextAreaElement).value)}
+                style={{ width: '100%', padding: '8px', marginBottom: '8px' }}
+              />
+              <p style={{ fontSize: '0.86rem' }}>
+                <strong>Phân loại tự động:</strong> `{worryProcessed.updatedItem.category}` ({worryProcessed.updatedItem.scheduledWindowTime})
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? worryProcessed.clinicalProtocolVi : worryProcessed.clinicalProtocolEn}
+              </p>
+            </section>
+
+            {/* Exposure Hierarchy Builder (ERP & Interoceptive Exposure) + Safety Behavior Detector */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>2. Thang Tiếp Xúc Sợ Hãi (ERP &amp; Interoceptive SUDS 0–100) + Safety Behavior Detector</h3>
+              {exposureLadder.map((step) => (
+                <div
+                  key={step.id}
+                  style={{
+                    padding: '10px',
+                    marginBottom: '8px',
+                    borderRadius: '6px',
+                    border: `1px solid ${theme.palette.border}`,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <strong>
+                    [{step.exposureType.toUpperCase()}] {step.title}
+                  </strong>
+                  <div>
+                    SUDS Ban đầu: {step.baselineSuds}/100 → Hiện tại: {step.currentSuds}/100{' '}
+                    {step.habituationAchieved ? '(Đã quen dần / Habituated ✓)' : ''}
+                  </div>
+                  {step.detectedSafetyBehaviors.length > 0 && (
+                    <div style={{ color: '#e11d48' }}>
+                      Hành vi an toàn ngầm phát hiện: {step.detectedSafetyBehaviors.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            {/* Prediction Calibration Tracker */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>3. Hiệu Chỉnh Dự Đoán Thảm Họa (Prediction Calibration Tracker)</h3>
+              <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                {lang === 'vi' ? predictionStats.calibrationInsightVi : predictionStats.calibrationInsightEn}
+              </p>
+              {predictionEntries.map((pe) => (
+                <div key={pe.id} style={{ fontSize: '0.84rem', marginBottom: '8px' }}>
+                  • <strong>{pe.eventDescription}:</strong> Dự đoán thảm họa {pe.predictedProbabilityPercent}% → Thực tế:{' '}
+                  {pe.actualOutcome}
+                </div>
+              ))}
+            </section>
+          </div>
+        </main>
+      )}
+
+      {/* TAB 3: BIPOLAR & IPSRT HUB */}
+      {activeTab === 'bipolar-ipsrt-hub' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+            {/* Dual-Pole Mood & Energy Chart (-5 to +5) & Prodrome / Mixed State Detector */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>1. Biểu Đồ Khí Sắc Hai Cực (-5 đến +5) &amp; Cảnh Báo Pha Hỗn Hợp / Tiền Triệu</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem' }}>
+                <label>
+                  Khí sắc (Valence -5..+5): {moodPolarity}
+                  <input
+                    type="range"
+                    min={-5}
+                    max={5}
+                    value={moodPolarity}
+                    onChange={(e) => setMoodPolarity(Number((e.target as HTMLInputElement).value) as MoodPole)}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label>
+                  Năng lượng vận động (Energy -5..+5): {energyLevel}
+                  <input
+                    type="range"
+                    min={-5}
+                    max={5}
+                    value={energyLevel}
+                    onChange={(e) => setEnergyLevel(Number((e.target as HTMLInputElement).value) as MoodPole)}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label>
+                  Số giờ ngủ đêm qua: {sleepHours}h
+                  <input
+                    type="number"
+                    min={0}
+                    max={14}
+                    step={0.5}
+                    value={sleepHours}
+                    onChange={(e) => setSleepHours(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '70px', marginLeft: '8px' }}
+                  />
+                </label>
+              </div>
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor:
+                    bipolarAnalysis.isMixedState || bipolarAnalysis.isManiaProdrome ? '#7f1d1d' : '#064e3b',
+                  color: '#fff',
+                  fontSize: '0.86rem',
+                }}
+              >
+                {lang === 'vi' ? bipolarAnalysis.clinicalAlertVi : bipolarAnalysis.clinicalAlertEn}
+              </div>
+            </section>
+
+            {/* 5 IPSRT Social Rhythm Anchors */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>2. Nhịp Sinh Học 5 Mốc IPSRT (Điểm Ổn Định: {ipsrtReport.stabilityScorePercent}%)</h3>
+              <ul style={{ fontSize: '0.86rem' }}>
+                <li>1. Giờ thức dậy ra khỏi giường: {currentBipolarLog.ipsrtAnchors.outOfBedTime}</li>
+                <li>2. Tiếp xúc xã hội đầu tiên: {currentBipolarLog.ipsrtAnchors.firstSocialContactTime}</li>
+                <li>3. Bắt đầu làm việc/học tập: {currentBipolarLog.ipsrtAnchors.workOrStudyStartTime}</li>
+                <li>4. Giờ ăn tối: {currentBipolarLog.ipsrtAnchors.dinnerTime}</li>
+                <li>5. Giờ đi ngủ: {currentBipolarLog.ipsrtAnchors.bedTime}</li>
+              </ul>
+              <p style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? ipsrtReport.interpretationVi : ipsrtReport.interpretationEn}
+              </p>
+            </section>
+
+            {/* 48-Hour Impulse Vault */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>3. Khoang Trì Hoãn Quyết Định 48 Giờ (48-Hour Impulse Vault)</h3>
+              <p style={{ fontSize: '0.86rem' }}>
+                <strong>Quyết định đang khóa:</strong> {impulseVaultEntry.impulseDescription}
+              </p>
+              <p style={{ fontSize: '0.84rem', color: '#d97706' }}>
+                <strong>Biến dạng Dương tính phát hiện:</strong>{' '}
+                {impulseVaultEntry.positiveDistortionsDetected.join(' • ')}
+              </p>
+              <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                {lang === 'vi' ? impulseLockStatus.statusMessageVi : impulseLockStatus.statusMessageEn}
+              </p>
+            </section>
+
+            {/* Ulysses Contract & Medication Adherence CBT */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>4. Giao Ước Bình Ổn (Ulysses Contract) &amp; Tuân Thủ Thuốc CBT</h3>
+              <p style={{ fontSize: '0.84rem' }}>
+                <strong>Dấu hiệu tiền triệu cá nhân:</strong>{' '}
+                {DEFAULT_ULYSSES_CONTRACT.personalManiaProdromes.join('; ')}
+              </p>
+              <p style={{ fontSize: '0.84rem' }}>
+                <strong>Tái cấu trúc suy nghĩ muốn bỏ thuốc:</strong>{' '}
+                {lang === 'vi'
+                  ? medAdherenceReview.balancedAdherenceThoughtVi
+                  : medAdherenceReview.balancedAdherenceThoughtEn}
+              </p>
+            </section>
+          </div>
+        </main>
+      )}
+
+      {/* TAB 4: CLINICAL SELF-ASSESSMENTS, ENCRYPTED STORAGE, OLLAMA & A4 REPORT */}
+      {activeTab === 'assessments-report' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          <section
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h3>1. Hệ Thống 6 Thang Đo Lâm Sàng Định Kỳ (BMS • PHQ-9 • GAD-7 • ASRM • MDQ • ISI)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+              {assessments.map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${theme.palette.border}`,
+                    fontSize: '0.86rem',
+                  }}
+                >
+                  <strong>{lang === 'vi' ? a.labelVi : a.labelEn}</strong>
+                  <p style={{ margin: '6px 0 0 0', color: theme.palette.textSecondary }}>
+                    {lang === 'vi' ? a.clinicalRecommendationVi : a.clinicalRecommendationEn}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Local Encrypted Storage, Markdown Export & Local Ollama Toggle */}
+          <section
+            className="no-print"
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h3>2. Tự Chủ Dữ Liệu (WebCrypto AES-GCM 256 • Xuất Markdown • Local Ollama 11434)</h3>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <button
+                type="button"
+                onClick={() => void handleTestWebCryptoEncryption()}
+                style={{ padding: '8px 12px', cursor: 'pointer' }}
+              >
+                Mã hóa Phiên Hiện Tại (WebCrypto AES-GCM 256)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setAiMode(aiMode === 'local-ollama' ? 'offline-deterministic' : 'local-ollama')
+                }
+                style={{ padding: '8px 12px', cursor: 'pointer' }}
+              >
+                Chế độ AI: {aiMode.toUpperCase()} (http://127.0.0.1:11434)
+              </button>
+              <button
+                type="button"
+                onClick={() => typeof window !== 'undefined' && window.print()}
+                style={{
+                  padding: '8px 14px',
+                  backgroundColor: theme.palette.primary,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                In Báo Cáo Lâm Sàng Chuẩn A4 (@media print)
+              </button>
+            </div>
+            <p style={{ fontSize: '0.84rem' }}>
+              <strong>Trạng thái Mã hóa Cục bộ:</strong> <code>{encryptedPreview}</code>
+            </p>
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+                Xem File Xuất Markdown Chuẩn ({markdownExport.filename})
+              </summary>
+              <pre
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#0f172a',
+                  color: '#e2e8f0',
+                  borderRadius: '6px',
+                  overflowX: 'auto',
+                  fontSize: '0.8rem',
+                }}
+              >
+                {markdownExport.markdownContent}
+              </pre>
+            </details>
+          </section>
+
+          {/* Print-Optimized A4 Clinician Summary Report */}
+          <section
+            className="print-only-a4"
+            style={{
+              padding: '20px',
+              borderRadius: '10px',
+              backgroundColor: '#ffffff',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>
+              BÁO CÁO TÓM TẮT LÂM SÀNG CHUẨN A4 (CLINICIAN SUMMARY REPORT — 30 DAYS)
+            </h2>
+            <p style={{ fontSize: '0.88rem' }}>
+              <strong>Mã Bệnh Nhân:</strong> {clinicianReport.patientAlias} |{' '}
+              <strong>Ngày xuất:</strong> {clinicianReport.generatedDate} |{' '}
+              <strong>Điểm Ổn định Nhịp Sinh học IPSRT:</strong> {clinicianReport.ipsrtAverageStabilityPercent}% |{' '}
+              <strong>Tuân thủ Thuốc:</strong> {clinicianReport.medicationAdherencePercent}%
+            </p>
+            <p style={{ fontSize: '0.85rem' }}>
+              <strong>Biến dạng Nhận thức Thường gặp:</strong>{' '}
+              {clinicianReport.topDistortions.join(', ') || 'Chưa ghi nhận'}
+            </p>
+            <p style={{ fontSize: '0.82rem', color: '#475569' }}>
+              <strong>Liên kết Chia sẻ Bác sĩ Mã hóa Đầu-Cuối (Zero-Knowledge E2EE Share Link):</strong>{' '}
+              <code>{clinicianReport.e2eeShareUrlFragment}</code>
+            </p>
+          </section>
+        </main>
+      )}
+    </div>
+  );
+}

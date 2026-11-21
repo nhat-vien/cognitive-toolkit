@@ -1,0 +1,18 @@
+{
+  "name": "equilibria-cognitive-toolkit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-platform CBT, TEAM-CBT, DBT & IPSRT Clinical Ecosystem for Anxiety, Depression, and Bipolar Disorder",
+  "workspaces": [
+    "packages/*",
+    "apps/web-nextjs"
+  ],
+  "scripts": {
+    "test": "npm test --workspace=@equilibria/clinical-core-ts",
+    "test:core": "npm test --workspace=@equilibria/clinical-core-ts",
+    "typecheck:core": "npm run typecheck --workspace=@equilibria/clinical-core-ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

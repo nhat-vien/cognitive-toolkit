@@ -1,0 +1,25 @@
+{
+  "name": "@cognitive-toolkit/web-nextjs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Equilibria (Mind Anchor) — Bilingual Vietnamese/English Web & Clinician Portal for Anxiety, Depression, and Bipolar Disorder (CBT, TEAM-CBT, DBT, IPSRT)",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/web-clinical-app.test.ts"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  }
+}
