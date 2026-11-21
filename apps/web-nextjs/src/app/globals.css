@@ -54,11 +54,45 @@ body {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+/* Soft Biophilic Ambient Mesh Backgrounds per Theme Mode */
+.theme-standard {
+  background-color: #FAF8F4;
+  background-image:
+    radial-gradient(circle at 12% 14%, rgba(197, 190, 220, 0.32) 0%, rgba(197, 190, 220, 0) 46%),
+    radial-gradient(circle at 88% 18%, rgba(246, 213, 158, 0.28) 0%, rgba(246, 213, 158, 0) 44%),
+    radial-gradient(circle at 82% 84%, rgba(155, 196, 174, 0.30) 0%, rgba(155, 196, 174, 0) 50%),
+    radial-gradient(circle at 18% 82%, rgba(216, 208, 232, 0.24) 0%, rgba(216, 208, 232, 0) 45%),
+    linear-gradient(180deg, #FAF8F5 0%, #F4F1EA 100%);
+  background-attachment: fixed;
+}
+
+.theme-low-energy-depression {
+  background-color: #F4EFE6;
+  background-image:
+    radial-gradient(circle at 15% 18%, rgba(242, 192, 120, 0.26) 0%, rgba(242, 192, 120, 0) 48%),
+    radial-gradient(circle at 85% 78%, rgba(155, 196, 174, 0.24) 0%, rgba(155, 196, 174, 0) 50%),
+    radial-gradient(circle at 78% 16%, rgba(197, 190, 220, 0.22) 0%, rgba(197, 190, 220, 0) 42%),
+    linear-gradient(180deg, #F7F3EB 0%, #EFE9DD 100%);
+  background-attachment: fixed;
+}
+
+.theme-low-stimulus-mania {
+  background-color: #14110F;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0) 50%),
+    radial-gradient(circle at 80% 80%, rgba(180, 83, 9, 0.10) 0%, rgba(180, 83, 9, 0) 50%),
+    linear-gradient(180deg, #181411 0%, #120F0D 100%);
+  background-attachment: fixed;
+}
+
 main section,
 main article {
-  border-radius: 18px !important;
-  padding: 20px 22px !important;
-  box-shadow: 0 6px 22px rgba(47, 47, 43, 0.035);
+  position: relative;
+  z-index: 1;
+  border-radius: 20px !important;
+  padding: 22px 24px !important;
+  box-shadow: 0 10px 30px rgba(47, 47, 43, 0.045), 0 2px 8px rgba(121, 114, 152, 0.04);
+  backdrop-filter: blur(10px);
 }
 
 h1, h2, h3, h4 {

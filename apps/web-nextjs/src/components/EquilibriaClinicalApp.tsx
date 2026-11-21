@@ -1345,12 +1345,78 @@ export function EquilibriaClinicalApp() {
     <div
       className={`theme-${theme.mode}`}
       style={{
+        position: 'relative',
         minHeight: '100vh',
-        backgroundColor: theme.palette.background,
         color: theme.palette.textPrimary,
-        paddingBottom: '48px',
+        paddingBottom: '56px',
+        overflowX: 'hidden',
       }}
     >
+      {/* Subtle Biophilic Botanical & Zen Wave Ambient Backdrop Artwork */}
+      <div
+        className="no-print"
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Top-Left Soft Botanical Leaf & Zen Breathing Rings */}
+        <svg
+          width="420"
+          height="420"
+          viewBox="0 0 420 420"
+          fill="none"
+          style={{
+            position: 'absolute',
+            top: '52px',
+            left: '-70px',
+            opacity: theme.mode === 'low-stimulus-mania' ? 0.07 : 0.28,
+          }}
+        >
+          <circle cx="190" cy="190" r="145" stroke="#797298" strokeWidth="1.2" strokeDasharray="6 8" />
+          <circle cx="190" cy="190" r="105" stroke="#6AA882" strokeWidth="1" />
+          <path
+            d="M70 310 C115 230 175 165 265 110"
+            stroke="#6AA882"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path d="M135 235 C105 215 110 178 148 190 C154 214 146 228 135 235 Z" fill="#9BC4AE" fillOpacity="0.45" />
+          <path d="M180 185 C212 195 224 162 192 152 C178 164 176 176 180 185 Z" fill="#C5BEDC" fillOpacity="0.5" />
+          <path d="M215 148 C192 130 198 98 230 112 C234 130 225 142 215 148 Z" fill="#9BC4AE" fillOpacity="0.45" />
+        </svg>
+
+        {/* Bottom-Right Serene Rolling Hills & Floating Sun/Moon Glow */}
+        <svg
+          width="540"
+          height="320"
+          viewBox="0 0 540 320"
+          fill="none"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            right: '-40px',
+            opacity: theme.mode === 'low-stimulus-mania' ? 0.08 : 0.32,
+          }}
+        >
+          <circle cx="410" cy="110" r="54" fill="#F6D59E" fillOpacity="0.45" />
+          <path
+            d="M40 320 Q170 210 320 265 T540 220 L540 320 Z"
+            fill="#C5BEDC"
+            fillOpacity="0.42"
+          />
+          <path
+            d="M120 320 Q280 235 430 278 T540 255 L540 320 Z"
+            fill="#9BC4AE"
+            fillOpacity="0.45"
+          />
+        </svg>
+      </div>
+
       {/* Persistent Top Header with 1-Tap DBT SOS Button & Adaptive Theme Switcher */}
       <header
         className="no-print"
