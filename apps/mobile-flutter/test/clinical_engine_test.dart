@@ -18,6 +18,7 @@ import 'package:equilibria_mobile_flutter/domain/engine/bipolar_ipsrt_engine.dar
 import 'package:equilibria_mobile_flutter/domain/engine/clinical_assessments.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/distortion_detector.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/phase2_clinical_tools.dart';
+import 'package:equilibria_mobile_flutter/domain/engine/phase3_memory_biometrics_voice.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/session_state_machine.dart';
 import 'package:equilibria_mobile_flutter/domain/models/clinical_models.dart';
 import 'package:equilibria_mobile_flutter/presentation/theme/adaptive_clinical_theme.dart';
@@ -423,6 +424,146 @@ void main() {
       expect(hypomaniaRes.bipolarManiaContraindicationBlocked, isTrue);
       expect(hypomaniaRes.sleepRestrictionAllowed, isFalse);
       expect(hypomaniaRes.clinicalRecommendationVi, contains('BIPOLAR MANIA GUARD'));
+    });
+  });
+
+  group('7. Phase 3 Clinical Expansion: 2-Tier Memory (20-Msg Window + 15-Msg Rolling Summary + Profile), Voice Burst > 30% WPM Pressured Speech & Grounded RAG 0.46 Abstention', () {
+    test('2-Tier ClinicalMemoryStore enforces 20-message active window, 15-message Rolling Summary, immediate StructuredPersonalProfile extraction, and 1-tap erasure', () {
+      final store = ClinicalMemoryStore();
+
+      // Message 1 extracts structured personal profile facts immediately
+      store.appendMessage(
+        role: 'user',
+        content:
+            'Tên tôi là Minh. Tôi rất coi trọng gia đình và sức khỏe. Người tin cậy là Chị Lan. Một lỗi nhỏ làm hỏng hết, tôi là kẻ thất bại. Hãy phản biện sâu (firm) với tôi.',
+      );
+
+      final snap1 = store.snapshot;
+      expect(snap1.personalProfile.preferredName, equals('Minh'));
+      expect(snap1.personalProfile.coreValues, contains('Gia đình & Sự gắn kết'));
+      expect(snap1.personalProfile.coreValues, contains('Sức khỏe & Nhịp sinh học ổn định'));
+      expect(snap1.personalProfile.trustedPeople, isNotEmpty);
+      expect(snap1.personalProfile.recurrentDistortions, contains('mental_filter'));
+      expect(snap1.personalProfile.recurrentDistortions, contains('labeling'));
+      expect(snap1.personalProfile.preferredPushbackLevel, equals(PushbackLevel.firm));
+      expect(snap1.rollingSummaryRefreshCount, equals(0));
+
+      // Append up to 15 messages -> Rolling Summary refreshes at message 15
+      for (int i = 2; i <= 15; i++) {
+        store.appendMessage(
+          role: i.isEven ? 'assistant' : 'user',
+          content: 'Tin nhắn thử nghiệm số $i trong phiên CBT.',
+        );
+      }
+      final snap15 = store.snapshot;
+      expect(snap15.totalMessagesProcessed, equals(15));
+      expect(snap15.activeWindowMessages.length, equals(15));
+      expect(snap15.rollingSummaryRefreshCount, equals(1));
+      expect(snap15.rollingSummaryVi, contains('Rolling Summary #1'));
+      expect(snap15.rollingSummaryVi, contains('Minh'));
+
+      // Append 10 more messages (total 25) -> Active window caps strictly at 20 messages
+      for (int i = 16; i <= 25; i++) {
+        store.appendMessage(
+          role: i.isEven ? 'assistant' : 'user',
+          content: 'Tin nhắn thử nghiệm số $i.',
+        );
+      }
+      final snap25 = store.snapshot;
+      expect(snap25.totalMessagesProcessed, equals(25));
+      expect(snap25.activeWindowMessages.length, equals(20));
+      expect(snap25.activeWindowMessages.first.id, equals('mem-6'));
+      expect(snap25.activeWindowMessages.last.id, equals('mem-25'));
+
+      // One-tap memory erasure resets active window, summary, and personal profile
+      final erased = store.eraseAllDerivedMemory();
+      expect(erased.activeWindowMessages, isEmpty);
+      expect(erased.totalMessagesProcessed, equals(0));
+      expect(erased.rollingSummaryRefreshCount, equals(0));
+      expect(erased.personalProfile.isEmpty, isTrue);
+    });
+
+    test('Voice Burst Analyzer detects > 30% WPM Bipolar Pressured Speech spike, Expressive vs. Instrumental intent, and 5-color Mood-Palette', () {
+      // 42 words in 12 seconds = 210 WPM vs 125 WPM baseline (+68% spike > +30%)
+      const rapidTranscript =
+          'Tôi vừa nảy ra ý tưởng thiên tài đêm qua chỉ ngủ ba tiếng nhưng tràn trề năng lượng '
+          'muốn rút hết tiết kiệm đầu tư ngay bây giờ vì chắc chắn thắng một trăm phần trăm '
+          'không thể thua được không cần ngủ luôn';
+      final pressuredRes = analyzeVoiceBurstRecording(
+        transcript: rapidTranscript,
+        durationSeconds: 12,
+        baselineWpm: 125.0,
+        currentMoodPolarity: 2,
+      );
+
+      expect(pressuredRes.wordsPerMinute, greaterThan(162.5)); // > 125 * 1.30
+      expect(pressuredRes.wpmSpikePercentage, greaterThan(30.0));
+      expect(pressuredRes.pressuredSpeechAlertTriggered, isTrue);
+      expect(pressuredRes.moodPalette.hexColors.length, equals(5));
+      expect(pressuredRes.moodPalette.dominantAffect, equals('hypomanic-pressured-amber'));
+      expect(pressuredRes.recommendedProtocolSlug, equals('hypomania-devils-advocate'));
+
+      // Normal pace instrumental request (18 words in 12 seconds = 90 WPM vs 125 WPM baseline)
+      final instrumentalRes = analyzeVoiceBurstRecording(
+        transcript:
+            'Làm sao để tôi kiểm tra bằng chứng cho suy nghĩ lo âu trước cuộc họp? Hướng dẫn tôi bài tập.',
+        durationSeconds: 12,
+        baselineWpm: 125.0,
+        currentMoodPolarity: 0,
+      );
+      expect(instrumentalRes.pressuredSpeechAlertTriggered, isFalse);
+      expect(instrumentalRes.classifiedIntent, equals(ComplaintIntent.instrumental));
+      expect(instrumentalRes.moodPalette.hexColors.length, equals(5));
+    });
+
+    test('GroundedAiCompanionService enforces strict 0.46 RAG Abstention Gate, inline [KB:chunk_id] citations, 4-Layer Safety Stop, and Local Ollama mode switch', () {
+      final service = GroundedAiCompanionService();
+
+      // 1. In-scope clinical query (score >= 0.46) returns inline [KB:chunk_id] citation
+      final groundedResp = service.sendUserMessage(
+        userMessage:
+            'Hướng dẫn tôi làm Nhật ký suy nghĩ Thought Record và kiểm tra cổng Accuracy Check.',
+      );
+      expect(groundedResp.abstained, isFalse);
+      expect(groundedResp.safetyStopTriggered, isFalse);
+      expect(
+        groundedResp.topSimilarityScore,
+        greaterThanOrEqualTo(kClinicalRagAbstentionThreshold),
+      );
+      expect(groundedResp.citations, isNotEmpty);
+      expect(
+        groundedResp.replyTextVi,
+        contains('[KB:thought-record#accuracy-check]'),
+      );
+
+      // 2. Out-of-scope query (score < 0.46) enforces 100% Abstention with EAR Empathy fallback
+      final abstainedResp = service.sendUserMessage(
+        userMessage:
+            'Dự báo giá Bitcoin và cổ phiếu chứng khoán hôm nay hoặc kê đơn tăng liều thuốc cho tôi?',
+      );
+      expect(abstainedResp.abstained, isTrue);
+      expect(
+        abstainedResp.topSimilarityScore,
+        lessThan(kClinicalRagAbstentionThreshold),
+      );
+      expect(abstainedResp.citations, isEmpty);
+      expect(abstainedResp.replyTextVi, contains('ABSTAINED'));
+      expect(abstainedResp.replyTextVi, contains('TEAM-CBT EAR Empathy Fallback'));
+
+      // 3. Switch to Local Ollama LAN Bridge mode and verify crisis safety stop overrides LLM
+      service.setProviderMode(
+        AiCompanionProviderMode.localOllamaLan,
+        customOllamaEndpoint: 'http://192.168.1.25:11434/api/chat',
+      );
+      expect(service.providerMode, equals(AiCompanionProviderMode.localOllamaLan));
+      expect(service.activeEndpoint, equals('http://192.168.1.25:11434/api/chat'));
+
+      final crisisResp = service.sendUserMessage(
+        userMessage: 'Tôi kiệt sức và không muốn sống nữa, muốn tự tử.',
+      );
+      expect(crisisResp.safetyStopTriggered, isTrue);
+      expect(crisisResp.replyTextVi, contains('SAFETY STOP'));
+      expect(crisisResp.replyTextVi, contains('115'));
     });
   });
 }

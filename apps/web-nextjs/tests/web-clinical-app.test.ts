@@ -639,4 +639,159 @@ test('8. Phase 2 Expansion: Full 36 Interactive CBT/TEAM-CBT/DBT Tools, Pleasure
   assert.equal(chart.points[0]?.isMixedRisk, true);
 });
 
+import {
+  SAMPLE_14_DAY_HRV_BASELINE,
+  analyzeMultimodalVoiceBurst,
+  createInitialClinicalMemoryState,
+  eraseDerivedProfileMemory,
+  evaluateBaselineRelativeHrvAndSleep,
+  executePhase3GroundedChatTurn,
+  updateTwoTierClinicalMemory,
+} from '../src/clinical/index.ts';
+
+test('9. Phase 3 (Sprint 5 & 6): Grounded AI Companion (Local Ollama / Cloud RAG 0.46), 2-Tier Rolling Memory (20-msg window + 15-msg summary + Personal Profile), Multimodal Voice Burst Pressured-Speech (>30% WPM) & Baseline-Relative HRV/Sleep Engine', async () => {
+  // 1. 2-Tier Rolling Memory: Structured Personal Profile extraction, 15-msg Rolling Summary, 20-msg Sliding Window & Erasure
+  let mem = createInitialClinicalMemoryState('patient-phase3', 'moderate');
+  mem = updateTwoTierClinicalMemory(mem, {
+    role: 'user',
+    content:
+      'Tên mình là Minh, kỹ sư phần mềm, người tin cậy là Trần Thu Hà. Mình luôn luôn sợ thất bại hoàn toàn và muốn nhẹ nhàng gentle pushback.',
+    mode: 'instrumental',
+  });
+  assert.equal(mem.personalProfile.name, 'Minh');
+  assert.equal(mem.personalProfile.workOrStudyDomain, 'Kỹ sư Phần mềm / Software Engineering');
+  assert.ok(mem.personalProfile.trustedContacts.includes('Trần Thu Hà'));
+  assert.equal(mem.personalProfile.preferredPushbackLevel, 'gentle');
+  assert.ok(mem.personalProfile.recurrentCognitiveDistortions.length >= 1);
+
+  // Feed 24 additional messages (total 25) -> verify Rolling Summary refreshed at message 15 and window capped at 20
+  for (let i = 2; i <= 25; i++) {
+    mem = updateTwoTierClinicalMemory(mem, {
+      role: i % 2 === 0 ? 'assistant' : 'user',
+      content: `Tin nhắn kiểm thử bộ nhớ số ${i} về kế hoạch gia đình và giấc ngủ.`,
+      mode: 'instrumental',
+    });
+  }
+  assert.equal(mem.totalMessagesProcessed, 25);
+  assert.equal(mem.recentMessagesWindow.length, 20); // Capped strictly at 20 messages
+  assert.equal(mem.summaryRefreshCount, 1); // Refreshed at 15 messages
+  assert.equal(mem.lastSummaryRefreshAtCount, 15);
+  assert.ok(mem.rollingSummary.includes('Rolling Summary #1 @ 15 msgs'));
+
+  // User erasure of derived profile & summary memory
+  const erased = eraseDerivedProfileMemory(mem, true);
+  assert.equal(erased.personalProfile.name, null);
+  assert.equal(erased.recentMessagesWindow.length, 0);
+  assert.equal(erased.summaryRefreshCount, 0);
+
+  // 2. Grounded AI Companion: Pre/Post 4-Layer Safety Gate + Strict 0.46 RAG Threshold (100% Abstention Accuracy)
+  const crisisTurn = await executePhase3GroundedChatTurn({
+    provider: 'offline-deterministic',
+    userMessage: 'Tôi không muốn sống nữa và muốn kết thúc tất cả',
+    mode: 'instrumental',
+    distressIntensity: 9,
+    moodPolarity: -4,
+    energyLevel: -2,
+    language: 'vi',
+  });
+  assert.equal(crisisTurn.outcome, 'safety-stop');
+  assert.equal(crisisTurn.preSafetyGate.recommendedRoute, 'safety-stop');
+
+  const inScopeTurn = await executePhase3GroundedChatTurn({
+    provider: 'local-ollama', // Falls back gracefully to deterministic grounded RAG if 127.0.0.1:11434 is offline
+    ollamaBaseUrl: 'http://127.0.0.1:65530',
+    userMessage: 'Làm sao áp dụng DBT TIPP nước lạnh và thở dẫn nhịp khi hoảng loạn?',
+    mode: 'instrumental',
+    distressIntensity: 7,
+    moodPolarity: 0,
+    energyLevel: 0,
+    language: 'vi',
+  });
+  assert.equal(inScopeTurn.abstained, false);
+  assert.ok(inScopeTurn.topSimilarityScore >= 0.46);
+  assert.ok(inScopeTurn.citations.includes('[KB:tipp#medical-screening]'));
+  assert.equal(inScopeTurn.postSafetyGateVerified, true);
+
+  const outOfScopeTurn = await executePhase3GroundedChatTurn({
+    provider: 'offline-deterministic',
+    userMessage: 'Dự đoán giá cổ phiếu tuần tới và công thức nấu bún bò Huế',
+    mode: 'instrumental',
+    distressIntensity: 3,
+    moodPolarity: 0,
+    energyLevel: 0,
+    language: 'vi',
+  });
+  assert.equal(outOfScopeTurn.abstained, true);
+  assert.equal(outOfScopeTurn.citations.length, 0);
+
+  // 3. Multimodal Voice Burst Analyzer: > 30% WPM Bipolar Pressured Speech Alert, Expressive vs Instrumental & 5-Swatch Mood Palette
+  const manicBurst = analyzeMultimodalVoiceBurst({
+    transcript:
+      'Tôi có ý tưởng thiên tài chắc chắn thắng một trăm phần trăm không cần ngủ đêm nay phải đầu tư ngay lập tức vì năng lượng đang tràn đầy không ai cản được tôi lúc này!',
+    durationSeconds: 10, // ~34 words in 10s = 204 WPM vs 125 baseline (+63% spike > 30%)
+    personalBaselineWpm: 125,
+    moodPolarity: 3,
+    energyLevel: 3,
+    feltNeedForSleep: 'reduced_need',
+  });
+  assert.ok(manicBurst.wordsPerMinute >= 180);
+  assert.ok(manicBurst.wpmSpikePercent > 30);
+  assert.equal(manicBurst.bipolarPressuredSpeechAlert, true);
+  assert.equal(manicBurst.moodPalette.fiveSwatches.length, 5);
+  assert.equal(manicBurst.moodPalette.dominantAffect, 'Elevated-Hypomanic');
+
+  const calmInstrumentalBurst = analyzeMultimodalVoiceBurst({
+    transcript: 'Làm sao giúp tôi lập bảng kế hoạch bài tập kích hoạt hành vi hôm nay?',
+    durationSeconds: 10,
+    personalBaselineWpm: 125,
+    moodPolarity: -1,
+    energyLevel: -1,
+  });
+  assert.equal(calmInstrumentalBurst.bipolarPressuredSpeechAlert, false);
+  assert.equal(calmInstrumentalBurst.classifiedComplaintType, 'instrumental');
+
+  // 4. Baseline-Relative HRV & Sleep Biometrics Engine (health-integration.md rules)
+  const freshBelowBaseline = evaluateBaselineRelativeHrvAndSleep({
+    deviceSource: 'apple_watch_sdnn',
+    historicalReadings14To30Days: SAMPLE_14_DAY_HRV_BASELINE,
+    latestReadingMs: 36, // Below P25 (~45.8ms)
+    latestReadingRecordedAtIso: '2026-11-21T06:00:00.000Z',
+    nowIso: '2026-11-21T08:00:00.000Z', // 2h old (< 12h fresh)
+    sleepDurationHours: 5.5,
+    feltNeedForSleep: 'exhausted',
+  });
+  assert.equal(freshBelowBaseline.isFreshUnder12Hours, true);
+  assert.equal(freshBelowBaseline.classification, 'below-baseline');
+  assert.equal(freshBelowBaseline.shouldMentionInCheckIn, true);
+  assert.equal(freshBelowBaseline.withinSessionPrePostComparisonAllowed, false);
+
+  // Stale reading (> 12h old) must be ignored
+  const staleHrv = evaluateBaselineRelativeHrvAndSleep({
+    deviceSource: 'apple_watch_sdnn',
+    historicalReadings14To30Days: SAMPLE_14_DAY_HRV_BASELINE,
+    latestReadingMs: 30,
+    latestReadingRecordedAtIso: '2026-11-20T10:00:00.000Z',
+    nowIso: '2026-11-21T08:00:00.000Z', // 22h old (> 12h)
+    sleepDurationHours: 7,
+    feltNeedForSleep: 'normal',
+  });
+  assert.equal(staleHrv.isFreshUnder12Hours, false);
+  assert.equal(staleHrv.classification, 'stale-ignored');
+  assert.equal(staleHrv.shouldMentionInCheckIn, false);
+
+  // Insufficient baseline (< 7 readings from same device source)
+  const insufficientHrv = evaluateBaselineRelativeHrvAndSleep({
+    deviceSource: 'fitbit_rmssd',
+    historicalReadings14To30Days: SAMPLE_14_DAY_HRV_BASELINE,
+    latestReadingMs: 35,
+    latestReadingRecordedAtIso: '2026-11-21T07:00:00.000Z',
+    nowIso: '2026-11-21T08:00:00.000Z',
+    sleepDurationHours: 7,
+    feltNeedForSleep: 'normal',
+  });
+  assert.equal(insufficientHrv.classification, 'insufficient-baseline');
+  assert.equal(insufficientHrv.shouldMentionInCheckIn, false);
+});
+
+
 

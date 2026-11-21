@@ -52,16 +52,26 @@ import {
   evaluateCbtiSleepEfficiency,
   computeUrgeSurfingWaveFrame,
   buildBipolarMultiAxisSvgChart,
+  SAMPLE_14_DAY_HRV_BASELINE,
+  analyzeMultimodalVoiceBurst,
+  createInitialClinicalMemoryState,
+  eraseDerivedProfileMemory,
+  evaluateBaselineRelativeHrvAndSleep,
+  executePhase3GroundedChatTurn,
+  updateTwoTierClinicalMemory,
   type AIConnectionMode,
   type AffectFamily,
   type BreathingPatternId,
   type ChainAnalysisLink,
+  type ClinicalConversationMemoryState,
   type CognitiveToolkitSession,
   type CompanionContext,
   type DailyMoodAndRhythmLog,
+  type HrvDeviceSource,
   type IntensityScore,
   type Language,
   type MoodPole,
+  type Phase3CompanionProvider,
   type PredictionCalibrationEntry,
   type PushbackLevel,
   type SessionPhase0Mode,
@@ -76,7 +86,8 @@ export type ActiveHubTab =
   | 'anxiety-hub'
   | 'bipolar-ipsrt-hub'
   | 'assessments-report'
-  | 'tools-36-team-cbt';
+  | 'tools-36-team-cbt'
+  | 'phase3-ai-biometrics-voice';
 
 export function EquilibriaClinicalApp() {
   // Global Bilingual & Clinical State
@@ -855,6 +866,98 @@ export function EquilibriaClinicalApp() {
     [moodPolarity, energyLevel, sleepHours, feltNeedForSleep]
   );
 
+  // 8. Phase 3 State: Grounded AI Companion (Local Ollama / RAG 0.46), 2-Tier Memory Inspector, Voice Burst WPM Studio & Baseline HRV/Sleep Context
+  const [phase3Provider, setPhase3Provider] =
+    useState<Phase3CompanionProvider>('offline-deterministic');
+  const [ollamaModelName, setOllamaModelName] = useState<string>('qwen3.5:9b');
+  const [phase3ChatInput, setPhase3ChatInput] = useState<string>(
+    'Tên mình là Minh, kỹ sư phần mềm. Làm sao dùng DBT TIPP nước lạnh khi hoảng loạn?'
+  );
+  const [phase3Memory, setPhase3Memory] = useState<ClinicalConversationMemoryState>(() =>
+    updateTwoTierClinicalMemory(createInitialClinicalMemoryState('patient-01', pushbackLevel), {
+      role: 'user',
+      content: 'Tên mình là Minh, kỹ sư phần mềm, người tin cậy là Trần Thu Hà. Mình luôn luôn sợ thất bại hoàn toàn.',
+      mode: 'instrumental',
+    })
+  );
+  const [phase3LastCitations, setPhase3LastCitations] = useState<string[]>([
+    '[KB:tipp#medical-screening]',
+  ]);
+  const [phase3LastAbstained, setPhase3LastAbstained] = useState<boolean>(false);
+  const [phase3LastTopScore, setPhase3LastTopScore] = useState<number>(0.88);
+  const [phase3LastReply, setPhase3LastReply] = useState<string>(
+    'Theo phác đồ chuẩn [DBT TIPP > Mandatory Medical Exclusion Screen & Paced Breathing]: Trước khi áp nước mát 15-30s, bắt buộc sàng lọc bệnh tim mạch, nhịp tim chậm, beta-blockers, dị ứng lạnh và rối loạn ăn uống. [KB:tipp#medical-screening]'
+  );
+
+  const [vbStudioTranscript, setVbStudioTranscript] = useState<string>(
+    'Tôi có ý tưởng thiên tài chắc chắn thắng 100% không cần ngủ đêm nay phải đầu tư all-in ngay lập tức vì năng lượng đang tràn đầy không ai cản được tôi lúc này!'
+  );
+  const [vbStudioDurationSec, setVbStudioDurationSec] = useState<number>(10);
+  const [vbStudioBaselineWpm, setVbStudioBaselineWpm] = useState<number>(125);
+
+  const [hrvDeviceSource, setHrvDeviceSource] = useState<HrvDeviceSource>('apple_watch_sdnn');
+  const [hrvLatestMs, setHrvLatestMs] = useState<number>(38);
+  const [hrvAgeHours, setHrvAgeHours] = useState<number>(2);
+
+  const phase3VoiceBurstEval = useMemo(
+    () =>
+      analyzeMultimodalVoiceBurst({
+        transcript: vbStudioTranscript,
+        durationSeconds: vbStudioDurationSec,
+        personalBaselineWpm: vbStudioBaselineWpm,
+        moodPolarity,
+        energyLevel,
+        feltNeedForSleep,
+      }),
+    [
+      vbStudioTranscript,
+      vbStudioDurationSec,
+      vbStudioBaselineWpm,
+      moodPolarity,
+      energyLevel,
+      feltNeedForSleep,
+    ]
+  );
+
+  const phase3HrvEval = useMemo(() => {
+    const nowMs = new Date('2026-11-21T08:00:00.000Z').getTime();
+    const recordedIso = new Date(nowMs - hrvAgeHours * 3600 * 1000).toISOString();
+    return evaluateBaselineRelativeHrvAndSleep({
+      deviceSource: hrvDeviceSource,
+      historicalReadings14To30Days: SAMPLE_14_DAY_HRV_BASELINE,
+      latestReadingMs: hrvLatestMs,
+      latestReadingRecordedAtIso: recordedIso,
+      nowIso: '2026-11-21T08:00:00.000Z',
+      sleepDurationHours: sleepHours,
+      feltNeedForSleep,
+    });
+  }, [hrvDeviceSource, hrvLatestMs, hrvAgeHours, sleepHours, feltNeedForSleep]);
+
+  const handleSendPhase3GroundedChat = async () => {
+    const turn = await executePhase3GroundedChatTurn({
+      provider: phase3Provider,
+      ollamaModel: ollamaModelName,
+      userMessage: phase3ChatInput,
+      mode: phase0Mode,
+      distressIntensity,
+      moodPolarity,
+      energyLevel,
+      asrmScore,
+      language: lang,
+      ragThreshold: 0.46,
+      memoryState: phase3Memory,
+    });
+    setPhase3Memory(turn.updatedMemoryState);
+    setPhase3LastCitations(turn.citations);
+    setPhase3LastAbstained(turn.abstained);
+    setPhase3LastTopScore(turn.topSimilarityScore);
+    setPhase3LastReply(lang === 'vi' ? turn.replyVi : turn.replyEn);
+  };
+
+  const handleErasePhase3Memory = () => {
+    setPhase3Memory((prev) => eraseDerivedProfileMemory(prev, true));
+  };
+
   return (
     <div
       className={`theme-${theme.mode}`}
@@ -1225,6 +1328,7 @@ export function EquilibriaClinicalApp() {
             ['bipolar-ipsrt-hub', '3. Phân Hệ Lưỡng Cực & IPSRT (-5..+5 • 48h Vault • Ulysses)'],
             ['assessments-report', '4. Thang Đo Lâm Sàng • Mã Hóa AES-GCM • Báo Cáo In A4'],
             ['tools-36-team-cbt', '5. Kho 36 Công cụ CBT/TEAM-CBT/DBT & Trầm cảm Chuyên sâu (36 Tools & TEAM-CBT Hub)'],
+            ['phase3-ai-biometrics-voice', '6. Phase 3: Grounded AI Companion (Ollama / RAG 0.46) • 2-Tier Memory • Voice WPM & HRV'],
           ] as const
         ).map(([tabId, label]) => (
           <button
@@ -2518,6 +2622,423 @@ export function EquilibriaClinicalApp() {
                 }}
               >
                 {lang === 'vi' ? cbtiEvaluation.guidanceVi : cbtiEvaluation.guidanceEn}
+              </div>
+            </section>
+          </div>
+        </main>
+      )}
+
+      {/* TAB 6: PHASE 3 — GROUNDED AI COMPANION (LOCAL OLLAMA / RAG 0.46), 2-TIER MEMORY INSPECTOR, VOICE BURST WPM STUDIO & BASELINE HRV/SLEEP CONTEXT */}
+      {activeTab === 'phase3-ai-biometrics-voice' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          <section
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>
+              Phase 3: Grounded AI Companion (Local Ollama / RAG 0.46), 2-Tier Memory Inspector, Voice Burst WPM Studio &amp; Baseline HRV/Sleep Context
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: theme.palette.textSecondary, margin: 0 }}>
+              Tích hợp AI đồng hành đa chế độ (100% Offline Deterministic • Local Ollama 127.0.0.1:11434 • Vercel + Supabase Cloud RAG ngưỡng 0.46), Bộ nhớ Cuộn 2 tầng (20 tin nhắn + Tóm tắt mỗi 15 tin nhắn + Hồ sơ cá nhân có thể xóa 1 chạm), Phân tích Nhịp nói Hưng cảm (&gt; 30% WPM spike) kèm Bảng màu 5 Sắc thái và Sinh trắc học HRV phân vị P25–P75.
+            </p>
+          </section>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '16px' }}>
+            {/* 1. Grounded AI Companion (Local Ollama 127.0.0.1:11434 / Cloud RAG 0.46 / 100% Offline) */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>1. Grounded AI Companion (Threshold = 0.46 • 100% Abstention Accuracy)</h3>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                {(
+                  [
+                    ['offline-deterministic', '100% Offline Deterministic'],
+                    ['local-ollama', 'Local Ollama (127.0.0.1:11434)'],
+                    ['cloud-serverless-rag', 'Vercel + Supabase Cloud RAG'],
+                  ] as const
+                ).map(([provId, label]) => (
+                  <button
+                    key={provId}
+                    type="button"
+                    onClick={() => setPhase3Provider(provId)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: `1px solid ${theme.palette.border}`,
+                      backgroundColor: phase3Provider === provId ? theme.palette.primary : 'transparent',
+                      color: phase3Provider === provId ? '#fff' : theme.palette.textPrimary,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {phase3Provider === 'local-ollama' && (
+                <div style={{ marginBottom: '10px', fontSize: '0.85rem' }}>
+                  <label>
+                    Local Ollama Model (http://127.0.0.1:11434):{' '}
+                    <select
+                      value={ollamaModelName}
+                      onChange={(e) => setOllamaModelName((e.target as HTMLSelectElement).value)}
+                    >
+                      <option value="qwen3.5:9b">qwen3.5:9b</option>
+                      <option value="qwen2.5:7b">qwen2.5:7b</option>
+                      <option value="llama3.2:3b">llama3.2:3b</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              <textarea
+                rows={2}
+                value={phase3ChatInput}
+                onChange={(e) => setPhase3ChatInput((e.target as HTMLTextAreaElement).value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '8px' }}
+              />
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => void handleSendPhase3GroundedChat()}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    backgroundColor: theme.palette.primary,
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Gửi Lượt Trò Chuyện (4-Layer Safety + RAG 0.46)
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPhase3ChatInput('Công thức nấu phở bò ngon nhất Hà Nội là gì?')
+                  }
+                  style={{ padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Thử Câu Hỏi Ngoài Phạm Vi (Test 100% Abstention &lt; 0.46)
+                </button>
+              </div>
+
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#0f172a',
+                  color: '#f8fafc',
+                  fontSize: '0.86rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <strong>
+                    RAG Score: {phase3LastTopScore.toFixed(2)} (Ngưỡng: 0.46)
+                  </strong>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: phase3LastAbstained ? '#b45309' : '#0d9488',
+                      color: '#fff',
+                      fontSize: '0.78rem',
+                    }}
+                  >
+                    {phase3LastAbstained
+                      ? 'ABSTAINED (< 0.46 — 100% Không Bịa Phác Đồ)'
+                      : `GROUNDED (${phase3LastCitations.join(' ')})`}
+                  </span>
+                </div>
+                <p style={{ margin: 0 }}>{phase3LastReply}</p>
+              </div>
+            </section>
+
+            {/* 2. 2-Tier Rolling Memory & Personal Profile Inspector */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0 }}>
+                  2. Trình Kiểm Tra Bộ Nhớ 2 Tầng (20-Msg Window + 15-Msg Rolling Summary + Profile)
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleErasePhase3Memory}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: '#e11d48',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  Xóa Bộ Nhớ Suy Diễn (DELETE /api/v1/memory)
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.85rem', marginTop: '10px' }}>
+                <div>
+                  <strong>Cửa sổ trượt (Sliding Window):</strong>{' '}
+                  {phase3Memory.recentMessagesWindow.length}/20 tin nhắn gần nhất (Tổng cộng đã xử lý:{' '}
+                  {phase3Memory.totalMessagesProcessed} tin nhắn | Số lần làm mới tóm tắt mỗi 15 tin:{' '}
+                  {phase3Memory.summaryRefreshCount})
+                </div>
+                <div style={{ marginTop: '6px' }}>
+                  <strong>Tóm tắt cuộn (15-Message Rolling Summary):</strong>
+                  <div
+                    style={{
+                      padding: '8px',
+                      backgroundColor: '#1e293b',
+                      color: '#e2e8f0',
+                      borderRadius: '6px',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {phase3Memory.rollingSummary}
+                  </div>
+                </div>
+                <div style={{ marginTop: '8px' }}>
+                  <strong>Hồ sơ Cá nhân Cấu trúc (Structured Personal Profile):</strong>
+                  <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px' }}>
+                    <li>Tên (Name): {phase3Memory.personalProfile.name ?? 'Chưa ghi nhận'}</li>
+                    <li>
+                      Lĩnh vực Công việc/Học tập: {phase3Memory.personalProfile.workOrStudyDomain ?? 'Chưa ghi nhận'}
+                    </li>
+                    <li>
+                      Người liên hệ tin cậy (Trusted Contacts):{' '}
+                      {phase3Memory.personalProfile.trustedContacts.join(', ') || 'Chưa ghi nhận'}
+                    </li>
+                    <li>
+                      Biến dạng nhận thức lặp lại:{' '}
+                      {phase3Memory.personalProfile.recurrentCognitiveDistortions.join(', ') || 'Chưa ghi nhận'}
+                    </li>
+                    <li>
+                      Cấp độ Socratic Pushback ưa thích: <code>{phase3Memory.personalProfile.preferredPushbackLevel}</code>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* 3. Multimodal Audio "Burst" Journal, Pressured-Speech Mania Detector & 5-Swatch Mood-Palette Studio */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>
+                3. Voice Burst WPM Studio • Phát Hiện Nhịp Nói Dồn Dập Hưng Cảm (&gt; 30% WPM Spike) &amp; Mood-Palette 5 Sắc Thái
+              </h3>
+              <textarea
+                rows={2}
+                value={vbStudioTranscript}
+                onChange={(e) => setVbStudioTranscript((e.target as HTMLTextAreaElement).value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '8px' }}
+              />
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '10px' }}>
+                <label>
+                  Thời lượng ghi âm (giây):{' '}
+                  <input
+                    type="number"
+                    min={3}
+                    max={120}
+                    value={vbStudioDurationSec}
+                    onChange={(e) => setVbStudioDurationSec(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '60px' }}
+                  />
+                </label>
+                <label>
+                  Tốc độ nói nền cá nhân (Baseline WPM):{' '}
+                  <input
+                    type="number"
+                    min={80}
+                    max={180}
+                    value={vbStudioBaselineWpm}
+                    onChange={(e) => setVbStudioBaselineWpm(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '65px' }}
+                  />
+                </label>
+              </div>
+
+              <div
+                style={{
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor: phase3VoiceBurstEval.bipolarPressuredSpeechAlert ? '#7f1d1d' : '#064e3b',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  marginBottom: '10px',
+                }}
+              >
+                <strong>
+                  Tốc độ nói: {phase3VoiceBurstEval.wordsPerMinute} WPM (Biến thiên:{' '}
+                  {phase3VoiceBurstEval.wpmSpikePercent >= 0
+                    ? `+${phase3VoiceBurstEval.wpmSpikePercent}%`
+                    : `${phase3VoiceBurstEval.wpmSpikePercent}%`}
+                  )
+                </strong>
+                <p style={{ margin: '4px 0 0 0' }}>
+                  {lang === 'vi'
+                    ? phase3VoiceBurstEval.pressuredSpeechBannerVi
+                    : phase3VoiceBurstEval.pressuredSpeechBannerEn}
+                </p>
+              </div>
+
+              <p style={{ fontSize: '0.85rem', margin: '0 0 8px 0' }}>
+                {lang === 'vi'
+                  ? phase3VoiceBurstEval.complaintClassificationReasonVi
+                  : phase3VoiceBurstEval.complaintClassificationReasonEn}
+              </p>
+
+              {/* 5-Swatch Mood Palette Visual Card */}
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: phase3VoiceBurstEval.moodPalette.gradientCss,
+                  color: '#ffffff',
+                }}
+              >
+                <strong>
+                  {lang === 'vi'
+                    ? phase3VoiceBurstEval.moodPalette.titleVi
+                    : phase3VoiceBurstEval.moodPalette.titleEn}
+                </strong>
+                <div style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
+                  {phase3VoiceBurstEval.moodPalette.fiveSwatches.map((hex) => (
+                    <span
+                      key={hex}
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: hex,
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      {hex}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: '0.82rem' }}>
+                  Tọa độ cảm xúc: Valence {phase3VoiceBurstEval.moodPalette.emotionalCoordinates.valence} • Arousal{' '}
+                  {phase3VoiceBurstEval.moodPalette.emotionalCoordinates.arousal}
+                </div>
+              </div>
+            </section>
+
+            {/* 4. Baseline-Relative HRV & Sleep Biometrics Context Engine */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>
+                4. Sinh Trắc Học HRV Phân Vị Cá Nhân (14–30 Ngày P25–P75 • Độ Tươi &lt; 12h • Cấm So Sánh Trước/Sau Phiên)
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '10px' }}>
+                <label>
+                  Nguồn thiết bị (Cùng nguồn thiết bị):{' '}
+                  <select
+                    value={hrvDeviceSource}
+                    onChange={(e) => setHrvDeviceSource((e.target as HTMLSelectElement).value as HrvDeviceSource)}
+                  >
+                    <option value="apple_watch_sdnn">Apple Watch HealthKit (SDNN ms)</option>
+                    <option value="oura_ring_rmssd">Oura Ring (RMSSD ms)</option>
+                    <option value="garmin_rmssd">Garmin Health Connect (RMSSD ms)</option>
+                  </select>
+                </label>
+                <label>
+                  HRV mới nhất ({phase3HrvEval.metricUnit}):{' '}
+                  <input
+                    type="number"
+                    min={15}
+                    max={140}
+                    value={hrvLatestMs}
+                    onChange={(e) => setHrvLatestMs(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '60px' }}
+                  />
+                </label>
+                <label>
+                  Độ trễ bản ghi (giờ trước, ngưỡng &lt;= 12h):{' '}
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={36}
+                    step={0.5}
+                    value={hrvAgeHours}
+                    onChange={(e) => setHrvAgeHours(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '60px' }}
+                  />
+                </label>
+              </div>
+
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#0f172a',
+                  color: '#f8fafc',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  <span>
+                    <strong>Phân loại:</strong> <code>{phase3HrvEval.classification}</code>
+                  </span>
+                  <span>
+                    <strong>Phân vị 14–30 ngày ({phase3HrvEval.validBaselineDaysCount} ngày):</strong>{' '}
+                    P25 = {phase3HrvEval.p25Ms ?? 'N/A'} | P75 = {phase3HrvEval.p75Ms ?? 'N/A'} {phase3HrvEval.metricUnit}
+                  </span>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: phase3HrvEval.isFreshUnder12Hours ? '#0d9488' : '#64748b',
+                    }}
+                  >
+                    {phase3HrvEval.isFreshUnder12Hours
+                      ? `Fresh (${phase3HrvEval.latestReadingAgeHours}h < 12h)`
+                      : `Stale (${phase3HrvEval.latestReadingAgeHours}h > 12h — Ignored)`}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 6px 0' }}>
+                  {lang === 'vi'
+                    ? phase3HrvEval.gentleCheckInMentionVi
+                    : phase3HrvEval.gentleCheckInMentionEn}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#38bdf8' }}>
+                  {lang === 'vi'
+                    ? phase3HrvEval.clinicalComplianceRuleNoteVi
+                    : phase3HrvEval.clinicalComplianceRuleNoteEn}
+                </p>
               </div>
             </section>
           </div>

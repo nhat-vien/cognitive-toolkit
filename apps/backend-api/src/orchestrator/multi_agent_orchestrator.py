@@ -14,6 +14,7 @@ Coordinates:
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -24,6 +25,11 @@ from src.db.models_and_rls import ClinicalDatabase
 from src.rag.grounded_rag import GroundedClinicalRAG
 from src.safety.four_layer_safety import FourLayerSafetyGate
 
+
+RECENT_MESSAGE_WINDOW: int = 20
+ROLLING_SUMMARY_INTERVAL: int = 15
+DEFAULT_BASELINE_WPM: float = 130.0
+PRESSURED_SPEECH_WPM_SPIKE_THRESHOLD: float = 0.30
 
 PUSHBACK_BUDGET_BY_LEVEL: Dict[str, int] = {
     "off": 0,
@@ -130,6 +136,25 @@ class MultiAgentOrchestrator:
                 "structured_steps": {},
                 "recent_messages": [],
                 "rolling_summary": "",
+                "rolling_summary_details": {
+                    "key_clinical_themes": [],
+                    "recurring_triggers": [],
+                    "distortion_patterns": [],
+                    "effective_skills": [],
+                },
+                "rolling_summary_count": 0,
+                "total_messages_processed": 0,
+                "messages_since_last_summary": 0,
+                "structured_profile_facts": {
+                    "preferred_name": None,
+                    "core_values": [],
+                    "work_or_study_context": None,
+                    "trusted_support_people": [],
+                    "known_bipolar_prodromes": [],
+                    "preferred_pushback_level": None,
+                    "extracted_triggers": [],
+                    "effective_skills_noted": [],
+                },
             }
         else:
             # Allow dynamic updates to pushback level, mode, technique, or biometrics
@@ -515,18 +540,476 @@ class MultiAgentOrchestrator:
         )
 
     @staticmethod
-    def _append_memory(state: Dict[str, Any], user_msg: str, assistant_msg: str) -> None:
-        msgs: List[Dict[str, str]] = state.setdefault("recent_messages", [])
-        msgs.append({"role": "user", "content": user_msg})
-        msgs.append({"role": "assistant", "content": assistant_msg})
-        # Two-tier memory: keep 20 most recent messages + rolling summary every 15 messages
-        if len(msgs) >= 15:
-            state["rolling_summary"] = (
-                f"Session {state.get('session_id')} on {state.get('technique')} "
-                f"(step {state.get('current_step')}, mood={state.get('mood_polarity')})."
+    def extract_structured_profile_facts(
+        text: str, existing: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Immediately extracts Structured Personal Profile Facts from user text (KazKozDev/cbt-assistant):
+        - preferred_name
+        - core_values
+        - work_or_study_context
+        - trusted_support_people
+        - known_bipolar_prodromes
+        - preferred_pushback_level
+        """
+        facts: Dict[str, Any] = {
+            "preferred_name": (existing or {}).get("preferred_name"),
+            "core_values": list((existing or {}).get("core_values", [])),
+            "work_or_study_context": (existing or {}).get("work_or_study_context"),
+            "trusted_support_people": list((existing or {}).get("trusted_support_people", [])),
+            "known_bipolar_prodromes": list((existing or {}).get("known_bipolar_prodromes", [])),
+            "preferred_pushback_level": (existing or {}).get("preferred_pushback_level"),
+            "extracted_triggers": list((existing or {}).get("extracted_triggers", [])),
+            "effective_skills_noted": list((existing or {}).get("effective_skills_noted", [])),
+            "last_updated_iso": datetime.now(timezone.utc).isoformat(),
+        }
+        if not text or not text.strip():
+            return facts
+
+        def _merge(target_list: List[str], item: str) -> None:
+            clean = item.strip()
+            if clean and clean not in target_list:
+                target_list.append(clean)
+
+        # 1. Preferred Name
+        name_patterns = [
+            r"(?:[Tt]ên tôi là|[Mm]ình tên là|[Gg]ọi tôi là|[Hh]ãy gọi mình là|[Tt]ên mình là)\s+([A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+){0,2})",
+            r"(?:[Mm]y name is|[Cc]all me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})\b",
+        ]
+        for pat in name_patterns:
+            m = re.search(pat, text)
+            if m:
+                facts["preferred_name"] = m.group(1).strip()
+                break
+
+        # 2. Work / Study Context
+        work_patterns = [
+            r"(?:tôi làm nghề|mình làm việc ở|tôi là một|hiện đang làm|công việc của tôi là|tôi đang học)\s+([^.,;!\n]{3,60})",
+            r"(?:i work as a|i work as an|i work at|my job is|i study)\s+([^.,;!\n]{3,60})",
+        ]
+        for pat in work_patterns:
+            m = re.search(pat, text, flags=re.IGNORECASE)
+            if m:
+                facts["work_or_study_context"] = m.group(1).strip()
+                break
+
+        # 3. Trusted Support People
+        support_patterns = [
+            r"(?:[Nn]gười tin cậy là|[Ll]iên hệ khẩn cấp là|[Bb]ác sĩ điều trị là|[Vv]ợ tôi|[Cc]hồng tôi|[Bb]ạn thân|[Cc]hị|[Aa]nh|[Bb]ác sĩ)\s+([A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+)?)",
+            r"(?:[Tt]rusted contact is|[Mm]y psychiatrist|[Mm]y therapist|[Mm]y partner|[Mm]y wife|[Mm]y husband|[Mm]y friend|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
+        ]
+        for pat in support_patterns:
+            for m in re.finditer(pat, text):
+                _merge(facts["trusted_support_people"], m.group(0))
+
+        # 4. Core Values
+        value_rules = [
+            (r"\b(family|children|parents|gia đình|con cái|bố mẹ)\b", "Gia đình / Family"),
+            (r"\b(autonomy|freedom|independence|tự chủ|tự do|độc lập)\b", "Tự chủ / Autonomy"),
+            (r"\b(health|sleep|wellbeing|sức khỏe|giấc ngủ|bình an)\b", "Sức khỏe & Bình an / Health & Peace"),
+            (r"\b(creativity|art|music|sáng tạo|nghệ thuật)\b", "Sáng tạo / Creativity"),
+            (r"\b(honesty|integrity|kindness|chân thành|tử tế|chính trực)\b", "Chân thành & Tử tế / Integrity & Kindness"),
+            (r"\b(learning|growth|career|học hỏi|phát triển|sự nghiệp)\b", "Học hỏi & Phát triển / Growth & Mastery"),
+        ]
+        for pat, label in value_rules:
+            if re.search(pat, text, flags=re.IGNORECASE):
+                _merge(facts["core_values"], label)
+
+        # 5. Known Bipolar Prodromes
+        prodrome_rules = [
+            (r"(ngủ dưới [2345] tiếng|ngủ ít hơn [45]h|slept less than [345] hours|don't need sleep|không cần ngủ)", "Giảm nhu cầu ngủ (< 5h) / Reduced need for sleep"),
+            (r"(mua sắm lúc [1234]h sáng|shopping at [1234]am|tiêu tiền bốc đồng|overspending at night)", "Mua sắm/quyết định ban đêm / Late-night impulsive spending"),
+            (r"(nói nhanh|ý tưởng dồn dập|racing thoughts|pressured speech|đầu nhảy số liên tục)", "Nói nhanh & Ý tưởng phi mã / Racing thoughts & pressured speech"),
+            (r"(nhận 10 dự án|làm nhiều việc cùng lúc|starting 10 projects at once)", "Ôm đồm nhiều dự án / Goal-directed overactivity"),
+        ]
+        for pat, label in prodrome_rules:
+            if re.search(pat, text, flags=re.IGNORECASE):
+                _merge(facts["known_bipolar_prodromes"], label)
+
+        # 6. Preferred Pushback Level
+        if re.search(r"(pushback off|tắt pushback|không muốn bị hỏi vặn|chỉ muốn được lắng nghe|no pushback)", text, flags=re.IGNORECASE):
+            facts["preferred_pushback_level"] = "off"
+        elif re.search(r"(pushback nhẹ|nhẹ nhàng thôi|gentle pushback|hỏi nhẹ nhàng)", text, flags=re.IGNORECASE):
+            facts["preferred_pushback_level"] = "gentle"
+        elif re.search(r"(pushback vừa phải|moderate pushback)", text, flags=re.IGNORECASE):
+            facts["preferred_pushback_level"] = "moderate"
+        elif re.search(r"(pushback sâu|hỏi phản biện mạnh|firm pushback|challenge me firmly)", text, flags=re.IGNORECASE):
+            facts["preferred_pushback_level"] = "firm"
+
+        # 7. Triggers & Effective Skills
+        trigger_rules = [
+            (r"(deadline|meeting|boss|manager|sếp|họp|áp lực công việc|cắt giảm nhân sự|layoff)", "Áp lực công việc / Workplace stress"),
+            (r"(conflict|argument|cãi nhau|xung đột|bất đồng)", "Xung đột quan hệ / Interpersonal conflict"),
+            (r"(insomnia|mất ngủ|thức khuya|ca đêm)", "Xáo trộn giấc ngủ / Sleep disruption"),
+        ]
+        for pat, label in trigger_rules:
+            if re.search(pat, text, flags=re.IGNORECASE):
+                _merge(facts["extracted_triggers"], label)
+
+        skill_rules = [
+            (r"\b(tipp|paced breathing|thở 4-6|nước lạnh|cold water)\b", "DBT TIPP & Paced Breathing"),
+            (r"\b(thought record|nhật ký suy nghĩ|bằng chứng phản bác)\b", "CBT 7-Step Thought Record"),
+            (r"\b(wise mind|tâm trí tuệ)\b", "DBT Wise Mind"),
+            (r"\b(dear man|ear empathy)\b", "DBT DEAR MAN & EAR"),
+            (r"\b(48h|impulse vault|khoang trì hoãn|ipsrt)\b", "Bipolar 48h Impulse Vault & IPSRT"),
+        ]
+        for pat, label in skill_rules:
+            if re.search(pat, text, flags=re.IGNORECASE):
+                _merge(facts["effective_skills_noted"], label)
+
+        return facts
+
+    @classmethod
+    def _append_memory(cls, state: Dict[str, Any], user_msg: str, assistant_msg: str) -> None:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        msgs: List[Dict[str, Any]] = state.setdefault("recent_messages", [])
+
+        # Extract personal profile facts immediately from user utterance
+        state["structured_profile_facts"] = cls.extract_structured_profile_facts(
+            user_msg, state.get("structured_profile_facts")
+        )
+        if state["structured_profile_facts"].get("preferred_pushback_level"):
+            # Respect newly expressed preference if user didn't explicitly override via payload
+            pass
+
+        for role, content in (("user", user_msg), ("assistant", assistant_msg)):
+            total_processed = int(state.get("total_messages_processed", len(msgs))) + 1
+            since_summary = int(state.get("messages_since_last_summary", 0)) + 1
+            state["total_messages_processed"] = total_processed
+            state["messages_since_last_summary"] = since_summary
+            msgs.append(
+                {
+                    "id": f"msg_{total_processed}",
+                    "role": role,
+                    "content": content,
+                    "timestamp": now_iso,
+                    "technique": state.get("technique"),
+                }
             )
-        if len(msgs) > 20:
-            state["recent_messages"] = msgs[-20:]
+            # Trigger Rolling Summary refresh after every 15 new messages (ROLLING_SUMMARY_INTERVAL = 15)
+            if since_summary >= ROLLING_SUMMARY_INTERVAL:
+                cls._refresh_rolling_summary(state, now_iso)
+
+        # Keep sliding window of latest 20 messages (RECENT_MESSAGE_WINDOW = 20)
+        if len(msgs) > RECENT_MESSAGE_WINDOW:
+            state["recent_messages"] = msgs[-RECENT_MESSAGE_WINDOW:]
+
+    @staticmethod
+    def _refresh_rolling_summary(state: Dict[str, Any], now_iso: str) -> None:
+        summary_count = int(state.get("rolling_summary_count", 0)) + 1
+        state["rolling_summary_count"] = summary_count
+        state["messages_since_last_summary"] = 0
+
+        facts = state.get("structured_profile_facts") or {}
+        details = state.setdefault(
+            "rolling_summary_details",
+            {
+                "key_clinical_themes": [],
+                "recurring_triggers": [],
+                "distortion_patterns": [],
+                "effective_skills": [],
+            },
+        )
+
+        technique = state.get("technique") or "thought-record"
+        if technique not in details["effective_skills"]:
+            details["effective_skills"].append(technique)
+        for sk in facts.get("effective_skills_noted", []):
+            if sk not in details["effective_skills"]:
+                details["effective_skills"].append(sk)
+        for tr in facts.get("extracted_triggers", []):
+            if tr not in details["recurring_triggers"]:
+                details["recurring_triggers"].append(tr)
+
+        combined_text = " ".join(m.get("content", "") for m in state.get("recent_messages", [])).lower()
+        distortion_checks = [
+            ("all-or-nothing", ("luôn luôn", "không bao giờ", "hoàn toàn thất bại", "always", "never", "total failure")),
+            ("catastrophizing", ("thảm họa", "tận thế", "catastrophe", "end of the world")),
+            ("mind-reading", ("họ đang nghĩ tôi", "chắc chắn họ đánh giá", "they think i'm", "judging me")),
+            ("grandiosity", ("ý tưởng thiên tài", "kiếm hàng tỷ", "genius idea", "make millions")),
+        ]
+        for dist_id, kws in distortion_checks:
+            if any(k in combined_text for k in kws) and dist_id not in details["distortion_patterns"]:
+                details["distortion_patterns"].append(dist_id)
+
+        theme = f"{technique} (step {state.get('current_step')}, mood={state.get('mood_polarity')})"
+        if theme not in details["key_clinical_themes"]:
+            details["key_clinical_themes"].append(theme)
+
+        name_label = facts.get("preferred_name") or state.get("user_id") or "Patient"
+        state["rolling_summary"] = (
+            f"[Rolling Summary #{summary_count} @ {state.get('total_messages_processed', 0)} msgs] "
+            f"User={name_label} | Session={state.get('session_id')} | "
+            f"Themes={', '.join(details['key_clinical_themes'])} | "
+            f"Triggers={', '.join(details['recurring_triggers']) or 'none'} | "
+            f"Distortions={', '.join(details['distortion_patterns']) or 'none'} | "
+            f"Skills={', '.join(details['effective_skills'])}."
+        )
+        details["last_refreshed_iso"] = now_iso
+
+    # -------------------------------------------------------------------------
+    # 2-TIER MEMORY INSPECTION & SELECTIVE ERASURE (`GET` & `DELETE /api/v1/memory/{session_id}`)
+    # -------------------------------------------------------------------------
+    def get_session_memory(
+        self, session_id: str, user_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        state = self.db.load_session_checkpoint(session_id, user_id=user_id)
+        if state is None:
+            return {
+                "session_id": session_id,
+                "user_id": user_id or "user_default",
+                "exists": False,
+                "window_limit": RECENT_MESSAGE_WINDOW,
+                "rolling_summary_interval": ROLLING_SUMMARY_INTERVAL,
+                "total_messages_processed": 0,
+                "messages_since_last_summary": 0,
+                "recent_messages_count": 0,
+                "recent_messages": [],
+                "rolling_summary": "",
+                "rolling_summary_count": 0,
+                "rolling_summary_details": {
+                    "key_clinical_themes": [],
+                    "recurring_triggers": [],
+                    "distortion_patterns": [],
+                    "effective_skills": [],
+                },
+                "structured_profile_facts": self.extract_structured_profile_facts(""),
+            }
+
+        recent_msgs = state.get("recent_messages", [])[-RECENT_MESSAGE_WINDOW:]
+        return {
+            "session_id": state.get("session_id", session_id),
+            "user_id": state.get("user_id", user_id or "user_default"),
+            "exists": True,
+            "window_limit": RECENT_MESSAGE_WINDOW,
+            "rolling_summary_interval": ROLLING_SUMMARY_INTERVAL,
+            "total_messages_processed": int(state.get("total_messages_processed", len(recent_msgs))),
+            "messages_since_last_summary": int(state.get("messages_since_last_summary", 0)),
+            "recent_messages_count": len(recent_msgs),
+            "recent_messages": recent_msgs,
+            "rolling_summary": state.get("rolling_summary", ""),
+            "rolling_summary_count": int(state.get("rolling_summary_count", 0)),
+            "rolling_summary_details": state.get(
+                "rolling_summary_details",
+                {
+                    "key_clinical_themes": [],
+                    "recurring_triggers": [],
+                    "distortion_patterns": [],
+                    "effective_skills": [],
+                },
+            ),
+            "structured_profile_facts": state.get(
+                "structured_profile_facts", self.extract_structured_profile_facts("")
+            ),
+        }
+
+    def delete_session_memory(
+        self,
+        session_id: str,
+        mode: str = "derived_only",
+        user_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Selective Memory Erasure (`KazKozDev/cbt-assistant` privacy contract):
+        - `mode="derived_only"`: erases derived rolling summary and structured profile facts while keeping recent_messages
+        - `mode="all"`: erases all transcripts, recent_messages, rolling summary, and structured profile facts
+        """
+        state = self.db.load_session_checkpoint(session_id, user_id=user_id)
+        normalized_mode = "all" if mode in ("all", "erase_all", "full") else "derived_only"
+
+        if state is not None:
+            state["rolling_summary"] = ""
+            state["rolling_summary_count"] = 0
+            state["messages_since_last_summary"] = 0
+            state["rolling_summary_details"] = {
+                "key_clinical_themes": [],
+                "recurring_triggers": [],
+                "distortion_patterns": [],
+                "effective_skills": [],
+            }
+            state["structured_profile_facts"] = self.extract_structured_profile_facts("")
+            if normalized_mode == "all":
+                state["recent_messages"] = []
+                state["total_messages_processed"] = 0
+                state["structured_steps"] = {}
+            self.db.save_session_checkpoint(state)
+
+        updated = self.get_session_memory(session_id=session_id, user_id=user_id)
+        updated["deleted"] = True
+        updated["erasure_mode"] = normalized_mode
+        return updated
+
+    # -------------------------------------------------------------------------
+    # AUDIO "BURST" MULTIMODAL ANALYZER & SPEECH-PACE MANIA DETECTOR (`POST /api/v1/voice-burst/analyze`)
+    # -------------------------------------------------------------------------
+    def analyze_voice_burst(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        transcript = (payload.get("transcript") or "").strip()
+        duration_seconds = max(1.0, float(payload.get("duration_seconds") or payload.get("durationSeconds") or 30.0))
+        baseline_wpm = float(
+            payload.get("baseline_wpm")
+            or payload.get("baselineWordsPerMinute")
+            or DEFAULT_BASELINE_WPM
+        )
+        language = payload.get("language") or "vi"
+        user_id = payload.get("user_id") or "user_default"
+
+        words = [w for w in re.split(r"\s+", transcript) if w] if transcript else []
+        word_count = len(words)
+        wpm = round((word_count / duration_seconds) * 60.0, 1)
+        wpm_increase_ratio = round((wpm - baseline_wpm) / max(1.0, baseline_wpm), 4)
+        wpm_spike_percent = round(wpm_increase_ratio * 100.0, 1)
+
+        # 1. Pressured Speech Mania Alert (> 30% increase over personal baseline WPM)
+        pressured_speech_mania_alert = wpm_increase_ratio > PRESSURED_SPEECH_WPM_SPIKE_THRESHOLD
+
+        # 2. Classify Expressive vs. Instrumental Complaint Intent
+        lower_t = transcript.lower()
+        expressive_markers = (
+            "chỉ muốn tâm sự", "chỉ muốn xả", "chỉ cần người lắng nghe", "đừng khuyên",
+            "không cần lời khuyên", "mệt mỏi quá", "buồn quá", "tủi thân quá", "cô đơn quá",
+            "just need to vent", "just want someone to listen", "don't give me advice",
+            "no advice please", "so exhausted", "just venting", "feel so alone",
+        )
+        instrumental_markers = (
+            "làm sao để", "cách vượt qua", "giúp tôi phân tích", "tìm giải pháp",
+            "kế hoạch hành động", "bài tập cbt", "kỹ thuật dbt", "sửa suy nghĩ",
+            "kiểm tra bằng chứng", "lập kế hoạch", "phải làm gì",
+            "how do i fix", "help me solve", "what should i do", "action plan",
+            "challenge this thought", "reframe this", "cbt exercise", "dbt skill", "problem solve",
+        )
+        has_expressive = any(m in lower_t for m in expressive_markers)
+        has_instrumental = any(m in lower_t for m in instrumental_markers)
+
+        if has_instrumental and not has_expressive:
+            complaint_intent = "instrumental"
+        elif has_expressive:
+            complaint_intent = "expressive"
+        elif "?" in transcript:
+            complaint_intent = "instrumental"
+        else:
+            complaint_intent = "expressive"
+
+        # 3. 5-Color Mood-Palette Generator (`Andrew-FungKinHo/whynot`)
+        if pressured_speech_mania_alert or any(
+            k in lower_t for k in ("ý tưởng thiên tài", "không cần ngủ", "kiếm hàng tỷ", "genius idea", "don't need sleep")
+        ):
+            mood_palette = {
+                "dominant_emotion": "hypomanic-elation",
+                "dominantEmotion": "hypomanic-elation",
+                "hex_colors": ["#2C221E", "#5C3D2E", "#B85D19", "#E08E45", "#F4C095"],
+                "hexColors": ["#2C221E", "#5C3D2E", "#B85D19", "#E08E45", "#F4C095"],
+                "valence_score": 0.75,
+                "valenceScore": 0.75,
+                "arousal_score": 0.92,
+                "arousalScore": 0.92,
+                "palette_name_vi": "Hổ Phách Trầm Ấm (Hạ Nhiệt Hưng Cảm / Dark Rest)",
+                "palette_name_en": "Low-Stimulus Warm Amber (Hypomania Cool-Down)",
+            }
+        elif any(k in lower_t for k in ("hoảng loạn", "sợ hãi", "tim đập nhanh", "lo âu", "panic", "anxious", "racing heart")):
+            mood_palette = {
+                "dominant_emotion": "anxiety-panic",
+                "dominantEmotion": "anxiety-panic",
+                "hex_colors": ["#0F2027", "#203A43", "#2C5364", "#4CA1AF", "#C4E0E5"],
+                "hexColors": ["#0F2027", "#203A43", "#2C5364", "#4CA1AF", "#C4E0E5"],
+                "valence_score": -0.65,
+                "valenceScore": -0.65,
+                "arousal_score": 0.85,
+                "arousalScore": 0.85,
+                "palette_name_vi": "Lam Sâu Hạ Nhịp Thở (Xoa Dịu Lo Âu)",
+                "palette_name_en": "Deep Ocean Paced-Breathing Teal (Anxiety Soothing)",
+            }
+        elif any(k in lower_t for k in ("buồn", "trống rỗng", "mệt mỏi", "tuyệt vọng", "cô đơn", "sad", "empty", "hopeless", "exhausted")):
+            mood_palette = {
+                "dominant_emotion": "depression-melancholy",
+                "dominantEmotion": "depression-melancholy",
+                "hex_colors": ["#1F2430", "#353C4B", "#525E75", "#789395", "#B4CFB0"],
+                "hexColors": ["#1F2430", "#353C4B", "#525E75", "#789395", "#B4CFB0"],
+                "valence_score": -0.75,
+                "valenceScore": -0.75,
+                "arousal_score": 0.22,
+                "arousalScore": 0.22,
+                "palette_name_vi": "Xanh Rêu Chiều Tĩnh Lặng (Nâng Đỡ Trầm Cảm)",
+                "palette_name_en": "Gentle Dusk & Sage Moss (Low-Energy Support)",
+            }
+        else:
+            mood_palette = {
+                "dominant_emotion": "calm-grounded",
+                "dominantEmotion": "calm-grounded",
+                "hex_colors": ["#1D352D", "#2D5A4C", "#488B76", "#76B89F", "#BCE3D4"],
+                "hexColors": ["#1D352D", "#2D5A4C", "#488B76", "#76B89F", "#BCE3D4"],
+                "valence_score": 0.25,
+                "valenceScore": 0.25,
+                "arousal_score": 0.35,
+                "arousalScore": 0.35,
+                "palette_name_vi": "Lục Bảo Tâm Trí Tuệ (Cân Bằng & Tĩnh Tại)",
+                "palette_name_en": "Wise Mind Forest Emerald (Balanced & Grounded)",
+            }
+
+        # 4. Baseline-Relative HRV Context
+        hrv_context = self._evaluate_baseline_relative_hrv(payload.get("hrv_data"))
+        recent_hrv = payload.get("recent_hrv_readings") or payload.get("recentHrvReadings")
+        if hrv_context is None and isinstance(recent_hrv, list) and len(recent_hrv) >= 5:
+            values = [float(item.get("value", 0.0)) for item in recent_hrv if "value" in item]
+            if len(values) >= 5:
+                hrv_context = self._evaluate_baseline_relative_hrv(
+                    {
+                        "age_hours": float(payload.get("hrv_age_hours", 1.0)),
+                        "current_rmssd": values[-1],
+                        "history_14_30_days": values,
+                    }
+                )
+
+        # 5. 4-Layer Safety Evaluation
+        safety_eval = self.safety_gate.evaluate_input(
+            text=transcript,
+            language=language,
+            mood_polarity=3 if pressured_speech_mania_alert else 0,
+        )
+
+        if not safety_eval.safe_to_proceed_cbt and safety_eval.action == "safety-stop":
+            recommended_technique = "tipp"
+            ui_mode = "sos-portal"
+        elif pressured_speech_mania_alert:
+            recommended_technique = "hypomania-guard"
+            ui_mode = "low-stimulus-mania"
+        elif complaint_intent == "expressive":
+            recommended_technique = "ear-empathy-listening"
+            ui_mode = "low-energy-depression" if mood_palette["dominant_emotion"] == "depression-melancholy" else "standard"
+        else:
+            recommended_technique = "thought-record"
+            ui_mode = "standard"
+
+        return {
+            "user_id": user_id,
+            "word_count": word_count,
+            "duration_seconds": duration_seconds,
+            "wpm": wpm,
+            "baseline_wpm": baseline_wpm,
+            "wpm_increase_ratio": wpm_increase_ratio,
+            "wpm_spike_percent": wpm_spike_percent,
+            "pressured_speech_mania_alert": pressured_speech_mania_alert,
+            "pressuredSpeechManiaAlert": pressured_speech_mania_alert,
+            "complaint_intent": complaint_intent,
+            "complaintIntent": complaint_intent,
+            "recommended_response_mode": (
+                "ear-empathy-only" if complaint_intent == "expressive" else "structured-cbt-dbt"
+            ),
+            "recommended_technique": recommended_technique,
+            "ui_mode": ui_mode,
+            "mood_palette": mood_palette,
+            "moodPalette": mood_palette,
+            "dominant_emotion": mood_palette["dominant_emotion"],
+            "hex_colors": mood_palette["hex_colors"],
+            "valence_score": mood_palette["valence_score"],
+            "arousal_score": mood_palette["arousal_score"],
+            "hrv_context": hrv_context,
+            "single_session_hrv_comparison_blocked": True,
+            "safety": {
+                "safe_to_proceed_cbt": safety_eval.safe_to_proceed_cbt,
+                "triggered_layer": safety_eval.triggered_layer,
+                "action": safety_eval.action,
+            },
+        }
 
     # -------------------------------------------------------------------------
     # BIPOLAR PRODROME, MIXED STATE, IPSRT & 48H IMPULSE VAULT (`POST /api/v1/bipolar/analyze`)

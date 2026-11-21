@@ -102,19 +102,41 @@ BILINGUAL_CLINICAL_CONCEPTS: Dict[str, List[str]] = {
         "paradoxical-agenda-setting", "team-cbt", "david burns", "paradoxical agenda setting", "magic button",
         "positive reframing", "magic dial", "kháng cự", "resistance", "ear empathy",
         "disarming", "externalization of voices", "double-standard", "feared fantasy",
-        "pleasure-predicting", "anti-procrastination",
+        "acid test",
     ],
-    "CONCEPT_WORRY_EXPOSURE": [
-        "worry-postponement", "exposure-hierarchy", "worry box", "hộp lo âu", "worry postponement", "trì hoãn lo lắng",
-        "scheduled worry time", "productive worry", "hypothetical worry",
-        "exposure hierarchy", "thang tiếp xúc", "suds", "habituation",
-        "interoceptive exposure", "safety behavior", "hành vi an toàn",
-        "prediction calibration",
+    "CONCEPT_PLEASURE_PREDICTING": [
+        "pleasure-predicting", "pleasure predicting", "anti-procrastination",
+        "predicted difficulty", "predicted pleasure", "predicted satisfaction",
+        "prediction error", "actual ratings",
     ],
-    "CONCEPT_ABC_PLEASE_CRISIS": [
-        "abc-please", "crisis-pros-cons", "abc please", "accumulate positives", "build mastery", "cope ahead",
-        "crisis pros and cons", "pros & cons", "stop skill", "urge surfing",
+    "CONCEPT_WORRY_BOX": [
+        "worry-postponement", "worry box", "hộp lo âu", "worry postponement", "trì hoãn lo lắng",
+        "scheduled worry time", "scheduled worry", "productive worry", "hypothetical worry",
+        "what-if worries", "actionable worries",
+    ],
+    "CONCEPT_EXPOSURE_HIERARCHY": [
+        "exposure-hierarchy", "exposure hierarchy", "thang tiếp xúc", "suds", "habituation",
+        "interoceptive exposure", "tiếp xúc nội cảm", "safety behavior", "hành vi an toàn",
+        "safety behavior detector", "prediction calibration",
+    ],
+    "CONCEPT_ABC_PLEASE": [
+        "abc-please", "abc please", "accumulate positives", "accumulate positive", "build mastery", "cope ahead",
+        "lá chắn sinh học", "tích lũy trải nghiệm tích cực",
+    ],
+    "CONCEPT_CRISIS_PROS_CONS": [
+        "crisis-pros-cons", "crisis pros and cons", "crisis pros & cons", "pros & cons",
+        "4-square matrix", "4 ô", "stop skill", "resist an impulsive urge", "urge surfing",
         "radical acceptance", "chấp nhận hoàn toàn",
+    ],
+    "CONCEPT_PUSHBACK_CONFIG": [
+        "pushback-config", "socratic pushback", "ma trận socratic pushback",
+        "supportive zone", "core zone", "closing zone", "4 cấp độ",
+        "off, gentle, moderate, firm",
+    ],
+    "CONCEPT_HEALTH_INTEGRATION_HRV": [
+        "health-integration", "healthkit", "hrv", "heart rate variability",
+        "baseline-relative", "25th-75th percentile", "25th", "75th", "12-hour freshness",
+        "below-baseline", "health integration",
     ],
     "CONCEPT_SESSION_PUSHBACK_HRV": [
         "session-engine", "pushback-config", "health-integration", "socratic pushback", "pushback",
@@ -265,32 +287,85 @@ BUILTIN_CLINICAL_CHUNKS: List[Dict[str, str]] = [
             "Khung trị liệu TEAM-CBT của TS. David Burns bắt đầu bằng Testing (BMS), Empathy (5 bí quyết EAR: "
             "Disarming, Thought & Feeling Empathy, Inquiry, I Feel Statements, Affirmation) và Paradoxical Agenda Setting "
             "(Magic Button, Positive Reframing — tìm ra phẩm chất tốt đẹp và lợi ích bảo vệ của triệu chứng lo âu/trầm cảm, "
-            " cùng Magic Dial) để làm tan sự kháng cự trước khi áp dụng các kỹ thuật Externalization of Voices, "
-            "Double-Standard, Feared Fantasy hay Pleasure-Predicting."
+            "Acid Test cùng chiếc núm vặn Magic Dial) để làm tan sự kháng cự trước khi áp dụng các kỹ thuật Externalization of Voices, "
+            "Double-Standard và Feared Fantasy."
+        ),
+    },
+    {
+        "chunk_id": "pleasure-predicting#prediction-sheet",
+        "technique": "pleasure-predicting",
+        "title": "TEAM-CBT Pleasure-Predicting & Anti-Procrastination Sheet",
+        "heading_path": "TEAM-CBT > Pleasure-Predicting & Anti-Procrastination",
+        "content": (
+            "TEAM-CBT Pleasure-Predicting and Anti-Procrastination Sheet compares Predicted Difficulty (0-100%) and "
+            "Predicted Pleasure / Satisfaction (0-100%) before an activity against Actual Difficulty and Actual Pleasure ratings "
+            "afterward to compute Prediction Error and disconfirm depressive anhedonia or procrastination paralysis."
         ),
     },
     {
         "chunk_id": "worry-postponement#worry-box",
         "technique": "worry-postponement",
-        "title": "CBT Worry Postponement (Worry Box) & Exposure Hierarchy",
-        "heading_path": "Anxiety Protocols > Worry Box, Exposure & Safety Behaviors",
+        "title": "CBT Worry Postponement (Worry Box 15-Minute Window)",
+        "heading_path": "Anxiety Protocols > Worry Box & Scheduled Worry Time",
         "content": (
-            "Phác đồ Rối loạn Lo âu tích hợp Worry Postponement (Hộp Lo âu / Worry Box hẹn khung giờ lo lắng cố định 15 phút/ngày, "
-            "tách Productive Worry vs Hypothetical What-If Worry), Exposure Hierarchy Builder (thang tiếp xúc sợ hãi SUDS 0-100 "
-            "theo dõi Habituation & Interoceptive Exposure có sàng lọc y khoa), Safety Behavior Detector (phát hiện hành vi an toàn ngầm) "
-            "và Prediction Calibration Tracker."
+            "Phác đồ Rối loạn Lo âu tích hợp CBT Worry Postponement (Hộp Lo âu / Worry Box hẹn khung giờ lo lắng cố định "
+            "15 phút/ngày - 15-minute scheduled worry postponement window) để tách biệt Productive actionable worries "
+            "(lo lắng có thể hành động giải quyết được) khỏi Hypothetical what-if worries (lo lắng giả định ngoài tầm kiểm soát)."
+        ),
+    },
+    {
+        "chunk_id": "exposure-hierarchy#suds-and-safety-behaviors",
+        "technique": "exposure-hierarchy",
+        "title": "CBT Exposure Hierarchy SUDS 0-100, Interoceptive Exposure & Safety Behavior Detector",
+        "heading_path": "Anxiety Protocols > Exposure Hierarchy, Interoceptive & Safety Behaviors",
+        "content": (
+            "Xây dựng thang tiếp xúc sợ hãi Exposure Hierarchy SUDS 0-100 theo dõi đường cong Habituation, tích hợp "
+            "tiếp xúc nội cảm Interoceptive Exposure (có sàng lọc y khoa bắt buộc) và bộ phát hiện hành vi an toàn ngầm "
+            "Safety Behavior Detector cùng Prediction Calibration Tracker."
         ),
     },
     {
         "chunk_id": "abc-please#biological-shield",
         "technique": "abc-please",
-        "title": "DBT ABC PLEASE & Crisis Pros and Cons",
-        "heading_path": "DBT Emotion Regulation > ABC PLEASE & Crisis Pros/Cons",
+        "title": "DBT ABC PLEASE Biological Resilience Shield",
+        "heading_path": "DBT Emotion Regulation > ABC PLEASE Biological Shield",
         "content": (
-            "Kỹ năng DBT ABC PLEASE xây dựng lá chắn sinh học chống dễ tổn thương cảm xúc: Accumulate Positives, "
-            "Build Mastery, Cope Ahead, và PLEASE (điều trị bệnh thể chất, ăn uống cân bằng, tránh chất kích thích/caffeine/rượu, "
-            "ngủ cố định giờ, vận động). Đi kèm bảng Crisis Pros & Cons 4 ô so sánh lợi/hại của việc hành động theo xung động "
-            "ngay bây giờ vs chờ 48 giờ."
+            "Kỹ năng DBT ABC PLEASE xây dựng lá chắn sinh học chống dễ tổn thương cảm xúc: Accumulate Positive experiences "
+            "(tích lũy trải nghiệm tích cực), Build Mastery (làm chủ kỹ năng), Cope Ahead (lập kế hoạch ứng phó trước), "
+            "và PLEASE (điều trị bệnh thể chất, ăn uống cân bằng, tránh chất kích thích, bảo vệ giấc ngủ nhịp sinh học, vận động)."
+        ),
+    },
+    {
+        "chunk_id": "crisis-pros-cons#4-square-matrix",
+        "technique": "crisis-pros-cons",
+        "title": "DBT Crisis Pros and Cons 4-Square Matrix & STOP Skill (48 Hours)",
+        "heading_path": "DBT Distress Tolerance > Crisis Pros and Cons & STOP",
+        "content": (
+            "DBT Crisis Pros and Cons 4-square matrix (bảng 4 ô) kết hợp kỹ năng STOP skill giúp kháng cự xung động bốc đồng "
+            "(resist an impulsive urge for 48 hours): so sánh Pros and Cons của việc hành động theo xung động ngay bây giờ "
+            "vs Pros and Cons của việc trì hoãn 48 giờ trong Impulse Vault."
+        ),
+    },
+    {
+        "chunk_id": "pushback-config#socratic-matrix",
+        "technique": "pushback-config",
+        "title": "Ma trận Socratic Pushback 4 Cấp độ (off, gentle, moderate, firm) & 3 Vùng",
+        "heading_path": "Pushback Config > 4 Levels & Supportive, Core, Closing Zones",
+        "content": (
+            "Ma trận Socratic Pushback 4 cấp độ (off, gentle, moderate, firm) hoạt động trên 3 vùng: "
+            "Supportive zone (tối đa 1 lần gợi mở nhẹ), Core zone (áp dụng đầy đủ ngân sách pushback với Double-Standard "
+            "và TEAM-CBT Resistance Inquiry), và Closing zone / Safety Gate / Accuracy Check / Rest Check (luôn tắt Pushback = 0)."
+        ),
+    },
+    {
+        "chunk_id": "health-integration#hrv-baseline-percentile",
+        "technique": "health-integration",
+        "title": "HealthKit / Health Connect HRV 14-30 Day 25th-75th Percentile Baseline & 12-Hour Gate",
+        "heading_path": "Health Integration > Baseline-Relative HRV Rules",
+        "content": (
+            "Clinical rules for interpreting HealthKit and Health Connect HRV (SDNN/RMSSD): strictly use the user's personal "
+            "14-30 day 25th-75th percentile baseline on the same device, enforce a strict 12-hour freshness gate (< 12h), "
+            "classify below-baseline (< 25th percentile) vs within-baseline vs above-baseline, and never compare pre/post HRV within a single session."
         ),
     },
     {

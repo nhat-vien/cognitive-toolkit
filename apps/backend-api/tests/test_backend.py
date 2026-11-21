@@ -478,6 +478,150 @@ class TestEquilibriaBackend(unittest.TestCase):
         )
         self.assertEqual(cross_tenant_push.status_code, 403)
 
+    # -------------------------------------------------------------------------
+    # 5. PHASE 3 EXPANSION: 2-TIER MEMORY MANAGER, AUDIO BURST MANIA DETECTOR & RAG EVAL CLI
+    # -------------------------------------------------------------------------
+    def test_phase3_two_tier_memory_voice_burst_and_rag_eval_cli(self) -> None:
+        session_id = "sess_phase3_memory_01"
+        user_id = "patient_phase3_minh"
+
+        # 5A. Send 11 chat turns (22 messages: 11 user + 11 assistant)
+        # Verifies:
+        # - Automatic extraction of Structured Personal Profile Facts on Turn 1
+        # - Automatic 15-message Rolling Summary trigger (at message #15)
+        # - Sliding window capped at latest 20 messages (`RECENT_MESSAGE_WINDOW = 20`)
+        for turn_idx in range(1, 12):
+            if turn_idx == 1:
+                msg = (
+                    "Thought Record: Tên tôi là Minh Anh, tôi làm nghề kỹ sư phần mềm. "
+                    "Gia đình và sự tự chủ là giá trị cốt lõi của tôi. Người tin cậy là bác sĩ Lan. "
+                    "Khi hưng cảm tôi thường ngủ dưới 3 tiếng và mua sắm lúc 2h sáng. "
+                    "Tôi luôn luôn sợ thất bại trước deadline cuộc họp."
+                )
+            else:
+                msg = f"Thought Record bước {turn_idx}: Bằng chứng phản bác và suy nghĩ cân bằng tại phiên {turn_idx}."
+
+            resp = self.client.post(
+                "/api/v1/orchestrator/chat",
+                json={
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "technique": "thought-record",
+                    "message": msg,
+                },
+            )
+            self.assertEqual(resp.status_code, 200)
+
+        # Inspect 2-Tier Memory via GET /api/v1/memory/{session_id}
+        mem_resp = self.client.get(f"/api/v1/memory/{session_id}", params={"user_id": user_id})
+        self.assertEqual(mem_resp.status_code, 200)
+        mem_data = mem_resp.json()
+        self.assertEqual(mem_data["window_limit"], 20)
+        self.assertEqual(mem_data["rolling_summary_interval"], 15)
+        self.assertEqual(mem_data["total_messages_processed"], 22)
+        self.assertEqual(len(mem_data["recent_messages"]), 20)
+        self.assertEqual(mem_data["rolling_summary_count"], 1)
+        self.assertIn("Minh Anh", mem_data["rolling_summary"])
+
+        profile_facts = mem_data["structured_profile_facts"]
+        self.assertEqual(profile_facts["preferred_name"], "Minh Anh")
+        self.assertIn("kỹ sư phần mềm", profile_facts["work_or_study_context"])
+        self.assertTrue(any("Gia đình" in v for v in profile_facts["core_values"]))
+        self.assertTrue(any("Tự chủ" in v for v in profile_facts["core_values"]))
+        self.assertTrue(any("Lan" in p for p in profile_facts["trusted_support_people"]))
+        self.assertTrue(any("Giảm nhu cầu ngủ" in p for p in profile_facts["known_bipolar_prodromes"]))
+
+        # Selective Erasure Mode 1: DELETE /api/v1/memory/{session_id}?mode=derived_only
+        del_derived = self.client.delete(
+            f"/api/v1/memory/{session_id}",
+            params={"mode": "derived_only", "user_id": user_id},
+        ).json()
+        self.assertTrue(del_derived["deleted"])
+        self.assertEqual(del_derived["erasure_mode"], "derived_only")
+        self.assertEqual(len(del_derived["recent_messages"]), 20)  # Raw window preserved!
+        self.assertEqual(del_derived["rolling_summary"], "")
+        self.assertEqual(del_derived["rolling_summary_count"], 0)
+        self.assertIsNone(del_derived["structured_profile_facts"]["preferred_name"])
+
+        # Selective Erasure Mode 2: DELETE /api/v1/memory/{session_id}?mode=all
+        del_all = self.client.delete(
+            f"/api/v1/memory/{session_id}",
+            params={"mode": "all", "user_id": user_id},
+        ).json()
+        self.assertTrue(del_all["deleted"])
+        self.assertEqual(del_all["erasure_mode"], "all")
+        self.assertEqual(len(del_all["recent_messages"]), 0)
+        self.assertEqual(del_all["total_messages_processed"], 0)
+
+        # 5B. Audio Burst Multimodal Analyzer & Speech-Pace Mania Detector (`POST /api/v1/voice-burst/analyze`)
+        # Case 1: Pressured Speech (> 30% WPM spike over 130 WPM baseline -> > 169 WPM)
+        fast_transcript = " ".join(
+            ["Tôi có ý tưởng thiên tài không cần ngủ nữa phải đầu tư ngay lập tức"] * 18
+        )  # 18 * 14 = 252 words in 60s = 252 WPM (+93.8% spike)
+        burst_mania = self.client.post(
+            "/api/v1/voice-burst/analyze",
+            json={
+                "user_id": user_id,
+                "transcript": fast_transcript,
+                "duration_seconds": 60.0,
+                "baseline_wpm": 130.0,
+                "hrv_data": {
+                    "age_hours": 1.5,
+                    "current_rmssd": 19.0,
+                    "history_14_30_days": [28.0, 31.0, 35.0, 38.0, 42.0, 46.0, 50.0, 55.0],
+                },
+            },
+        ).json()
+        self.assertTrue(burst_mania["pressured_speech_mania_alert"])
+        self.assertGreater(burst_mania["wpm"], 169.0)
+        self.assertEqual(burst_mania["recommended_technique"], "hypomania-guard")
+        self.assertEqual(burst_mania["ui_mode"], "low-stimulus-mania")
+        self.assertEqual(len(burst_mania["hex_colors"]), 5)
+        self.assertEqual(burst_mania["hrv_context"], "below-baseline")
+        self.assertTrue(burst_mania["single_session_hrv_comparison_blocked"])
+
+        # Case 2: Expressive vs. Instrumental Complaint Intent classification at normal speech pace
+        burst_expressive = self.client.post(
+            "/api/v1/voice-burst/analyze",
+            json={
+                "user_id": user_id,
+                "transcript": "Hôm nay mình mệt mỏi quá, mình chỉ muốn tâm sự và chỉ cần người lắng nghe thôi, đừng khuyên gì cả.",
+                "duration_seconds": 20.0,
+                "baseline_wpm": 130.0,
+            },
+        ).json()
+        self.assertFalse(burst_expressive["pressured_speech_mania_alert"])
+        self.assertEqual(burst_expressive["complaint_intent"], "expressive")
+        self.assertEqual(burst_expressive["recommended_response_mode"], "ear-empathy-only")
+
+        burst_instrumental = self.client.post(
+            "/api/v1/voice-burst/analyze",
+            json={
+                "user_id": user_id,
+                "transcript": "Làm sao để sửa suy nghĩ tiêu cực này? Hãy giúp tôi phân tích bằng chứng và lập kế hoạch hành động CBT.",
+                "duration_seconds": 20.0,
+                "baseline_wpm": 130.0,
+            },
+        ).json()
+        self.assertFalse(burst_instrumental["pressured_speech_mania_alert"])
+        self.assertEqual(burst_instrumental["complaint_intent"], "instrumental")
+        self.assertEqual(burst_instrumental["recommended_response_mode"], "structured-cbt-dbt")
+
+        # 5C. Verify standalone `scripts/evaluate_rag.py` benchmark across all 30 cases
+        from scripts.evaluate_rag import default_eval_file, evaluate_benchmark
+
+        eval_summary = evaluate_benchmark(
+            eval_path=default_eval_file(),
+            top_k=3,
+            threshold=0.46,
+        )
+        self.assertEqual(eval_summary["total_cases"], 30)
+        self.assertEqual(eval_summary["positive_cases"], 20)
+        self.assertEqual(eval_summary["negative_cases"], 10)
+        self.assertGreaterEqual(eval_summary["recall_at_k"], 0.85)
+        self.assertEqual(eval_summary["abstention_accuracy"], 1.0)
+        self.assertTrue(eval_summary["gate_passed"])
+
 
 if __name__ == "__main__":
     unittest.main()

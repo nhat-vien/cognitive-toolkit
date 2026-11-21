@@ -91,6 +91,17 @@ class E2EESyncPushRequest(BaseModel):
     blobs: List[E2EEBlobItem]
 
 
+class VoiceBurstAnalyzeRequest(BaseModel):
+    user_id: str = Field(default="user_default")
+    session_id: Optional[str] = Field(default=None)
+    transcript: str
+    duration_seconds: float = Field(default=30.0, gt=0.0)
+    baseline_wpm: float = Field(default=130.0, gt=0.0)
+    language: str = Field(default="vi")
+    hrv_data: Optional[Dict[str, Any]] = Field(default=None)
+    recent_hrv_readings: Optional[List[Dict[str, Any]]] = Field(default=None)
+
+
 # ---------------------------------------------------------------------------
 # APPLICATION FACTORY
 # ---------------------------------------------------------------------------
@@ -153,6 +164,30 @@ def create_app(sqlite_path: Optional[str] = None) -> FastAPI:
     def orchestrator_chat(req: ChatTurnRequest) -> Dict[str, Any]:
         result = orchestrator.process_chat_turn(req.model_dump(exclude_none=True))
         return result
+
+    @application.get("/api/v1/memory/{session_id}")
+    def get_memory_state(
+        session_id: str,
+        user_id: Optional[str] = Query(default=None),
+    ) -> Dict[str, Any]:
+        return orchestrator.get_session_memory(session_id=session_id, user_id=user_id)
+
+    @application.delete("/api/v1/memory/{session_id}")
+    def delete_memory_state(
+        session_id: str,
+        mode: str = Query(
+            default="derived_only",
+            description="'derived_only' (erases rolling summary & profile facts) or 'all' (wipes transcripts & memory)",
+        ),
+        user_id: Optional[str] = Query(default=None),
+    ) -> Dict[str, Any]:
+        return orchestrator.delete_session_memory(
+            session_id=session_id, mode=mode, user_id=user_id
+        )
+
+    @application.post("/api/v1/voice-burst/analyze")
+    def analyze_voice_burst(req: VoiceBurstAnalyzeRequest) -> Dict[str, Any]:
+        return orchestrator.analyze_voice_burst(req.model_dump(exclude_none=True))
 
     @application.post("/api/v1/bipolar/analyze")
     def bipolar_analyze(req: BipolarAnalyzeRequest) -> Dict[str, Any]:

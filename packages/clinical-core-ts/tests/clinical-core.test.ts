@@ -47,6 +47,15 @@ import {
   runInteractiveToolkitExercise,
   calculateCbtiSleepEfficiency,
   evaluateDbtAbcPleaseAndAccepts,
+  // Phase 3: 2-Tier Memory Manager & Audio Burst Multimodal Analyzer
+  RECENT_MESSAGE_WINDOW,
+  ROLLING_SUMMARY_INTERVAL,
+  TwoTierClinicalMemoryManager,
+  extractStructuredProfileFacts,
+  inspectMemoryState,
+  eraseDerivedMemoryOnly,
+  eraseAllTranscriptsAndMemory,
+  analyzeAudioBurstJournal,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -808,4 +817,131 @@ describe('6. Phase 2 Expansion: 36 Interactive CBT/TEAM-CBT/DBT/Bipolar Tools, C
     assert.ok(lowEnergyPlan.acceptsSkillsVi[0].microAction.includes('Bước nhỏ 2 phút'));
   });
 });
+
+describe('7. Phase 3 Expansion: 2-Tier Clinical Session Memory Manager & Audio Burst Speech-Pace Mania Detector', () => {
+  it('enforces 20-message sliding window, triggers Rolling Summary every 15 messages, extracts profile facts, and supports selective erasure', () => {
+    assert.equal(RECENT_MESSAGE_WINDOW, 20);
+    assert.equal(ROLLING_SUMMARY_INTERVAL, 15);
+
+    const memory = new TwoTierClinicalMemoryManager({
+      sessionId: 'sess-p3-mem',
+      userId: 'user-p3-01',
+    });
+
+    // Immediate Structured Personal Profile Facts extraction
+    const extracted = extractStructuredProfileFacts(
+      'Tên tôi là Minh Anh, tôi làm nghề kỹ sư phần mềm tại Hà Nội. Giá trị cốt lõi của tôi là gia đình và sự tự chủ. Người tin cậy là bác sĩ Lan và chồng tôi Hoàng. Khi hưng cảm tôi thường ngủ dưới 3 tiếng và mua sắm lúc 2h sáng. Tôi thích hỏi nhẹ nhàng thôi (gentle pushback).',
+    );
+    assert.equal(extracted.preferredName, 'Minh Anh');
+    assert.ok(extracted.workOrStudyContext?.includes('kỹ sư phần mềm'));
+    assert.ok(extracted.coreValues.some((v) => v.includes('Gia đình')));
+    assert.ok(extracted.coreValues.some((v) => v.includes('Tự chủ')));
+    assert.ok(extracted.trustedSupportPeople.some((p) => p.includes('Lan')));
+    assert.ok(extracted.knownBipolarProdromes.some((p) => p.includes('Giảm nhu cầu ngủ')));
+    assert.ok(extracted.knownBipolarProdromes.some((p) => p.includes('Mua sắm')));
+    assert.equal(extracted.preferredPushbackLevel, 'gentle');
+
+    // Feed 25 messages (should trigger rolling summary at message #15 and cap recentMessages at 20)
+    for (let i = 1; i <= 25; i++) {
+      const isUser = i % 2 === 1;
+      memory.addMessage({
+        id: `m-${i}`,
+        role: isUser ? 'user' : 'assistant',
+        content:
+          i === 1
+            ? 'Mình tên là Minh Anh, tôi làm nghề thiết kế sản phẩm. Gia đình là điều quan trọng nhất, bác sĩ điều trị là Bác sĩ Tuấn. Khi mất ngủ tôi hay ngủ dưới 4 tiếng và luôn luôn sợ thất bại trước deadline công việc.'
+            : `Tin nhắn trao đổi thực hành Thought Record và thở 4-6 TIPP bước thứ ${i}.`,
+        technique: 'thought-record',
+      });
+
+      if (i === 14) {
+        assert.equal(memory.inspectMemoryState().rollingSummary.refreshCount, 0);
+      }
+      if (i === 15) {
+        const stateAt15 = memory.inspectMemoryState();
+        assert.equal(stateAt15.rollingSummary.refreshCount, 1);
+        assert.equal(stateAt15.rollingSummary.summarizedMessageCount, 15);
+        assert.ok(stateAt15.rollingSummary.summaryTextVi.includes('Minh Anh'));
+      }
+    }
+
+    const stateAt25 = inspectMemoryState(memory);
+    assert.equal(stateAt25.totalMessagesProcessed, 25);
+    assert.equal(stateAt25.recentMessages.length, 20);
+    assert.equal(stateAt25.recentMessages[0]?.id, 'm-6');
+    assert.equal(stateAt25.recentMessages[19]?.id, 'm-25');
+    assert.equal(stateAt25.rollingSummary.refreshCount, 1);
+    assert.equal(stateAt25.structuredProfileFacts.preferredName, 'Minh Anh');
+
+    // Selective Erasure 1: eraseDerivedMemoryOnly preserves the 20-message window while clearing summary & profile facts
+    const afterDerivedErase = eraseDerivedMemoryOnly(memory);
+    assert.equal(afterDerivedErase.recentMessages.length, 20);
+    assert.equal(afterDerivedErase.rollingSummary.refreshCount, 0);
+    assert.equal(afterDerivedErase.rollingSummary.summaryTextVi, '');
+    assert.equal(afterDerivedErase.structuredProfileFacts.preferredName, undefined);
+    assert.equal(afterDerivedErase.structuredProfileFacts.coreValues.length, 0);
+
+    // Selective Erasure 2: eraseAllTranscriptsAndMemory wipes transcripts, counters, summary, and profile facts
+    const afterFullErase = eraseAllTranscriptsAndMemory(memory);
+    assert.equal(afterFullErase.recentMessages.length, 0);
+    assert.equal(afterFullErase.totalMessagesProcessed, 0);
+    assert.equal(afterFullErase.rollingSummary.refreshCount, 0);
+  });
+
+  it('detects pressured-speech mania (> 30% WPM spike over baseline), classifies Expressive vs. Instrumental intent, and generates 5-Color Mood-Palette with HRV context', () => {
+    // 1. Pressured Speech Mania Alert: 110 words in 30 seconds = 220 WPM (> 130 * 1.30 = 169 WPM)
+    const fastWords = Array.from(
+      { length: 22 },
+      () => 'Tôi có ý tưởng thiên tài không cần ngủ nữa phải làm ngay',
+    ).join(' '); // 22 * 12 = 264 words in 60s -> 264 WPM (+103% over 130 WPM baseline)
+
+    const baseTime = Date.parse('2026-11-21T08:00:00Z');
+    const hrvReadings = Array.from({ length: 14 }, (_, idx) => ({
+      value: idx === 13 ? 22 : 45 + idx * 2, // Latest reading (idx 13) is 22ms (< 25th percentile)
+      timestampIso: new Date(baseTime - (13 - idx) * 24 * 60 * 60 * 1000).toISOString(),
+      deviceSource: 'apple-watch-s9',
+    }));
+
+    const maniaBurst = analyzeAudioBurstJournal({
+      transcript: fastWords,
+      durationSeconds: 60,
+      baselineWordsPerMinute: 130,
+      recentHrvReadings: hrvReadings,
+      nowIso: '2026-11-21T08:30:00Z',
+    });
+
+    assert.ok(maniaBurst.wpm > 169);
+    assert.equal(maniaBurst.pressuredSpeechManiaAlert, true);
+    assert.equal(maniaBurst.recommendedTechnique, 'hypomania-guard');
+    assert.equal(maniaBurst.recommendedUiMode, 'low-stimulus-mania');
+    assert.equal(maniaBurst.moodPalette.dominantEmotion, 'hypomanic-elation');
+    assert.equal(maniaBurst.hexColors.length, 5);
+    assert.equal(maniaBurst.hrvContext, 'below-baseline');
+    assert.equal(maniaBurst.singleSessionHrvComparisonBlocked, true);
+
+    // 2. Expressive Complaint (normal WPM, seeking EAR empathy & emotional release)
+    const expressiveBurst = analyzeAudioBurstJournal({
+      transcript:
+        'Hôm nay mình mệt mỏi quá và buồn quá, mình chỉ muốn tâm sự và chỉ cần người lắng nghe thôi, đừng khuyên gì cả.',
+      durationSeconds: 20, // ~25 words in 20s = 75 WPM (no mania alert)
+      baselineWordsPerMinute: 130,
+    });
+    assert.equal(expressiveBurst.pressuredSpeechManiaAlert, false);
+    assert.equal(expressiveBurst.complaintIntent, 'expressive');
+    assert.equal(expressiveBurst.recommendedResponseMode, 'ear-empathy-only');
+    assert.equal(expressiveBurst.hexColors.length, 5);
+
+    // 3. Instrumental Complaint (normal WPM, seeking CBT/DBT restructuring & action plan)
+    const instrumentalBurst = analyzeAudioBurstJournal({
+      transcript:
+        'Làm sao để vượt qua suy nghĩ sếp ghét mình? Hãy giúp tôi phân tích bằng chứng và lập kế hoạch hành động bằng bài tập CBT.',
+      durationSeconds: 20,
+      baselineWordsPerMinute: 130,
+    });
+    assert.equal(instrumentalBurst.pressuredSpeechManiaAlert, false);
+    assert.equal(instrumentalBurst.complaintIntent, 'instrumental');
+    assert.equal(instrumentalBurst.recommendedResponseMode, 'structured-cbt-dbt');
+  });
+});
+
 

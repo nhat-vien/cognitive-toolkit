@@ -17,6 +17,7 @@ import 'package:printing/printing.dart';
 import '../../domain/engine/clinical_assessments.dart';
 import '../../domain/models/clinical_models.dart';
 import '../theme/adaptive_clinical_theme.dart';
+import 'ai_companion_biometrics_screen.dart';
 import 'bipolar_hub_screen.dart';
 import 'session_player_screen.dart';
 import 'sos_portal_screen.dart';
@@ -281,6 +282,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
             label: '36 Tools',
           ),
           NavigationDestination(
+            icon: Icon(Icons.smart_toy_outlined),
+            label: 'AI & Sinh trắc',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             label: 'Thang đo & PDF',
           ),
@@ -339,6 +344,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
       case 4:
         return Tools36AndTeamCbtScreen(
           currentMoodPolarity: widget.moodPolarity,
+          currentFeltNeedForSleep: widget.feltNeedForSleep,
+        );
+      case 5:
+        return AiCompanionBiometricsScreen(
+          currentMoodPolarity: widget.moodPolarity,
+          currentEnergyLevel: widget.energyLevel,
+          currentSleepHours: widget.sleepDurationHours,
           currentFeltNeedForSleep: widget.feltNeedForSleep,
         );
       default:
