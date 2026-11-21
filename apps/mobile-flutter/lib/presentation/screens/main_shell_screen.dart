@@ -20,6 +20,7 @@ import '../theme/adaptive_clinical_theme.dart';
 import 'bipolar_hub_screen.dart';
 import 'session_player_screen.dart';
 import 'sos_portal_screen.dart';
+import 'tools_36_and_team_cbt_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   final int moodPolarity;
@@ -276,6 +277,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
             label: 'Lo âu & BA',
           ),
           NavigationDestination(
+            icon: Icon(Icons.auto_awesome_mosaic_outlined),
+            label: '36 Tools',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             label: 'Thang đo & PDF',
           ),
@@ -331,6 +336,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
         );
       case 3:
         return _buildAnxietyAndDepressionToolkitTab();
+      case 4:
+        return Tools36AndTeamCbtScreen(
+          currentMoodPolarity: widget.moodPolarity,
+          currentFeltNeedForSleep: widget.feltNeedForSleep,
+        );
       default:
         return _buildClinicalAssessmentsAndPdfTab();
     }
@@ -626,6 +636,21 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.auto_awesome_mosaic),
+            title: const Text(
+              'Mở Kho 36 Công cụ CBT/TEAM-CBT/DBT, Pleasure-Predicting M/P & CBT-I',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: const Text(
+              'Chạy tức thì 0ms 36 công cụ, Bảng Chống Trì hoãn 5 phút, Downward Arrow 23 SDBs, ABC PLEASE & CBT-I Sleep Guard.',
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => setState(() => _navIndex = 4),
           ),
         ),
       ],

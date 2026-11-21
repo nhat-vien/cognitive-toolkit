@@ -8,3 +8,5 @@ export * from './detectors/distortion-detector.ts';
 export * from './engine/session-engine.ts';
 export * from './assessments/assessments.ts';
 export * from './bipolar/bipolar-engine.ts';
+export * from './tools/cbt-36-toolkit.ts';
+

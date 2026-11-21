@@ -41,11 +41,23 @@ import {
   runFourLayerSafetyGate,
   scoreClinicalAssessment,
   sortAndProcessWorryItem,
+  WEB_36_CBT_TOOLS,
+  SELF_DEFEATING_BELIEFS_23_CATALOG,
+  executeWeb36Tool,
+  evaluatePleasurePredictingSheet,
+  evaluateAntiProcrastinationSheet,
+  evaluateDownwardArrowSDB,
+  evaluateDbtAbcPlease,
+  buildDbtAcceptsAndSelfSoothePlan,
+  evaluateCbtiSleepEfficiency,
+  computeUrgeSurfingWaveFrame,
+  buildBipolarMultiAxisSvgChart,
   type AIConnectionMode,
   type AffectFamily,
   type BreathingPatternId,
   type ChainAnalysisLink,
   type CognitiveToolkitSession,
+  type CompanionContext,
   type DailyMoodAndRhythmLog,
   type IntensityScore,
   type Language,
@@ -55,6 +67,7 @@ import {
   type SessionPhase0Mode,
   type TechniqueSlug,
   type UIThemeMode,
+  type Web36ToolCategory,
   type WiseMindResolutionType,
 } from '../clinical/index.ts';
 
@@ -62,7 +75,8 @@ export type ActiveHubTab =
   | 'session-player'
   | 'anxiety-hub'
   | 'bipolar-ipsrt-hub'
-  | 'assessments-report';
+  | 'assessments-report'
+  | 'tools-36-team-cbt';
 
 export function EquilibriaClinicalApp() {
   // Global Bilingual & Clinical State
@@ -677,6 +691,170 @@ export function EquilibriaClinicalApp() {
     }
   };
 
+  // 7. Phase 2 Expansion State: 36 Interactive Tools, TEAM-CBT M/P & Anti-Procrastination, Downward Arrow SDBs, DBT ABC PLEASE / ACCEPTS / Urge Surfing & CBT-I
+  const [selectedToolCategory, setSelectedToolCategory] = useState<Web36ToolCategory | 'ALL'>('ALL');
+  const [selectedToolId, setSelectedToolId] = useState<string>('pleasure-predicting-mp-sheet');
+  const [toolUserInput, setToolUserInput] = useState<string>(
+    'Tôi sợ rằng nếu làm một mình thì sẽ chẳng có chút niềm vui nào và chắc chắn sẽ thất bại hoàn toàn.'
+  );
+  const [urgeSurfSeconds, setUrgeSurfSeconds] = useState<number>(38);
+  const [mpAloneCompanion, setMpAloneCompanion] = useState<CompanionContext>('alone_self');
+  const [mpPredPleasure, setMpPredPleasure] = useState<number>(25);
+  const [mpActPleasure, setMpActPleasure] = useState<number>(70);
+  const [mpPredMastery, setMpPredMastery] = useState<number>(35);
+  const [mpActMastery, setMpActMastery] = useState<number>(80);
+
+  const [apPredDiff, setApPredDiff] = useState<number>(85);
+  const [apActDiff, setApActDiff] = useState<number>(25);
+  const [apPredSat, setApPredSat] = useState<number>(20);
+  const [apActSat, setApActSat] = useState<number>(75);
+
+  const [daInitialThought, setDaInitialThought] = useState<string>(
+    'Nếu bản thiết kế của mình có 1 lỗi nhỏ, sếp và đồng nghiệp sẽ thất vọng về mình.'
+  );
+  const [daChain1, setDaChain1] = useState<string>(
+    'Nếu họ thất vọng, điều đó có nghĩa là tôi không hoàn hảo và năng lực kém.'
+  );
+  const [daChain2, setDaChain2] = useState<string>(
+    'Nếu tôi không hoàn hảo và không đạt thành tích xuất sắc, tôi sẽ là kẻ vô dụng.'
+  );
+  const [daProsWeight, setDaProsWeight] = useState<number>(20);
+  const [daConsWeight, setDaConsWeight] = useState<number>(80);
+
+  const [abcSleepDone, setAbcSleepDone] = useState<boolean>(true);
+  const [abcExerciseDone, setAbcExerciseDone] = useState<boolean>(true);
+  const [cbtiTimeInBed, setCbtiTimeInBed] = useState<number>(8.0);
+
+  const filtered36Tools = useMemo(
+    () =>
+      selectedToolCategory === 'ALL'
+        ? WEB_36_CBT_TOOLS
+        : WEB_36_CBT_TOOLS.filter((t) => t.category === selectedToolCategory),
+    [selectedToolCategory]
+  );
+
+  const toolExecutionResult = useMemo(
+    () =>
+      executeWeb36Tool(selectedToolId, toolUserInput, {
+        moodPolarity,
+        distressIntensity,
+        feltNeedForSleep,
+      }),
+    [selectedToolId, toolUserInput, moodPolarity, distressIntensity, feltNeedForSleep]
+  );
+
+  const urgeSurfFrame = useMemo(
+    () => computeUrgeSurfingWaveFrame(urgeSurfSeconds),
+    [urgeSurfSeconds]
+  );
+
+  const pleasurePredictingEval = useMemo(
+    () =>
+      evaluatePleasurePredictingSheet([
+        {
+          id: 'mp-1',
+          activity: 'Đọc sách & pha cà phê sáng tại ban công',
+          companion: mpAloneCompanion,
+          predictedPleasurePercent: mpPredPleasure,
+          actualPleasurePercent: mpActPleasure,
+          predictedMasteryPercent: mpPredMastery,
+          actualMasteryPercent: mpActMastery,
+        },
+        {
+          id: 'mp-2',
+          activity: 'Ăn trưa ngắn cùng đồng nghiệp',
+          companion: 'with_others',
+          predictedPleasurePercent: 60,
+          actualPleasurePercent: 65,
+          predictedMasteryPercent: 50,
+          actualMasteryPercent: 55,
+        },
+      ]),
+    [mpAloneCompanion, mpPredPleasure, mpActPleasure, mpPredMastery, mpActMastery]
+  );
+
+  const antiProcrastinationEval = useMemo(
+    () =>
+      evaluateAntiProcrastinationSheet([
+        {
+          id: 'ap-1',
+          overwhelmingTask: 'Hoàn thành báo cáo tổng kết quý 20 trang',
+          microStep5To15Min: 'Mở file và viết 3 gạch đầu dòng dàn ý trong 5 phút',
+          predictedDifficultyPercent: apPredDiff,
+          actualDifficultyPercent: apActDiff,
+          predictedSatisfactionPercent: apPredSat,
+          actualSatisfactionPercent: apActSat,
+        },
+      ]),
+    [apPredDiff, apActDiff, apPredSat, apActSat]
+  );
+
+  const downwardArrowEval = useMemo(
+    () =>
+      evaluateDownwardArrowSDB({
+        initialAutomaticThought: daInitialThought,
+        arrowChains: [daChain1, daChain2],
+        advantagesOfKeepingBelief: ['Thúc đẩy mình kiểm tra kỹ tài liệu'],
+        disadvantagesOfKeepingBelief: [
+          'Luôn sống trong lo âu kiệt sức',
+          'Trì hoãn vì sợ không hoàn hảo',
+        ],
+        advantagesWeightPercent: daProsWeight,
+        disadvantagesWeightPercent: daConsWeight,
+      }),
+    [daInitialThought, daChain1, daChain2, daProsWeight, daConsWeight]
+  );
+
+  const abcPleaseEval = useMemo(
+    () =>
+      evaluateDbtAbcPlease({
+        accumulatePositivesDone: true,
+        buildMasteryDone: true,
+        copeAheadPlanDone: true,
+        physicaIllnessAndMedsTaken: true,
+        balancedEatingDone: true,
+        avoidedMoodAlteringSubstances: true,
+        balancedSleepDone: abcSleepDone,
+        getExerciseDone: abcExerciseDone,
+      }),
+    [abcSleepDone, abcExerciseDone]
+  );
+
+  const acceptsAndSoothePlan = useMemo(() => buildDbtAcceptsAndSelfSoothePlan(), []);
+
+  const cbtiEvaluation = useMemo(
+    () =>
+      evaluateCbtiSleepEfficiency({
+        timeInBedHours: cbtiTimeInBed,
+        totalSleepTimeHours: sleepHours,
+        sleepOnsetLatencyMinutes: 35,
+        wakeAfterSleepOnsetMinutes: 25,
+        feltNeedForSleep,
+        moodPolarity,
+      }),
+    [cbtiTimeInBed, sleepHours, feltNeedForSleep, moodPolarity]
+  );
+
+  const bipolarMultiAxisSvgChart = useMemo(
+    () =>
+      buildBipolarMultiAxisSvgChart([
+        { dateLabel: 'D-6', moodPolarity: 0, energyLevel: 0, sleepHours: 7.5, feltNeedForSleep: 'normal' },
+        { dateLabel: 'D-5', moodPolarity: 1, energyLevel: 1, sleepHours: 7.0, feltNeedForSleep: 'normal' },
+        { dateLabel: 'D-4', moodPolarity: 2, energyLevel: 2, sleepHours: 5.5, feltNeedForSleep: 'reduced_need' },
+        { dateLabel: 'D-3', moodPolarity: -1, energyLevel: 1, sleepHours: 6.5, feltNeedForSleep: 'normal' },
+        { dateLabel: 'D-2', moodPolarity: -2, energyLevel: 2, sleepHours: 5.0, feltNeedForSleep: 'reduced_need' },
+        { dateLabel: 'D-1', moodPolarity: 0, energyLevel: 0, sleepHours: 7.5, feltNeedForSleep: 'normal' },
+        {
+          dateLabel: 'Hôm nay',
+          moodPolarity,
+          energyLevel,
+          sleepHours,
+          feltNeedForSleep,
+        },
+      ]),
+    [moodPolarity, energyLevel, sleepHours, feltNeedForSleep]
+  );
+
   return (
     <div
       className={`theme-${theme.mode}`}
@@ -1046,6 +1224,7 @@ export function EquilibriaClinicalApp() {
             ['anxiety-hub', '2. Phân Hệ Lo Âu (Worry Box • ERP • Prediction Calibration)'],
             ['bipolar-ipsrt-hub', '3. Phân Hệ Lưỡng Cực & IPSRT (-5..+5 • 48h Vault • Ulysses)'],
             ['assessments-report', '4. Thang Đo Lâm Sàng • Mã Hóa AES-GCM • Báo Cáo In A4'],
+            ['tools-36-team-cbt', '5. Kho 36 Công cụ CBT/TEAM-CBT/DBT & Trầm cảm Chuyên sâu (36 Tools & TEAM-CBT Hub)'],
           ] as const
         ).map(([tabId, label]) => (
           <button
@@ -1593,6 +1772,32 @@ export function EquilibriaClinicalApp() {
                 </div>
               ))}
             </section>
+
+            {/* 4. DBT Radical Acceptance & Urge Surfing 90-Second Adrenaline Wave Timer */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>4. Lướt Sóng Adrenaline 90 Giây (DBT Radical Acceptance &amp; Urge Surfing)</h3>
+              <label style={{ display: 'block', fontSize: '0.86rem', marginBottom: '8px' }}>
+                Thời gian trên đỉnh sóng ({urgeSurfFrame.elapsedSeconds}s / 90s — Độ cao sóng: {urgeSurfFrame.waveHeightPercent}%):
+                <input
+                  type="range"
+                  min={0}
+                  max={90}
+                  value={urgeSurfSeconds}
+                  onChange={(e) => setUrgeSurfSeconds(Number((e.target as HTMLInputElement).value))}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <p style={{ fontSize: '0.85rem', margin: 0 }}>
+                {lang === 'vi' ? urgeSurfFrame.coachingVi : urgeSurfFrame.coachingEn}
+              </p>
+            </section>
           </div>
         </main>
       )}
@@ -1600,6 +1805,111 @@ export function EquilibriaClinicalApp() {
       {/* TAB 3: BIPOLAR & IPSRT HUB */}
       {activeTab === 'bipolar-ipsrt-hub' && (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          {/* Multi-Axis Dual-Pole (-5..+5) Mood, Energy & Sleep SVG Overlay Chart */}
+          <section
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>
+              Biểu Đồ Đa Trục Chồng Lớp 7 Ngày: Khí Sắc (-5..+5) • Năng Lượng (-5..+5) • Giấc Ngủ (0..12h)
+            </h3>
+            <svg
+              viewBox={`0 0 ${bipolarMultiAxisSvgChart.width} ${bipolarMultiAxisSvgChart.height}`}
+              style={{ width: '100%', maxHeight: '240px', backgroundColor: '#0f172a', borderRadius: '8px' }}
+              role="img"
+              aria-label="SVG Multi-Axis Dual-Pole (-5..+5) Mood, Energy and Sleep Chart"
+            >
+              {/* Euthymic 0 Line & Mania/Depression Threshold Lines */}
+              <line
+                x1={44}
+                y1={bipolarMultiAxisSvgChart.maniaThresholdY}
+                x2={bipolarMultiAxisSvgChart.width - 44}
+                y2={bipolarMultiAxisSvgChart.maniaThresholdY}
+                stroke="#f59e0b"
+                strokeDasharray="4 4"
+                strokeWidth={1}
+              />
+              <line
+                x1={44}
+                y1={bipolarMultiAxisSvgChart.zeroLineY}
+                x2={bipolarMultiAxisSvgChart.width - 44}
+                y2={bipolarMultiAxisSvgChart.zeroLineY}
+                stroke="#64748b"
+                strokeWidth={1.5}
+              />
+              <line
+                x1={44}
+                y1={bipolarMultiAxisSvgChart.depressionThresholdY}
+                x2={bipolarMultiAxisSvgChart.width - 44}
+                y2={bipolarMultiAxisSvgChart.depressionThresholdY}
+                stroke="#38bdf8"
+                strokeDasharray="4 4"
+                strokeWidth={1}
+              />
+
+              {/* Sleep Duration Bars */}
+              {bipolarMultiAxisSvgChart.points.map((pt) => (
+                <g key={pt.dateLabel}>
+                  <rect
+                    x={pt.x - 10}
+                    y={bipolarMultiAxisSvgChart.height - 24 - pt.sleepBarHeight}
+                    width={20}
+                    height={pt.sleepBarHeight}
+                    fill="rgba(56, 189, 248, 0.22)"
+                    rx={3}
+                  />
+                  <text
+                    x={pt.x}
+                    y={bipolarMultiAxisSvgChart.height - 8}
+                    textAnchor="middle"
+                    fill="#cbd5e1"
+                    fontSize="11"
+                  >
+                    {pt.dateLabel} ({pt.sleepHours}h)
+                  </text>
+                </g>
+              ))}
+
+              {/* Mood Polarity Polyline (-5..+5) */}
+              <polyline
+                fill="none"
+                stroke="#14b8a6"
+                strokeWidth={3}
+                points={bipolarMultiAxisSvgChart.moodPolylinePoints}
+              />
+
+              {/* Energy Level Polyline (-5..+5) */}
+              <polyline
+                fill="none"
+                stroke="#f97316"
+                strokeWidth={2.5}
+                strokeDasharray="5 3"
+                points={bipolarMultiAxisSvgChart.energyPolylinePoints}
+              />
+
+              {/* Data Nodes */}
+              {bipolarMultiAxisSvgChart.points.map((pt) => (
+                <g key={`node-${pt.dateLabel}`}>
+                  <circle
+                    cx={pt.x}
+                    cy={pt.moodY}
+                    r={pt.isMixedRisk || pt.isManiaProdromeRisk ? 6 : 4}
+                    fill={pt.isMixedRisk ? '#e11d48' : '#14b8a6'}
+                  />
+                  <circle cx={pt.x} cy={pt.energyY} r={4} fill="#f97316" />
+                </g>
+              ))}
+            </svg>
+            <p style={{ fontSize: '0.82rem', margin: '8px 0 0 0', color: theme.palette.textSecondary }}>
+              Chú giải: Đường xanh ngọc liền nét = Khí sắc (-5..+5) | Đường cam đứt nét = Năng lượng (-5..+5) | Cột xanh dương = Số giờ ngủ | Điểm đỏ = Cảnh báo Pha Hỗn hợp / Tiền triệu Hưng cảm.
+            </p>
+          </section>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
             {/* Dual-Pole Mood & Energy Chart (-5 to +5) & Prodrome / Mixed State Detector */}
             <section
@@ -1859,6 +2169,358 @@ export function EquilibriaClinicalApp() {
               <code>{clinicianReport.e2eeShareUrlFragment}</code>
             </p>
           </section>
+        </main>
+      )}
+
+      {/* TAB 5: 36 INTERACTIVE CBT/TEAM-CBT/DBT TOOLS & DEPRESSION GOLD-STANDARD SUITE */}
+      {activeTab === 'tools-36-team-cbt' && (
+        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          {/* 1. 36 Interactive CBT, TEAM-CBT, DBT & Bipolar Toolkit Hub (0ms execution) */}
+          <section
+            style={{
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              marginBottom: '16px',
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>
+              1. Kho 36 Công Cụ CBT • TEAM-CBT • DBT • IPSRT Tương Tác Nhanh (0ms Deterministic Engine — Đủ {WEB_36_CBT_TOOLS.length}/36 Công Cụ)
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {(
+                [
+                  'ALL',
+                  'Anxiety & ERP',
+                  'Depression & TEAM-CBT',
+                  'Bipolar & IPSRT',
+                  'DBT Distress & Regulation',
+                  'Work & Burnout',
+                ] as const
+              ).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedToolCategory(cat)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: `1px solid ${theme.palette.border}`,
+                    backgroundColor: selectedToolCategory === cat ? theme.palette.primary : 'transparent',
+                    color: selectedToolCategory === cat ? '#fff' : theme.palette.textPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {cat === 'ALL' ? `Tất cả (${WEB_36_CBT_TOOLS.length})` : cat}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', maxHeight: '280px', overflowY: 'auto', padding: '4px', marginBottom: '12px' }}>
+              {filtered36Tools.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => setSelectedToolId(tool.id)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border:
+                      selectedToolId === tool.id
+                        ? `2px solid ${theme.palette.primary}`
+                        : `1px solid ${theme.palette.border}`,
+                    backgroundColor: theme.palette.surface,
+                    color: theme.palette.textPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <strong>
+                    #{tool.number}. {lang === 'vi' ? tool.titleVi : tool.titleEn}
+                  </strong>
+                  <div style={{ fontSize: '0.78rem', color: theme.palette.textSecondary }}>
+                    [{tool.clinicalOrigin}] • {tool.category} • {tool.durationMinutes} min
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, marginBottom: '6px' }}>
+              Nhập suy nghĩ / tình huống để chạy công cụ #{toolExecutionResult.tool.number} ({toolExecutionResult.tool.titleVi}):
+            </label>
+            <textarea
+              rows={2}
+              value={toolUserInput}
+              onChange={(e) => setToolUserInput((e.target as HTMLTextAreaElement).value)}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', marginBottom: '10px' }}
+            />
+
+            <div
+              style={{
+                padding: '12px',
+                borderRadius: '8px',
+                backgroundColor: '#0f172a',
+                color: '#f8fafc',
+                fontSize: '0.86rem',
+              }}
+            >
+              <div>
+                <strong>Kết quả Phân tích 0ms ({toolExecutionResult.kbCitation}):</strong>
+              </div>
+              <p style={{ margin: '6px 0' }}>
+                {lang === 'vi'
+                  ? toolExecutionResult.reframeOrActionCardVi
+                  : toolExecutionResult.reframeOrActionCardEn}
+              </p>
+              <p style={{ margin: '6px 0', color: '#38bdf8' }}>
+                <strong>Bước hành động tiếp theo:</strong>{' '}
+                {lang === 'vi' ? toolExecutionResult.nextMicroStepVi : toolExecutionResult.nextMicroStepEn}
+              </p>
+              {toolExecutionResult.bipolarSafetyNoteVi && (
+                <p style={{ margin: '6px 0 0 0', color: '#fbbf24' }}>
+                  {lang === 'vi'
+                    ? toolExecutionResult.bipolarSafetyNoteVi
+                    : toolExecutionResult.bipolarSafetyNoteEn}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
+            {/* 2. TEAM-CBT Pleasure-Predicting & Mastery/Pleasure (M/P) Sheet */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>2. Bảng Dự Đoán Niềm Vui &amp; Làm Chủ (TEAM-CBT Pleasure-Predicting M/P Sheet)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
+                <label>
+                  Bối cảnh thực hiện (Kiểm nghiệm Love Addiction SDB):{' '}
+                  <select
+                    value={mpAloneCompanion}
+                    onChange={(e) => setMpAloneCompanion((e.target as HTMLSelectElement).value as CompanionContext)}
+                  >
+                    <option value="alone_self">Một mình / Tự thân (Alone / Self)</option>
+                    <option value="with_others">Cùng người khác (With Others)</option>
+                  </select>
+                </label>
+                <label>
+                  Dự đoán Niềm vui (Predicted P%): {mpPredPleasure}% → Thực tế (Actual P%): {mpActPleasure}%
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={mpActPleasure}
+                    onChange={(e) => setMpActPleasure(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label>
+                  Dự đoán Làm chủ (Predicted M%): {mpPredMastery}% → Thực tế (Actual M%): {mpActMastery}%
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={mpActMastery}
+                    onChange={(e) => setMpActMastery(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+              </div>
+              <p style={{ fontSize: '0.85rem', marginTop: '10px' }}>
+                {lang === 'vi'
+                  ? pleasurePredictingEval.clinicalInsightVi
+                  : pleasurePredictingEval.clinicalInsightEn}
+              </p>
+            </section>
+
+            {/* 3. David Burns Anti-Procrastination 5-Minute Sheet */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>3. Bảng Chống Trì Hoãn 5 Phút (David Burns Anti-Procrastination Sheet)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
+                <label>
+                  Độ khó Dự đoán ({apPredDiff}%) vs. Độ khó Thực tế sau 5 phút làm thử ({apActDiff}%):
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={apActDiff}
+                    onChange={(e) => setApActDiff(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label>
+                  Hài lòng Dự đoán ({apPredSat}%) vs. Hài lòng Thực tế ({apActSat}%):
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={apActSat}
+                    onChange={(e) => setApActSat(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+              </div>
+              <p style={{ fontSize: '0.85rem', marginTop: '10px' }}>
+                {lang === 'vi' ? antiProcrastinationEval.coachingVi : antiProcrastinationEval.coachingEn}
+              </p>
+            </section>
+
+            {/* 4. Uncovering 23 Self-Defeating Beliefs (Downward Arrow + Cost-Benefit Analysis) */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>
+                4. Kỹ Thuật Mũi Tên Đi Xuống — Khám Phá {SELF_DEFEATING_BELIEFS_23_CATALOG.length} Niềm Tin Tự Hủy Hoại (SDBs) &amp; Phân Tích Lợi-Hại
+              </h3>
+              <div style={{ fontSize: '0.84rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>
+                  <strong>Suy nghĩ ban đầu:</strong> {daInitialThought}
+                </div>
+                <div>
+                  <strong>↓ Nếu điều đó là thật, nó có ý nghĩa gì với bạn? (Bước 1):</strong>
+                  <input
+                    type="text"
+                    value={daChain1}
+                    onChange={(e) => setDaChain1((e.target as HTMLInputElement).value)}
+                    style={{ width: '100%', padding: '5px', marginTop: '3px' }}
+                  />
+                </div>
+                <div>
+                  <strong>↓ Và nếu thế thì sao? (Bước 2 — Chạm Niềm tin Gốc):</strong>
+                  <input
+                    type="text"
+                    value={daChain2}
+                    onChange={(e) => setDaChain2((e.target as HTMLInputElement).value)}
+                    style={{ width: '100%', padding: '5px', marginTop: '3px' }}
+                  />
+                </div>
+                <div>
+                  <strong>Cân nặng Lợi / Hại (Cost-Benefit 100 điểm):</strong>{' '}
+                  {downwardArrowEval.costBenefitRatio}
+                </div>
+              </div>
+              <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>
+                {lang === 'vi' ? downwardArrowEval.summaryVi : downwardArrowEval.summaryEn}
+              </p>
+            </section>
+
+            {/* 5. DBT ABC PLEASE Daily Resilience Tracker + ACCEPTS & 5-Senses Self-Soothe */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <h3>5. DBT ABC PLEASE ({abcPleaseEval.resilienceScorePercent}%) + ACCEPTS &amp; Xoa Dịu 5 Giác Quan</h3>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', marginBottom: '8px' }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={abcSleepDone}
+                    onChange={(e) => setAbcSleepDone((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  S — Ngủ cân bằng (Balanced Sleep)
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={abcExerciseDone}
+                    onChange={(e) => setAbcExerciseDone((e.target as HTMLInputElement).checked)}
+                  />{' '}
+                  E — Vận động 20 phút (Exercise)
+                </label>
+              </div>
+              <p style={{ fontSize: '0.85rem', margin: '0 0 8px 0' }}>
+                {lang === 'vi' ? abcPleaseEval.summaryVi : abcPleaseEval.summaryEn}
+              </p>
+              <div style={{ fontSize: '0.8rem', color: theme.palette.textSecondary }}>
+                <strong>7 Thẻ ACCEPTS:</strong>{' '}
+                {acceptsAndSoothePlan.acceptsCards.map((c) => `${c.letter} (${c.nameEn})`).join(' • ')}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: theme.palette.textSecondary, marginTop: '4px' }}>
+                <strong>Xoa dịu 5 Giác quan:</strong>{' '}
+                {acceptsAndSoothePlan.fiveSensesCards.map((s) => s.senseVi).join(' • ')}
+              </div>
+            </section>
+
+            {/* 6. CBT-I Sleep Diary & Sleep Efficiency Calculator with Bipolar Mania Contraindication Guard */}
+            <section
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+                gridColumn: '1 / -1',
+              }}
+            >
+              <h3>
+                6. Nhật Ký Giấc Ngủ CBT-I &amp; Tính Hiệu Suất Giấc Ngủ (SE: {cbtiEvaluation.sleepEfficiencyPercent}%) — Có Lá Chắn Chống Hưng Cảm Lưỡng Cực
+              </h3>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.86rem', marginBottom: '10px' }}>
+                <label>
+                  Tổng thời gian nằm trên giường (giờ):{' '}
+                  <input
+                    type="number"
+                    min={1}
+                    max={14}
+                    step={0.5}
+                    value={cbtiTimeInBed}
+                    onChange={(e) => setCbtiTimeInBed(Number((e.target as HTMLInputElement).value))}
+                    style={{ width: '65px' }}
+                  />
+                </label>
+                <label>
+                  Cảm giác cần ngủ sáng nay (Felt Need for Sleep):{' '}
+                  <select
+                    value={feltNeedForSleep}
+                    onChange={(e) =>
+                      setFeltNeedForSleep(
+                        (e.target as HTMLSelectElement).value as DailyMoodAndRhythmLog['feltNeedForSleep']
+                      )
+                    }
+                  >
+                    <option value="exhausted">Mệt mỏi / Thiếu ngủ (Exhausted — True Insomnia)</option>
+                    <option value="normal">Bình thường (Normal)</option>
+                    <option value="reduced_need">Giảm nhu cầu ngủ (Reduced Need — Mania Risk)</option>
+                    <option value="no_need_at_all">Không cần ngủ vẫn tràn năng lượng (No Need — Mania Alert)</option>
+                  </select>
+                </label>
+              </div>
+              <div
+                style={{
+                  padding: '10px',
+                  borderRadius: '6px',
+                  backgroundColor: cbtiEvaluation.sleepRestrictionContraindicatedByManiaGuard
+                    ? '#7f1d1d'
+                    : '#064e3b',
+                  color: '#ffffff',
+                  fontSize: '0.86rem',
+                }}
+              >
+                {lang === 'vi' ? cbtiEvaluation.guidanceVi : cbtiEvaluation.guidanceEn}
+              </div>
+            </section>
+          </div>
         </main>
       )}
     </div>

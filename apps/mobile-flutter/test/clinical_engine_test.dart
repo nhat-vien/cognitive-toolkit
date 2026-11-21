@@ -17,6 +17,7 @@
 import 'package:equilibria_mobile_flutter/domain/engine/bipolar_ipsrt_engine.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/clinical_assessments.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/distortion_detector.dart';
+import 'package:equilibria_mobile_flutter/domain/engine/phase2_clinical_tools.dart';
 import 'package:equilibria_mobile_flutter/domain/engine/session_state_machine.dart';
 import 'package:equilibria_mobile_flutter/domain/models/clinical_models.dart';
 import 'package:equilibria_mobile_flutter/presentation/theme/adaptive_clinical_theme.dart';
@@ -304,6 +305,124 @@ void main() {
       expect(hrvResult.hasSufficientBaselineHistory, isTrue);
       expect(hrvResult.context, equals(HrvContext.belowBaseline));
       expect(hrvResult.checkInOneLineNoticeVi, isNotNull);
+    });
+  });
+
+  group('6. Phase 2 Clinical Expansion: 36 Interactive Tools, TEAM-CBT M/P & Anti-Procrastination, Downward Arrow 23 SDBs, DBT ABC PLEASE & CBT-I Bipolar Guard', () {
+    test('Catalog kFlutter36ClinicalTools has exact length 36 and all 36 execute deterministically in 0ms', () {
+      expect(kFlutter36ClinicalTools.length, equals(36));
+
+      final slugs = kFlutter36ClinicalTools.map((t) => t.slug).toSet();
+      expect(slugs.length, equals(36));
+
+      for (final tool in kFlutter36ClinicalTools) {
+        final res = runFlutterClinicalTool(
+          tool.slug,
+          'Một lỗi nhỏ làm hỏng hết, tôi là kẻ thất bại hoàn toàn.',
+          moodPolarity: -2,
+        );
+        expect(res.tool.slug, equals(tool.slug));
+        expect(res.safetyStopTriggered, isFalse);
+        expect(res.deterministicReframeVi, isNotEmpty);
+        expect(res.socraticQuestionVi, isNotEmpty);
+      }
+
+      // Crisis input in any of the 36 tools immediately triggers safetyStopTriggered
+      final crisisRes = runFlutterClinicalTool(
+        'cognitive-distortion-checker',
+        'Tôi không muốn sống nữa và muốn tự tử.',
+      );
+      expect(crisisRes.safetyStopTriggered, isTrue);
+    });
+
+    test('TEAM-CBT Pleasure-Predicting (Mastery & Pleasure M/P) Sheet computes prediction-error delta accurately', () {
+      const entry = PleasurePredictingEntry(
+        id: 'mp-1',
+        activityTitle: 'Đi bộ 10 phút & uống trà ấm',
+        predictedPleasurePct: 15,
+        actualPleasurePct: 65,
+        predictedMasteryScore: 2,
+        actualMasteryScore: 8,
+      );
+
+      expect(entry.pleasurePredictionErrorDelta, equals(50));
+      expect(entry.masteryPredictionErrorDelta, equals(6));
+      expect(entry.disprovedAnhedoniaPrediction, isTrue);
+      expect(entry.clinicalInsightVi, contains('+50%'));
+    });
+
+    test('TEAM-CBT Anti-Procrastination 5-Minute Sheet computes difficulty relief and satisfaction gain deltas', () {
+      const eval = AntiProcrastinationStepEvaluation(
+        id: 'ap-1',
+        overwhelmingTask: 'Viết báo cáo 20 trang',
+        fiveMinuteMicroStep: 'Mở file và viết 3 gạch đầu dòng trong 5 phút',
+        predictedDifficultyPct: 90,
+        predictedSatisfactionPct: 20,
+        actualDifficultyPct: 30,
+        actualSatisfactionPct: 75,
+      );
+
+      expect(eval.difficultyReliefDelta, equals(60));
+      expect(eval.satisfactionGainDelta, equals(55));
+      expect(eval.clinicalTakeawayVi, contains('60%'));
+    });
+
+    test('Downward Arrow uncovers Self-Defeating Beliefs (SDBs) and builds Cost-Benefit Analysis', () {
+      final sdbRes = runDownwardArrowSdbUncovering(
+        automaticThought: 'Tôi không được phép mắc lỗi, cần tất cả mọi người hài lòng.',
+        mode: 'interpersonal',
+      );
+
+      expect(sdbRes.uncoveredSdbCodes, contains('sdb_performance_perfectionism'));
+      expect(sdbRes.uncoveredSdbCodes, contains('sdb_approval_addiction'));
+      expect(sdbRes.arrowChainVi.length, greaterThanOrEqualTo(3));
+      expect(sdbRes.benefitsOfHoldingBeliefVi, isNotEmpty);
+      expect(sdbRes.costsOfHoldingBeliefVi, isNotEmpty);
+      expect(sdbRes.healthyReplacementBeliefVi, isNotEmpty);
+    });
+
+    test('DBT ABC PLEASE Checklist, ACCEPTS / 5-Senses Self-Soothe & Radical Acceptance 90s Urge Surfing work accurately', () {
+      const checklist = DbtAbcPleaseChecklistState(
+        accumulatePositives: true,
+        buildMastery: true,
+        copeAhead: true,
+        physicalIllnessCare: true,
+        balancedEating: true,
+        avoidMoodAlteringSubstances: true,
+        balancedSleep: true,
+        dailyExercise: false,
+      );
+
+      expect(checklist.completedItemsCount, equals(7));
+      expect(checklist.resilienceScorePct, equals(88));
+      expect(kDbtAcceptsAndFiveSensesCards.length, equals(12));
+
+      final wavePeak = evaluateUrgeSurfingWave(elapsedSeconds: 45);
+      expect(wavePeak.phaseTitleVi, contains('30–60s'));
+    });
+
+    test('CBT-I Sleep Efficiency Calculator blocks sleep restriction when Bipolar Mania Contraindication Guard triggers', () {
+      // Case 1: Primary insomnia (exhausted, euthymic mood = 0) -> sleep restriction allowed
+      final insomniaRes = calculateCbtiSleepEfficiency(
+        totalTimeInBedHours: 8.0,
+        totalSleepTimeHours: 5.0,
+        feltNeedForSleep: FeltNeedForSleep.exhausted,
+        moodPolarity: 0,
+      );
+      expect(insomniaRes.sleepEfficiencyPct, equals(63));
+      expect(insomniaRes.bipolarManiaContraindicationBlocked, isFalse);
+      expect(insomniaRes.sleepRestrictionAllowed, isTrue);
+
+      // Case 2: Bipolar reduced need for sleep (4h sleep in 5h bed, feels energized) -> BLOCKS sleep restriction
+      final hypomaniaRes = calculateCbtiSleepEfficiency(
+        totalTimeInBedHours: 5.0,
+        totalSleepTimeHours: 4.0,
+        feltNeedForSleep: FeltNeedForSleep.reducedNeed,
+        moodPolarity: 2,
+      );
+      expect(hypomaniaRes.bipolarManiaContraindicationBlocked, isTrue);
+      expect(hypomaniaRes.sleepRestrictionAllowed, isFalse);
+      expect(hypomaniaRes.clinicalRecommendationVi, contains('BIPOLAR MANIA GUARD'));
     });
   });
 }

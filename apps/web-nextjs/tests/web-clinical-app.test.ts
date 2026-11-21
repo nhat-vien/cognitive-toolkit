@@ -496,3 +496,147 @@ test('7. Vercel + Supabase Serverless Edge Stack: Grounded RAG (0.46), Zero-Know
   assert.equal(verified.totalEntries, 2);
 });
 
+import {
+  WEB_36_CBT_TOOLS,
+  SELF_DEFEATING_BELIEFS_23_CATALOG,
+  executeWeb36Tool,
+  evaluatePleasurePredictingSheet,
+  evaluateAntiProcrastinationSheet,
+  evaluateDownwardArrowSDB,
+  evaluateDbtAbcPlease,
+  buildDbtAcceptsAndSelfSoothePlan,
+  evaluateCbtiSleepEfficiency,
+  computeUrgeSurfingWaveFrame,
+  buildBipolarMultiAxisSvgChart,
+} from '../src/clinical/index.ts';
+
+test('8. Phase 2 Expansion: Full 36 Interactive CBT/TEAM-CBT/DBT Tools, Pleasure-Predicting M/P, Anti-Procrastination, 23 SDBs Downward Arrow, DBT ABC PLEASE / ACCEPTS / Urge Surfing, and CBT-I Bipolar Mania Contraindication Guard', () => {
+  // 1. Full 36 interactive tools catalog & 0ms execution
+  assert.equal(WEB_36_CBT_TOOLS.length, 36);
+  const categories = new Set(WEB_36_CBT_TOOLS.map((t) => t.category));
+  assert.equal(categories.size, 5);
+
+  const toolRun = executeWeb36Tool(
+    'pleasure-predicting-mp-sheet',
+    'Tôi luôn luôn thất bại hoàn toàn khi ở một mình',
+    { moodPolarity: -3 }
+  );
+  assert.equal(toolRun.latencyMs, 0);
+  assert.ok(toolRun.detectedNegativeDistortions.length >= 1);
+  assert.ok(toolRun.bipolarSafetyNoteVi?.includes('Low-Energy'));
+  assert.equal(toolRun.kbCitation, '[KB:pleasure-predicting#mp-sheet]');
+
+  // 2. Pleasure-Predicting & Mastery/Pleasure (M/P) Sheet prediction-error delta & Love Addiction SDB test
+  const mpEval = evaluatePleasurePredictingSheet([
+    {
+      id: 'mp1',
+      activity: 'Đi cà phê đọc sách một mình',
+      companion: 'alone_self',
+      predictedPleasurePercent: 20,
+      actualPleasurePercent: 75,
+      predictedMasteryPercent: 30,
+      actualMasteryPercent: 80,
+    },
+    {
+      id: 'mp2',
+      activity: 'Trò chuyện cùng bạn',
+      companion: 'with_others',
+      predictedPleasurePercent: 60,
+      actualPleasurePercent: 70,
+      predictedMasteryPercent: 50,
+      actualMasteryPercent: 60,
+    },
+  ]);
+  assert.equal(mpEval.entries[0]?.pleasureDelta, 55);
+  assert.equal(mpEval.entries[0]?.masteryDelta, 50);
+  assert.equal(mpEval.loveAddictionSdbDisconfirmed, true);
+
+  // 3. Anti-Procrastination 5-Minute Sheet (David Burns)
+  const apEval = evaluateAntiProcrastinationSheet([
+    {
+      id: 'ap1',
+      overwhelmingTask: 'Viết báo cáo 20 trang',
+      microStep5To15Min: 'Viết 3 gạch đầu dòng dàn ý trong 5 phút',
+      predictedDifficultyPercent: 90,
+      actualDifficultyPercent: 25,
+      predictedSatisfactionPercent: 15,
+      actualSatisfactionPercent: 75,
+    },
+  ]);
+  assert.equal(apEval.averageDifficultyOverestimation, 65);
+  assert.equal(apEval.averageSatisfactionUnderestimation, 60);
+
+  // 4. Downward Arrow (23 Self-Defeating Beliefs Uncovering & Cost-Benefit Analysis)
+  assert.equal(SELF_DEFEATING_BELIEFS_23_CATALOG.length, 23);
+  const daEval = evaluateDownwardArrowSDB({
+    initialAutomaticThought: 'Mình mắc 1 lỗi nhỏ trong bản thuyết trình',
+    arrowChains: [
+      'Nếu mắc lỗi nhỏ thì mình không hoàn hảo',
+      'Nếu không có thành tích hoàn hảo thì mình là kẻ thất bại vô dụng',
+    ],
+    advantagesOfKeepingBelief: ['Chuẩn bị kỹ'],
+    disadvantagesOfKeepingBelief: ['Kiệt sức, trì hoãn và lo âu mãn tính'],
+    advantagesWeightPercent: 15,
+    disadvantagesWeightPercent: 85,
+  });
+  assert.ok(daEval.uncoveredSDBs.length >= 2);
+  assert.equal(daEval.readyToAdoptHealthyBelief, true);
+
+  // 5. DBT ABC PLEASE & ACCEPTS + 5-Senses Self-Soothe
+  const abcEval = evaluateDbtAbcPlease({
+    accumulatePositivesDone: true,
+    buildMasteryDone: true,
+    copeAheadPlanDone: true,
+    physicaIllnessAndMedsTaken: true,
+    balancedEatingDone: true,
+    avoidedMoodAlteringSubstances: true,
+    balancedSleepDone: false,
+    getExerciseDone: true,
+  });
+  assert.equal(abcEval.completedCount, 7);
+  assert.equal(abcEval.vulnerabilityFlagsVi.length, 1);
+
+  const acceptsPlan = buildDbtAcceptsAndSelfSoothePlan();
+  assert.equal(acceptsPlan.acceptsCards.length, 7);
+  assert.equal(acceptsPlan.fiveSensesCards.length, 5);
+
+  // 6. DBT Radical Acceptance & Urge Surfing 90-second wave timer
+  const wavePeak = computeUrgeSurfingWaveFrame(45);
+  assert.equal(wavePeak.phase, 'peak-surfing');
+  assert.equal(wavePeak.waveHeightPercent, 100);
+  const waveDone = computeUrgeSurfingWaveFrame(90);
+  assert.equal(waveDone.phase, 'wave-complete');
+
+  // 7. CBT-I Sleep Efficiency Calculator with Bipolar Mania Contraindication Guard
+  const cbtiManiaBlocked = evaluateCbtiSleepEfficiency({
+    timeInBedHours: 6,
+    totalSleepTimeHours: 3.5,
+    sleepOnsetLatencyMinutes: 10,
+    wakeAfterSleepOnsetMinutes: 10,
+    feltNeedForSleep: 'reduced_need', // Must block CBT-I sleep restriction!
+    moodPolarity: 2,
+  });
+  assert.equal(cbtiManiaBlocked.sleepRestrictionContraindicatedByManiaGuard, true);
+  assert.equal(cbtiManiaBlocked.recommendedProtocolCode, 'bipolar-dark-therapy-mania-guard');
+
+  const cbtiTrueInsomnia = evaluateCbtiSleepEfficiency({
+    timeInBedHours: 9,
+    totalSleepTimeHours: 6,
+    sleepOnsetLatencyMinutes: 45,
+    wakeAfterSleepOnsetMinutes: 40,
+    feltNeedForSleep: 'exhausted',
+    moodPolarity: -1,
+  });
+  assert.equal(cbtiTrueInsomnia.sleepRestrictionContraindicatedByManiaGuard, false);
+  assert.equal(cbtiTrueInsomnia.recommendedProtocolCode, 'cbti-stimulus-control-and-consolidation');
+
+  // 8. Multi-Axis Bipolar SVG Chart builder
+  const chart = buildBipolarMultiAxisSvgChart([
+    { dateLabel: 'D1', moodPolarity: -3, energyLevel: 3, sleepHours: 4, feltNeedForSleep: 'reduced_need' },
+    { dateLabel: 'D2', moodPolarity: 0, energyLevel: 0, sleepHours: 7.5, feltNeedForSleep: 'normal' },
+  ]);
+  assert.equal(chart.points.length, 2);
+  assert.equal(chart.points[0]?.isMixedRisk, true);
+});
+
+

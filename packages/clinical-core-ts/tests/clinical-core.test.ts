@@ -41,6 +41,12 @@ import {
   createImpulseVaultEntry,
   evaluateImpulseVaultStatus,
   evaluateBaselineRelativeHrv,
+  // Phase 2: 36 Interactive CBT, TEAM-CBT, DBT & Bipolar Toolkit
+  CBT_36_TOOLS_CATALOG,
+  getCbt36ToolBySlugOrId,
+  runInteractiveToolkitExercise,
+  calculateCbtiSleepEfficiency,
+  evaluateDbtAbcPleaseAndAccepts,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -605,3 +611,201 @@ describe('5. Bipolar Engine: IPSRT Rhythm, Prodrome/Mixed State, 48h Impulse Vau
     assert.equal(staleEval.shouldMentionAtCheckIn, false);
   });
 });
+
+describe('6. Phase 2 Expansion: 36 Interactive CBT/TEAM-CBT/DBT/Bipolar Tools, CBT-I Mania Guard & ABC PLEASE', () => {
+  it('verifies CBT_36_TOOLS_CATALOG has all 36 complete tools with numbers 1..36 and bilingual metadata', () => {
+    assert.equal(CBT_36_TOOLS_CATALOG.length, 36);
+
+    const seenNumbers = new Set<number>();
+    const seenSlugs = new Set<string>();
+
+    for (const tool of CBT_36_TOOLS_CATALOG) {
+      assert.ok(tool.number >= 1 && tool.number <= 36);
+      seenNumbers.add(tool.number);
+      seenSlugs.add(tool.slug);
+      assert.ok(tool.titleVi.length > 5);
+      assert.ok(tool.titleEn.length > 5);
+      assert.ok(tool.whenToUseVi.length > 5);
+      assert.ok(tool.whenToUseEn.length > 5);
+      assert.ok(tool.whenNotToUseVi.length > 5);
+      assert.ok(tool.whenNotToUseEn.length > 5);
+      assert.ok(tool.interactivePromptsVi.length >= 2);
+      assert.ok(tool.interactivePromptsEn.length >= 2);
+
+      // Every single tool in the catalog must execute deterministically in 0ms
+      const result = runInteractiveToolkitExercise(
+        tool.slug,
+        'Tôi luôn luôn lo lắng rằng nếu mắc sai sót nhỏ thì mọi người sẽ nghĩ tôi là kẻ thất bại hoàn toàn.',
+        { moodPolarity: -1, intensity: 5, sleepHours: 6.5 },
+      );
+      assert.equal(result.toolNumber, tool.number);
+      assert.equal(result.toolSlug, tool.slug);
+      assert.equal(result.executionLatencyMs, 0);
+      assert.equal(result.safeToProceed, true);
+      assert.ok(result.instantAnalysisVi.length > 10);
+      assert.ok(result.instantAnalysisEn.length > 10);
+      assert.ok(result.guidedReframeVi.length > 10);
+      assert.ok(result.guidedReframeEn.length > 10);
+    }
+
+    assert.equal(seenNumbers.size, 36);
+    assert.equal(seenSlugs.size, 36);
+    assert.equal(getCbt36ToolBySlugOrId('27').slug, 'paradoxical-agenda-setting');
+  });
+
+  it('executes specialized 0ms analysis across Anxiety, Depression TEAM-CBT, DBT, and Bipolar tools', () => {
+    // 1. Anxiety ERP / Safety Behavior Detector
+    const anxietyRes = runInteractiveToolkitExercise(
+      'safety-behavior-detector',
+      'Tôi đo nhịp tim liên tục và chỉ dám ngồi gần cửa ra vào vì sợ ngất.',
+      { moodPolarity: 0, intensity: 6 },
+    );
+    assert.equal(anxietyRes.conditionFocus, 'anxiety');
+    assert.ok(
+      anxietyRes.detectedPatterns.safetyBehaviors.some((sb) => sb.id === 'compulsive-checking-googling'),
+    );
+    assert.ok(
+      anxietyRes.detectedPatterns.safetyBehaviors.some((sb) => sb.id === 'escape-exit-guarding'),
+    );
+
+    // 2. Depression TEAM-CBT Paradoxical Agenda Setting
+    const teamCbtRes = runInteractiveToolkitExercise(
+      'paradoxical-agenda-setting',
+      'Tôi không được phép mắc bất kỳ sai sót nào vì giá trị của tôi phụ thuộc hoàn toàn vào thành tích.',
+      { moodPolarity: -2, intensity: 6 },
+    );
+    assert.equal(teamCbtRes.category, 'depression-team-cbt');
+    assert.ok(
+      teamCbtRes.detectedPatterns.selfDefeatingBeliefs.some((s) => s.id === 'performance-perfectionism'),
+    );
+    assert.ok(teamCbtRes.guidedReframeVi.includes('Chiết áp'));
+    assert.ok(teamCbtRes.guidedReframeEn.includes('Magic Dial'));
+
+    // 3. DBT Radical Acceptance & Urge Surfing
+    const dbtRes = runInteractiveToolkitExercise(
+      'dbt-radical-acceptance-urge-surfing',
+      'Chuyện đã xảy ra rồi nhưng tôi thấy không thể chịu đựng nổi.',
+      { moodPolarity: -1, intensity: 6 },
+    );
+    assert.equal(dbtRes.category, 'dbt-regulation');
+    assert.ok(dbtRes.guidedReframeVi.includes('90 giây'));
+    assert.ok(dbtRes.guidedReframeEn.includes('90-second'));
+
+    // 4. Bipolar Positive Distortion Devil's Advocate
+    const bipolarRes = runInteractiveToolkitExercise(
+      'bipolar-positive-distortion-devils-advocate',
+      'Tôi có ý tưởng thiên tài kiếm hàng tỷ qua đêm, rủi ro bằng không, phải mua ngay lập tức lúc 2 giờ sáng!',
+      { moodPolarity: 3, intensity: 5, sleepHours: 3.5 },
+    );
+    assert.equal(bipolarRes.conditionFocus, 'bipolar');
+    assert.ok(
+      bipolarRes.detectedPatterns.positiveDistortions.some((p) => p.id === 'grandiosity'),
+    );
+    assert.ok(
+      bipolarRes.detectedPatterns.positiveDistortions.some((p) => p.id === 'invulnerability'),
+    );
+    assert.ok(bipolarRes.nextActionStepVi.includes('Khoang Trì hoãn 48 Giờ'));
+
+    // 5. 4-Layer Safety Override inside runInteractiveToolkitExercise
+    const crisisOverride = runInteractiveToolkitExercise(
+      'thought-record',
+      'Tôi muốn chết đi cho xong, không còn lý do gì để sống.',
+      { moodPolarity: -4, intensity: 9 },
+    );
+    assert.equal(crisisOverride.safeToProceed, false);
+    assert.equal(crisisOverride.safetyEvaluation.recommendedOutcome, 'safety-stop');
+  });
+
+  it('calculates CBT-I Sleep Efficiency and enforces the Bipolar Mania Differential Safety Gate', () => {
+    // Case A: Chronic Insomnia with daytime exhaustion -> Sleep Restriction allowed (>= 300 min floor)
+    const insomniaEval = calculateCbtiSleepEfficiency({
+      timeInBedMinutes: 540, // 9 hours in bed
+      totalSleepMinutes: 330, // 5.5 hours asleep -> 61.1% efficiency
+      sleepOnsetLatencyMinutes: 90,
+      wakeAfterSleepOnsetMinutes: 120,
+      feltNeedForSleep: 'exhausted',
+    });
+    assert.equal(insomniaEval.sleepEfficiencyPercent, 61.1);
+    assert.equal(insomniaEval.sleepEfficiencyCategory, 'clinical-insomnia');
+    assert.equal(insomniaEval.bipolarManiaContraindicationTriggered, false);
+    assert.equal(insomniaEval.sleepRestrictionAllowed, true);
+    assert.equal(insomniaEval.recommendedTimeInBedMinutes, 360); // 330 + 30 = 360 min (6.0h)
+
+    // Case B: Optimal Sleep Efficiency >= 85%
+    const optimalEval = calculateCbtiSleepEfficiency({
+      timeInBedMinutes: 480,
+      totalSleepMinutes: 432, // 90%
+      sleepOnsetLatencyMinutes: 20,
+      wakeAfterSleepOnsetMinutes: 28,
+      feltNeedForSleep: 'normal',
+    });
+    assert.equal(optimalEval.sleepEfficiencyPercent, 90);
+    assert.equal(optimalEval.sleepEfficiencyCategory, 'optimal');
+    assert.equal(optimalEval.sleepRestrictionAllowed, true);
+
+    // Case C: BIPOLAR MANIA CONTRAINDICATION -> Short sleep + reduced_need or no_need_at_all
+    const maniaBlockReduced = calculateCbtiSleepEfficiency({
+      timeInBedMinutes: 240,
+      totalSleepMinutes: 210, // 3.5 hours sleep
+      sleepOnsetLatencyMinutes: 15,
+      wakeAfterSleepOnsetMinutes: 15,
+      feltNeedForSleep: 'reduced_need',
+    });
+    assert.equal(maniaBlockReduced.bipolarManiaContraindicationTriggered, true);
+    assert.equal(maniaBlockReduced.sleepRestrictionAllowed, false);
+    assert.equal(maniaBlockReduced.hypomaniaGuardTriggered, true);
+    assert.equal(maniaBlockReduced.sleepEfficiencyCategory, 'bipolar-mania-contraindication');
+    assert.equal(maniaBlockReduced.recommendedTimeInBedMinutes, null);
+
+    const maniaBlockNone = calculateCbtiSleepEfficiency({
+      timeInBedMinutes: 180,
+      totalSleepMinutes: 150,
+      sleepOnsetLatencyMinutes: 10,
+      wakeAfterSleepOnsetMinutes: 20,
+      feltNeedForSleep: 'no_need_at_all',
+    });
+    assert.equal(maniaBlockNone.bipolarManiaContraindicationTriggered, true);
+    assert.equal(maniaBlockNone.sleepRestrictionAllowed, false);
+    assert.equal(maniaBlockNone.recommendedTimeInBedMinutes, null);
+  });
+
+  it('evaluates DBT ABC PLEASE daily resilience and generates ACCEPTS & 5-Senses Self-Soothe plan', () => {
+    const standardPlan = evaluateDbtAbcPleaseAndAccepts({
+      accumulatedPositivesToday: true,
+      buildMasteryCompleted: true,
+      copeAheadPrepared: false,
+      physicalIllnessTreated: true,
+      balancedEating: true,
+      avoidedMoodAlteringSubstances: true,
+      balancedSleep: true,
+      gotGentleExercise: false,
+      moodPolarity: 0,
+      emptinessOrDepressionIntensity: 3,
+    });
+    assert.equal(standardPlan.completedPillarsCount, 6);
+    assert.equal(standardPlan.resilienceScorePercent, 75);
+    assert.equal(standardPlan.lowEnergyDepressionModeActive, false);
+    assert.equal(standardPlan.missingVulnerabilityFactorsVi.length, 2);
+    assert.equal(standardPlan.acceptsSkillsVi.length, 7);
+    assert.equal(standardPlan.fiveSensesSelfSootheVi.length, 5);
+
+    const lowEnergyPlan = evaluateDbtAbcPleaseAndAccepts({
+      accumulatedPositivesToday: false,
+      buildMasteryCompleted: false,
+      copeAheadPrepared: false,
+      physicalIllnessTreated: true,
+      balancedEating: false,
+      avoidedMoodAlteringSubstances: true,
+      balancedSleep: false,
+      gotGentleExercise: false,
+      moodPolarity: -4,
+      emptinessOrDepressionIntensity: 8,
+    });
+    assert.equal(lowEnergyPlan.completedPillarsCount, 2);
+    assert.equal(lowEnergyPlan.resilienceScorePercent, 25);
+    assert.equal(lowEnergyPlan.lowEnergyDepressionModeActive, true);
+    assert.ok(lowEnergyPlan.summaryVi.includes('Low-Energy Mode'));
+    assert.ok(lowEnergyPlan.acceptsSkillsVi[0].microAction.includes('Bước nhỏ 2 phút'));
+  });
+});
+
