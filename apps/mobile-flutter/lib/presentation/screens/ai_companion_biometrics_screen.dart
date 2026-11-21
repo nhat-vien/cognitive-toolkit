@@ -54,7 +54,7 @@ class _AiCompanionBiometricsScreenState
         'Tôi vừa nảy ra ý tưởng thiên tài đêm qua, chỉ ngủ 3 tiếng nhưng tràn trề năng lượng, muốn rút hết tiết kiệm đầu tư ngay bây giờ vì chắc chắn thắng 100% không thể thua được, không cần ngủ luôn!',
   );
   int _voiceDurationSeconds = 12;
-  double _personalBaselineWpm = 125.0;
+  final double _personalBaselineWpm = 125.0;
   ComplaintIntent? _intentOverride;
   bool _isHoldingMic = false;
   late VoiceBurstAnalysisResult _latestVoiceResult;
@@ -160,11 +160,11 @@ class _AiCompanionBiometricsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.verified_user_outlined, size: 20),
-                const SizedBox(width: 8),
-                const Expanded(
+                Icon(Icons.verified_user_outlined, size: 20),
+                SizedBox(width: 8),
+                Expanded(
                   child: Text(
                     'Grounded AI Companion (Ngưỡng RAG = 0.46 • 100% Abstention • Local Ollama Bridge)',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -173,7 +173,7 @@ class _AiCompanionBiometricsScreenState
                 Chip(
                   label: Text(
                     'Threshold >= $kClinicalRagAbstentionThreshold',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),

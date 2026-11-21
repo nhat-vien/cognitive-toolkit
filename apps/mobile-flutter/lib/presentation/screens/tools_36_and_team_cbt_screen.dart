@@ -45,7 +45,7 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
   );
   int _predictedPleasure = 20;
   int _actualPleasure = 65;
-  int _predictedMastery = 3;
+  final int _predictedMastery = 3;
   int _actualMastery = 8;
   final List<PleasurePredictingEntry> _mpEntries = [];
 
@@ -56,10 +56,10 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
   final TextEditingController _apMicroStepCtrl = TextEditingController(
     text: 'Mở file tài liệu và viết đúng 3 gạch đầu dòng dàn ý trong 5 phút',
   );
-  int _predictedDifficulty = 85;
+  final int _predictedDifficulty = 85;
   int _actualDifficulty = 30;
-  int _predictedSatisfaction = 25;
-  int _actualSatisfaction = 75;
+  final int _predictedSatisfaction = 25;
+  final int _actualSatisfaction = 75;
   final List<AntiProcrastinationStepEvaluation> _apEntries = [];
 
   // 4. Downward Arrow 23 SDBs state
