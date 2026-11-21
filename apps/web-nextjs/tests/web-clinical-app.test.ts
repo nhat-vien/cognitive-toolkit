@@ -46,6 +46,7 @@ import {
   SANCTUARY_NAVIGATION_ITEMS,
   getActiveAccountSession,
   loginUserAccount,
+  loginWithGoogleOAuth,
   loginWithQuickDemoProfile,
   registerUserAccount,
   signOutUserAccount,
@@ -1078,6 +1079,24 @@ test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in 
   // 7. Sign Out
   const out = signOutUserAccount();
   assert.equal(out.signedOut, true);
+  assert.equal(getActiveAccountSession(), null);
+
+  // 8. 1-Tap Google OAuth Sign-In & Zero-Friction E2EE Account Link
+  const googleRes = await loginWithGoogleOAuth({
+    googleEmail: 'minh.tam.sanctuary@gmail.com',
+    googleDisplayName: 'Minh Tâm',
+    lang: 'vi',
+  });
+  assert.equal(googleRes.ok, true);
+  assert.ok(googleRes.session);
+  assert.equal(googleRes.session?.user.email, 'minh.tam.sanctuary@gmail.com');
+  assert.equal(googleRes.session?.user.displayName, 'Minh Tâm');
+  assert.equal(googleRes.session?.user.authMode, 'google-oauth');
+  assert.equal(googleRes.session?.user.role, 'patient');
+  assert.equal(googleRes.session?.user.e2eeSyncEnabled, true);
+
+  // Clean sign-out after Google test
+  signOutUserAccount();
   assert.equal(getActiveAccountSession(), null);
 });
 
