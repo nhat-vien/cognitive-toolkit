@@ -124,13 +124,14 @@ export function EquilibriaClinicalApp() {
   const [activeTab, setActiveTab] = useState<ActiveHubTab>('session-player');
   const [sosOpen, setSosOpen] = useState<boolean>(false);
 
-  // Patient Account Authentication & Profile State
+  // Patient Account Authentication & Profile State (null = show Welcome Sign-In Gate on startup)
   const [accountSession, setAccountSession] = useState<UserAccountSession | null>(null);
   const [accountModalOpen, setAccountModalOpen] = useState<boolean>(false);
-  const [authView, setAuthView] = useState<'profile' | 'login' | 'register'>('profile');
+  const [authView, setAuthView] = useState<'profile' | 'login' | 'register'>('login');
   const [authEmail, setAuthEmail] = useState<string>('');
   const [authPassword, setAuthPassword] = useState<string>('');
   const [authDisplayName, setAuthDisplayName] = useState<string>('');
+  const [authDisorderFocus, setAuthDisorderFocus] = useState<'anxiety' | 'depression' | 'bipolar'>('anxiety');
   const [authStatusMessage, setAuthStatusMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [profileFormName, setProfileFormName] = useState<string>('');
   const [profileEmergencyName, setProfileEmergencyName] = useState<string>('');
@@ -147,9 +148,9 @@ export function EquilibriaClinicalApp() {
   const [asrmScore, setAsrmScore] = useState<number>(2);
   const [manualThemeOverride, setManualThemeOverride] = useState<UIThemeMode | null>(null);
 
-  // Initialize Account Session from Storage or Safe Gentle Profile
+  // Restore saved session if user previously signed in; otherwise start on the Welcome Sign-In Gate
   useEffect(() => {
-    const sess = getActiveAccountSession() || loginWithQuickDemoProfile('depression-gentle', lang);
+    const sess = getActiveAccountSession();
     setAccountSession(sess);
     if (sess) {
       setProfileFormName(sess.user.displayName);
@@ -201,7 +202,7 @@ export function EquilibriaClinicalApp() {
       email: authEmail,
       password: authPassword,
       displayName: authDisplayName || authEmail.split('@')[0] || 'Người bạn',
-      disorderFocus: 'anxiety',
+      disorderFocus: authDisorderFocus,
       preferredPushbackLevel: pushbackLevel,
     });
     if (res.ok && res.session) {
@@ -239,16 +240,14 @@ export function EquilibriaClinicalApp() {
 
   const handleSignOut = () => {
     signOutUserAccount({ wipeLocalData: false });
-    const guest = loginWithQuickDemoProfile('guest-local-only', lang);
-    setAccountSession(guest);
-    setProfileFormName(guest.user.displayName);
-    setProfileEmergencyName(guest.user.emergencyContactName);
-    setProfileEmergencyPhone(guest.user.emergencyContactPhone);
+    setAccountSession(null);
+    setAccountModalOpen(false);
+    setAuthView('login');
     setAuthStatusMessage({
       ok: true,
       text: lang === 'vi'
-        ? 'Đã đăng xuất. Bạn đang ở chế độ Khách Ẩn danh tại chỗ.'
-        : 'Signed out. You are now in Local Anonymous Guest mode.',
+        ? 'Bạn đã đăng xuất an toàn. Vui lòng đăng nhập hoặc chọn hồ sơ đồng hành để tiếp tục.'
+        : 'You have signed out safely. Please sign in or select a companion profile to continue.',
     });
   };
 
@@ -1273,65 +1272,88 @@ export function EquilibriaClinicalApp() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Patient Account Quick Profile Pill */}
-          <button
-            type="button"
-            onClick={() => setAccountModalOpen(true)}
-            title={lang === 'vi' ? 'Quản lý Tài khoản & Hồ sơ cá nhân' : 'Manage Account & Personal Profile'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 14px',
-              borderRadius: '24px',
-              border: `1px solid ${theme.palette.border}`,
-              backgroundColor: theme.palette.surface,
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-            }}
-          >
-            <span
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                backgroundColor: accountSession?.user.avatarMoodColor || theme.palette.primary,
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-              }}
-            >
-              {accountSession?.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
-            </span>
-            <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
-              <div style={{ fontSize: '0.84rem', fontWeight: 600, color: theme.palette.textPrimary }}>
-                {accountSession?.user.displayName || (lang === 'vi' ? 'Tài khoản' : 'Account')}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: theme.palette.accent }}>
-                {accountSession?.user.e2eeSyncEnabled ? '🟢 E2EE Đã bật' : '🔒 Lưu tại máy'}
-              </div>
-            </div>
-          </button>
+          {accountSession && (
+            <>
+              {/* Patient Account Quick Profile Pill */}
+              <button
+                type="button"
+                onClick={() => setAccountModalOpen(true)}
+                title={lang === 'vi' ? 'Quản lý Tài khoản & Hồ sơ cá nhân' : 'Manage Account & Personal Profile'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '24px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: theme.palette.surface,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                }}
+              >
+                <span
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '50%',
+                    backgroundColor: accountSession.user.avatarMoodColor || theme.palette.primary,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {accountSession.user.displayName ? accountSession.user.displayName.charAt(0).toUpperCase() : '👤'}
+                </span>
+                <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: theme.palette.textPrimary }}>
+                    {accountSession.user.displayName}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: theme.palette.accent }}>
+                    {accountSession.user.e2eeSyncEnabled
+                      ? (lang === 'vi' ? '🟢 Đã bật mã hóa E2EE' : '🟢 E2EE Sync Active')
+                      : (lang === 'vi' ? '🔒 Lưu riêng trên máy' : '🔒 Local Device Only')}
+                  </div>
+                </div>
+              </button>
 
-          {/* Mood Polarity Quick Simulator (-5 to +5) */}
-          <label style={{ fontSize: '0.85rem' }}>
-            {lang === 'vi' ? 'Cực Khí Sắc (-5..+5): ' : 'Mood Pole (-5..+5): '}
-            <input
-              type="number"
-              min={-5}
-              max={5}
-              value={moodPolarity}
-              onChange={(e) =>
-                setMoodPolarity(
-                  Math.max(-5, Math.min(5, Number((e.target as HTMLInputElement).value))) as MoodPole
-                )
-              }
-              style={{ width: '56px', marginLeft: '4px', padding: '4px' }}
-            />
-          </label>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${theme.palette.border}`,
+                  backgroundColor: 'transparent',
+                  color: theme.palette.textSecondary,
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {lang === 'vi' ? 'Đăng xuất' : 'Sign Out'}
+              </button>
+
+              {/* Mood Polarity Quick Simulator (-5 to +5) */}
+              <label style={{ fontSize: '0.85rem' }}>
+                {lang === 'vi' ? 'Cực Khí Sắc (-5..+5): ' : 'Mood Pole (-5..+5): '}
+                <input
+                  type="number"
+                  min={-5}
+                  max={5}
+                  value={moodPolarity}
+                  onChange={(e) =>
+                    setMoodPolarity(
+                      Math.max(-5, Math.min(5, Number((e.target as HTMLInputElement).value))) as MoodPole
+                    )
+                  }
+                  style={{ width: '56px', marginLeft: '4px', padding: '4px' }}
+                />
+              </label>
+            </>
+          )}
 
           {/* Language Switcher */}
           <button
@@ -1376,97 +1398,7 @@ export function EquilibriaClinicalApp() {
         </div>
       </header>
 
-      {/* Adaptive Theme Clinical Status Banner & Mania 48h Vault / Dark Therapy Banner */}
-      <section
-        className="no-print"
-        style={{
-          maxWidth: '1240px',
-          margin: '16px auto',
-          padding: '12px 18px',
-          borderRadius: '16px',
-          backgroundColor: theme.palette.surface,
-          border: `1px solid ${theme.palette.border}`,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>
-            <strong>{lang === 'vi' ? 'Trạng thái Không gian Trị liệu: ' : 'Sanctuary Status: '}</strong>
-            {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
-              {lang === 'vi' ? 'Hồ sơ đang dùng:' : 'Active Profile:'}
-            </span>
-            <span
-              style={{
-                fontSize: '0.82rem',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(106, 168, 130, 0.15)',
-                color: theme.palette.accent,
-                fontWeight: 600,
-              }}
-            >
-              {accountSession?.user.disorderFocus === 'depression'
-                ? (lang === 'vi' ? '🌱 Vượt Trầm cảm' : 'Depression Recovery')
-                : accountSession?.user.disorderFocus === 'bipolar'
-                  ? (lang === 'vi' ? '🌙 Cân bằng Lưỡng cực' : 'Bipolar & Rhythm')
-                  : (lang === 'vi' ? '🌊 Làm dịu Lo âu' : 'Anxiety Relief')}
-            </span>
-          </div>
-        </div>
-
-        {theme.show48hImpulseVaultBanner && (
-          <div
-            style={{
-              padding: '12px 16px',
-              borderRadius: '12px',
-              backgroundColor: '#451a03',
-              color: '#fef3c7',
-              marginTop: '10px',
-            }}
-          >
-            <strong>
-              {lang === 'vi'
-                ? 'LÁ CHẮN HƯNG CẢM & KHOANG CHỜ 48 GIỜ ĐANG BẬT: '
-                : '48-HOUR IMPULSE VAULT & DARK THERAPY ACTIVE: '}
-            </strong>
-            {lang === 'vi' ? darkTherapyTimer.bannerTextVi : darkTherapyTimer.bannerTextEn}
-          </div>
-        )}
-
-        {theme.simplifiedOneSmallStep && (
-          <div
-            style={{
-              padding: '14px 18px',
-              borderRadius: '12px',
-              backgroundColor: '#F4F1EA',
-              color: '#2F2F2B',
-              border: '1px solid #E4E0D5',
-              marginTop: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <span style={{ fontSize: '1.6rem' }}>🌱</span>
-            <div>
-              <strong style={{ fontSize: '0.98rem' }}>
-                {lang === 'vi'
-                  ? 'HÔM NAY MỘT BƯỚC NHỎ THÔI LÀ ĐỦ (Không đếm chuỗi ngày đứt đoạn): '
-                  : 'ONE GENTLE SMALL STEP IS ENOUGH TODAY (No Broken Streaks): '}
-              </strong>
-              <div style={{ marginTop: '2px', fontSize: '0.88rem', color: '#6B6B63' }}>
-                {lang === 'vi'
-                  ? 'Bạn không cần làm hết mọi thứ hôm nay. Bạn có thể chỉ cần ghi lại cảm xúc bằng giọng nói, hoặc chọn 1 thẻ cảm xúc bên dưới.'
-                  : 'You do not need to do everything today. You can simply record your thought with Voice Burst or pick an Affect Labeling card below.'}
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* 1-TAP DBT SOS PORTAL FULLSCREEN / OVERLAY */}
+      {/* 1-TAP DBT SOS PORTAL FULLSCREEN / OVERLAY (Always accessible even before signing in) */}
       {sosOpen && (
         <section
           aria-label="DBT SOS Portal"
@@ -1690,6 +1622,376 @@ export function EquilibriaClinicalApp() {
           </div>
         </section>
       )}
+
+      {/* WELCOME & SIGN-IN GATE ON APP STARTUP WHEN NOT AUTHENTICATED */}
+      {!accountSession ? (
+        <main style={{ maxWidth: '1060px', margin: '32px auto', padding: '0 20px' }}>
+          <section
+            style={{
+              padding: '32px',
+              borderRadius: '24px',
+              backgroundColor: theme.palette.surface,
+              border: `1px solid ${theme.palette.border}`,
+              boxShadow: '0 12px 32px rgba(47, 47, 43, 0.06)',
+            }}
+          >
+            <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 28px' }}>
+              <div style={{ fontSize: '2.6rem', marginBottom: '8px' }}>🌿</div>
+              <h1 style={{ margin: '0 0 10px 0', fontSize: '1.75rem', color: theme.palette.textPrimary }}>
+                {lang === 'vi'
+                  ? 'Chào mừng bạn đến với Không gian Bình yên Equilibria Care'
+                  : 'Welcome to Your Equilibria Care Serene Sanctuary'}
+              </h1>
+              <p style={{ margin: 0, fontSize: '1rem', color: theme.palette.textSecondary, lineHeight: 1.6 }}>
+                {lang === 'vi'
+                  ? 'Không gian trị liệu nhận thức hành vi (CBT & DBT) ấm áp, an toàn và không phán xét dành cho người trầm cảm, rối loạn lo âu và cân bằng nhịp sinh học. Vui lòng đăng nhập tài khoản cá nhân hoặc chọn chế độ vào nhanh bên dưới để bắt đầu.'
+                  : 'A warm, judgment-free CBT & DBT therapeutic space designed for depression recovery, anxiety relief, and circadian rhythm balance. Please sign in to your account or choose a 1-tap sanctuary profile below to begin.'}
+              </p>
+            </div>
+
+            {authStatusMessage && (
+              <div
+                style={{
+                  maxWidth: '680px',
+                  margin: '0 auto 22px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  fontSize: '0.9rem',
+                  textAlign: 'center',
+                  backgroundColor: authStatusMessage.ok ? 'rgba(106, 168, 130, 0.16)' : 'rgba(197, 101, 72, 0.16)',
+                  color: authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner,
+                  border: `1px solid ${authStatusMessage.ok ? theme.palette.accent : theme.palette.sosBanner}`,
+                }}
+              >
+                {authStatusMessage.text}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+              {/* Left Column: Email & Password Sign In / Sign Up */}
+              <div
+                style={{
+                  padding: '24px',
+                  borderRadius: '18px',
+                  backgroundColor: theme.palette.background,
+                  border: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAuthView('login')}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: authView !== 'register' ? theme.palette.primary : 'transparent',
+                      color: authView !== 'register' ? '#ffffff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
+                      fontWeight: 600,
+                      fontSize: '0.92rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '🔐 Đăng Nhập Tài Khoản' : '🔐 Sign In'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthView('register')}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: authView === 'register' ? theme.palette.primary : 'transparent',
+                      color: authView === 'register' ? '#ffffff' : theme.palette.textPrimary,
+                      border: `1px solid ${theme.palette.border}`,
+                      fontWeight: 600,
+                      fontSize: '0.92rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '✨ Tạo Tài Khoản Mới' : '✨ Create Account'}
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={authView === 'register' ? handleEmailRegister : handleEmailLogin}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+                >
+                  {authView === 'register' && (
+                    <>
+                      <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                        {lang === 'vi' ? 'Tên gọi hoặc biệt danh của bạn:' : 'Your Name or Preferred Nickname:'}
+                        <input
+                          type="text"
+                          value={authDisplayName}
+                          onChange={(e) => setAuthDisplayName((e.target as HTMLInputElement).value)}
+                          placeholder={lang === 'vi' ? 'Ví dụ: Minh Anh' : 'e.g., Minh Anh'}
+                          className="sanctuary-input"
+                          style={{ width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+                        />
+                      </label>
+                      <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                        {lang === 'vi' ? 'Mục tiêu đồng hành ưu tiên:' : 'Primary Therapeutic Focus:'}
+                        <select
+                          value={authDisorderFocus}
+                          onChange={(e) =>
+                            setAuthDisorderFocus(
+                              (e.target as HTMLSelectElement).value as 'anxiety' | 'depression' | 'bipolar'
+                            )
+                          }
+                          className="sanctuary-input"
+                          style={{ width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+                        >
+                          <option value="anxiety">
+                            {lang === 'vi'
+                              ? '🌊 Làm dịu Rối loạn Lo âu & Căng thẳng'
+                              : '🌊 Anxiety & Stress Relief'}
+                          </option>
+                          <option value="depression">
+                            {lang === 'vi'
+                              ? '🌱 Vượt qua Trầm cảm (Bước nhỏ dịu dàng)'
+                              : '🌱 Gentle Depression Recovery (Small Steps)'}
+                          </option>
+                          <option value="bipolar">
+                            {lang === 'vi'
+                              ? '🌙 Cân bằng Khí sắc & Nhịp sinh học IPSRT'
+                              : '🌙 Mood & Circadian Rhythm Balance (IPSRT)'}
+                          </option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    {lang === 'vi' ? 'Địa chỉ Email:' : 'Email Address:'}
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail((e.target as HTMLInputElement).value)}
+                      placeholder="ban@example.com"
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+
+                  <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    {lang === 'vi' ? 'Mật khẩu bảo vệ (tối thiểu 6 ký tự):' : 'Password (at least 6 characters):'}
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword((e.target as HTMLInputElement).value)}
+                      placeholder="••••••••"
+                      className="sanctuary-input"
+                      style={{ width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '12px 18px',
+                      borderRadius: '12px',
+                      backgroundColor: theme.palette.primary,
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.96rem',
+                      cursor: 'pointer',
+                      marginTop: '6px',
+                      boxShadow: '0 4px 12px rgba(121, 114, 152, 0.25)',
+                    }}
+                  >
+                    {authView === 'register'
+                      ? (lang === 'vi' ? 'Tạo Tài Khoản & Bắt Đầu Hành Trình →' : 'Create Account & Enter Sanctuary →')
+                      : (lang === 'vi' ? 'Đăng Nhập Vào Không Gian Bình Yên →' : 'Sign In to Sanctuary →')}
+                  </button>
+                </form>
+
+                <p style={{ margin: '16px 0 0 0', fontSize: '0.8rem', color: theme.palette.textSecondary, lineHeight: 1.5 }}>
+                  {lang === 'vi'
+                    ? '🔒 Bảo mật tuyệt đối: Mật khẩu được băm bằng thuật toán PBKDF2-SHA256 và toàn bộ nhật ký tâm lý được mã hóa đầu-cuối WebCrypto AES-GCM-256.'
+                    : '🔒 Zero-knowledge privacy: Credentials are hashed with PBKDF2-SHA256 and your journals are encrypted with WebCrypto AES-GCM-256.'}
+                </p>
+              </div>
+
+              {/* Right Column: 1-Tap Quick Sanctuary Profiles & Anonymous Guest Mode */}
+              <div
+                style={{
+                  padding: '24px',
+                  borderRadius: '18px',
+                  backgroundColor: theme.palette.background,
+                  border: `1px solid ${theme.palette.border}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: theme.palette.textPrimary }}>
+                    {lang === 'vi'
+                      ? '⚡ Vào Nhanh 1-Chạm (Không cần gõ mật khẩu)'
+                      : '⚡ 1-Tap Instant Entry (No Password Needed)'}
+                  </h3>
+                  <p style={{ margin: '0 0 14px 0', fontSize: '0.86rem', color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Nếu hôm nay bạn đang mệt mỏi hoặc muốn trải nghiệm ngay, hãy chạm vào một hồ sơ đồng hành phù hợp với tâm trạng của bạn:'
+                      : 'If you are feeling low on energy today or want to explore immediately, tap any companion profile below:'}
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {QUICK_DEMO_PROFILES.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleSelectQuickDemo(p.id)}
+                        style={{
+                          textAlign: 'left',
+                          padding: '12px 16px',
+                          borderRadius: '14px',
+                          border: `1px solid ${theme.palette.border}`,
+                          backgroundColor: theme.palette.surface,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '50%',
+                                backgroundColor: p.avatarMoodColor,
+                                display: 'inline-block',
+                              }}
+                            />
+                            <strong style={{ fontSize: '0.92rem', color: theme.palette.textPrimary }}>
+                              {lang === 'vi' ? p.displayNameVi : p.displayNameEn}
+                            </strong>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                backgroundColor: 'rgba(121, 114, 152, 0.12)',
+                                color: theme.palette.primary,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {lang === 'vi' ? p.badgeVi : p.badgeEn}
+                            </span>
+                          </div>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: theme.palette.textSecondary }}>
+                            {lang === 'vi' ? p.descriptionVi : p.descriptionEn}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: '1.1rem', color: theme.palette.primary, fontWeight: 700 }}>→</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      ) : (
+        <>
+      {/* Adaptive Theme Clinical Status Banner & Mania 48h Vault / Dark Therapy Banner */}
+      <section
+        className="no-print"
+        style={{
+          maxWidth: '1240px',
+          margin: '16px auto',
+          padding: '12px 18px',
+          borderRadius: '16px',
+          backgroundColor: theme.palette.surface,
+          border: `1px solid ${theme.palette.border}`,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>
+            <strong>{lang === 'vi' ? 'Trạng thái Không gian Trị liệu: ' : 'Sanctuary Status: '}</strong>
+            {lang === 'vi' ? theme.reasonVi : theme.reasonEn}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+              {lang === 'vi' ? 'Hồ sơ đang dùng:' : 'Active Profile:'}
+            </span>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(106, 168, 130, 0.15)',
+                color: theme.palette.accent,
+                fontWeight: 600,
+              }}
+            >
+              {accountSession?.user.disorderFocus === 'depression'
+                ? (lang === 'vi' ? '🌱 Vượt Trầm cảm' : 'Depression Recovery')
+                : accountSession?.user.disorderFocus === 'bipolar'
+                  ? (lang === 'vi' ? '🌙 Cân bằng Lưỡng cực' : 'Bipolar & Rhythm')
+                  : (lang === 'vi' ? '🌊 Làm dịu Lo âu' : 'Anxiety Relief')}
+            </span>
+          </div>
+        </div>
+
+        {theme.show48hImpulseVaultBanner && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              backgroundColor: '#451a03',
+              color: '#fef3c7',
+              marginTop: '10px',
+            }}
+          >
+            <strong>
+              {lang === 'vi'
+                ? 'LÁ CHẮN HƯNG CẢM & KHOANG CHỜ 48 GIỜ ĐANG BẬT: '
+                : '48-HOUR IMPULSE VAULT & DARK THERAPY ACTIVE: '}
+            </strong>
+            {lang === 'vi' ? darkTherapyTimer.bannerTextVi : darkTherapyTimer.bannerTextEn}
+          </div>
+        )}
+
+        {theme.simplifiedOneSmallStep && (
+          <div
+            style={{
+              padding: '14px 18px',
+              borderRadius: '12px',
+              backgroundColor: '#F4F1EA',
+              color: '#2F2F2B',
+              border: '1px solid #E4E0D5',
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <span style={{ fontSize: '1.6rem' }}>🌱</span>
+            <div>
+              <strong style={{ fontSize: '0.98rem' }}>
+                {lang === 'vi'
+                  ? 'HÔM NAY MỘT BƯỚC NHỎ THÔI LÀ ĐỦ (Không đếm chuỗi ngày đứt đoạn): '
+                  : 'ONE GENTLE SMALL STEP IS ENOUGH TODAY (No Broken Streaks): '}
+              </strong>
+              <div style={{ marginTop: '2px', fontSize: '0.88rem', color: '#6B6B63' }}>
+                {lang === 'vi'
+                  ? 'Bạn không cần làm hết mọi thứ hôm nay. Bạn có thể chỉ cần ghi lại cảm xúc bằng giọng nói, hoặc chọn 1 thẻ cảm xúc bên dưới.'
+                  : 'You do not need to do everything today. You can simply record your thought with Voice Burst or pick an Affect Labeling card below.'}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Main Clinical Module Sanctuary Navigation Tabs */}
       <nav
@@ -4509,6 +4811,8 @@ export function EquilibriaClinicalApp() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
