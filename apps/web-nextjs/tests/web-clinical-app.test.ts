@@ -48,6 +48,7 @@ import {
   loginUserAccount,
   loginWithGoogleOAuth,
   loginWithQuickDemoProfile,
+  parseOAuthHashParams,
   registerUserAccount,
   signOutUserAccount,
   triggerAccountE2eeSyncNow,
@@ -1098,6 +1099,16 @@ test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in 
   // Clean sign-out after Google test
   signOutUserAccount();
   assert.equal(getActiveAccountSession(), null);
+
+  // 9. OAuth Hash Redirect Parsing (#access_token=...)
+  const fakePayload = Buffer.from(JSON.stringify({ sub: 'usr_g123', email: 'bacsi.tam@gmail.com', user_metadata: { full_name: 'Bác sĩ Tâm' } })).toString('base64');
+  const fakeHash = `#access_token=header.${fakePayload}.sig&token_type=bearer&expires_in=3600`;
+  const parsedOauth = parseOAuthHashParams(fakeHash);
+  assert.ok(parsedOauth);
+  assert.equal(parsedOauth?.user.email, 'bacsi.tam@gmail.com');
+  assert.equal(parsedOauth?.user.displayName, 'Bác sĩ Tâm');
+  assert.equal(parsedOauth?.provider, 'google-oauth');
+  signOutUserAccount();
 });
 
 

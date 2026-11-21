@@ -99,6 +99,7 @@ import {
   loginUserAccount,
   loginWithGoogleOAuth,
   loginWithQuickDemoProfile,
+  parseOAuthHashParams,
   registerUserAccount,
   signOutUserAccount,
   triggerAccountE2eeSyncNow,
@@ -265,6 +266,18 @@ export function EquilibriaClinicalApp() {
 
   // Restore saved session if user previously signed in; otherwise start on the Welcome Sign-In Gate
   useEffect(() => {
+    // Check if returning from Supabase OAuth redirect with #access_token=...
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+      const oauthSess = parseOAuthHashParams(window.location.hash);
+      if (oauthSess) {
+        setAccountSession(oauthSess);
+        setProfileFormName(oauthSess.user.displayName);
+        setProfileEmergencyName(oauthSess.user.emergencyContactName);
+        setProfileEmergencyPhone(oauthSess.user.emergencyContactPhone);
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+    }
     const sess = getActiveAccountSession();
     setAccountSession(sess);
     if (sess) {

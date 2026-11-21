@@ -690,6 +690,81 @@ export function loginWithQuickDemoProfile(
 }
 
 /**
+ * Parses URL hash parameters returned by Supabase OAuth redirect (#access_token=...&refresh_token=...&token_type=bearer)
+ */
+export function parseOAuthHashParams(hashString: string): UserAccountSession | null {
+  if (!hashString || !hashString.includes('access_token=')) return null;
+  try {
+    const rawHash = hashString.startsWith('#') ? hashString.slice(1) : hashString;
+    const params = new URLSearchParams(rawHash);
+    const accessToken = params.get('access_token');
+    if (!accessToken) return null;
+
+    let email = 'nguoidung.google@gmail.com';
+    let displayName = 'Người dùng Google';
+    let userId = `usr_google_${Date.now()}`;
+    const parts = accessToken.split('.');
+    if (parts.length >= 2) {
+      try {
+        const b64 = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const payloadJson = new TextDecoder().decode(bytes);
+        const payload = JSON.parse(payloadJson) as {
+          sub?: string;
+          email?: string;
+          user_metadata?: { full_name?: string; name?: string; email?: string };
+        };
+        if (payload.sub) userId = payload.sub;
+        if (payload.email) email = payload.email;
+        if (payload.user_metadata?.full_name || payload.user_metadata?.name) {
+          displayName = payload.user_metadata.full_name || payload.user_metadata.name!;
+        } else if (email) {
+          displayName = email.split('@')[0]!;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    const profile: UserAccountProfile = {
+      userId,
+      email,
+      displayName,
+      role: (email.startsWith('admin') || email.startsWith('quantri')) ? 'admin' : 'patient',
+      avatarMoodColor: '#4285F4',
+      disorderFocus: 'anxiety',
+      preferredPushbackLevel: 'moderate',
+      emergencyContactName: 'Chưa thiết lập',
+      emergencyContactPhone: '',
+      authMode: 'google-oauth',
+      e2eeSyncEnabled: true,
+      lastE2eeSyncAt: nowIso,
+      recoveryKeyId: `mk24-${userId.slice(-6)}`,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    const session: UserAccountSession = {
+      sessionId: `sess_google_oauth_${Date.now()}`,
+      accessToken,
+      expiresAt,
+      provider: 'google-oauth',
+      isAuthenticated: true,
+      user: profile,
+    };
+
+    persistAccountSession(session);
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 1-Tap Google OAuth Sign-In / Account Link.
  *
  * Seamlessly authenticates via Supabase Google OAuth provider if configured, or creates/restores
@@ -705,10 +780,14 @@ export async function loginWithGoogleOAuth(params?: {
   messageVi: string;
   messageEn: string;
   redirectUrl?: string;
+  providerNotEnabled?: boolean;
 }> {
   const lang = params?.lang ?? 'vi';
   const emailNormalized = (params?.googleEmail || 'ban.donghanh@gmail.com').trim().toLowerCase();
   const displayName = params?.googleDisplayName?.trim() || emailNormalized.split('@')[0] || 'Người dùng Google';
+
+  let providerEnabled = true;
+  let providerNotEnabledOnSupabase = false;
 
   // Check Supabase Edge OAuth config
   const supa = getSupabaseConfig();
@@ -716,13 +795,30 @@ export async function loginWithGoogleOAuth(params?: {
     try {
       const redirectUri = window.location.origin;
       const oauthUrl = `${supa.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`;
-      return {
-        ok: true,
-        session: null,
-        redirectUrl: oauthUrl,
-        messageVi: 'Đang chuyển hướng đến cổng xác thực bảo mật Google...',
-        messageEn: 'Redirecting to Google secure authentication gateway...',
-      };
+
+      // Probe whether Supabase has Google OAuth enabled before navigating the browser
+      try {
+        const probeRes = await fetch(oauthUrl, { method: 'GET', redirect: 'manual' });
+        if (probeRes.status === 400) {
+          const body = await probeRes.text();
+          if (body.includes('Unsupported provider') || body.includes('not enabled') || body.includes('validation_failed')) {
+            providerEnabled = false;
+            providerNotEnabledOnSupabase = true;
+          }
+        }
+      } catch {
+        // If probe threw CORS or network error, it's either an opaque redirect (enabled) or blocked
+      }
+
+      if (providerEnabled) {
+        return {
+          ok: true,
+          session: null,
+          redirectUrl: oauthUrl,
+          messageVi: 'Đang chuyển hướng đến cổng xác thực bảo mật Google...',
+          messageEn: 'Redirecting to Google secure authentication gateway...',
+        };
+      }
     } catch {
       // Fallback to local Google session
     }
@@ -763,11 +859,20 @@ export async function loginWithGoogleOAuth(params?: {
 
   persistAccountSession(session);
 
+  const messageVi = providerNotEnabledOnSupabase
+    ? `Dự án Supabase chưa bật Google Provider (Auth > Providers > Google). Ứng dụng đã tự động kích hoạt phiên Google (${profile.email}) với mã hóa cục bộ E2EE để bạn sử dụng ngay mà không bị gián đoạn!`
+    : `Đã kết nối thành công tài khoản Google (${profile.email}). Toàn bộ nhật ký được bảo mật E2EE.`;
+
+  const messageEn = providerNotEnabledOnSupabase
+    ? `Google Provider is not enabled in your Supabase project (Auth > Providers > Google). Activated Local E2EE Google session for ${profile.email} so you can proceed without disruption.`
+    : `Signed in successfully via Google (${profile.email}). Your therapy journals remain E2EE protected.`;
+
   return {
     ok: true,
     session,
-    messageVi: `Đã kết nối thành công tài khoản Google (${profile.email}). Toàn bộ nhật ký được bảo mật E2EE.`,
-    messageEn: `Signed in successfully via Google (${profile.email}). Your therapy journals remain E2EE protected.`,
+    providerNotEnabled: providerNotEnabledOnSupabase,
+    messageVi,
+    messageEn,
   };
 }
 
