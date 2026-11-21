@@ -81,9 +81,15 @@ export function generateSocraticPushbackPrompt(params: {
   }
 
   if (params.attemptNumber === 1) {
+    const tonePrefix =
+      params.level === 'gentle'
+        ? '🌿 Gợi mở nhẹ nhàng: '
+        : params.level === 'firm'
+          ? '🔍 Thử thách góc nhìn: '
+          : '💡 Gợi mở suy nghĩ: ';
     return {
       shouldHoldStep: true,
-      promptVi: `[Socratic Pushback — ${params.level.toUpperCase()} #1] Bước "${params.stepTitleVi}" thường mang lại sự chuyển hóa lớn nhất. Bạn có muốn thử tìm 1 ý nhỏ thôi trước khi bỏ qua không? (Hoặc bấm "Nhẹ hơn / Bỏ qua")`,
+      promptVi: `${tonePrefix}Bước "${params.stepTitleVi}" thường mang lại sự nhẹ nhõm và chuyển hóa lớn nhất. Bạn có muốn thử tìm 1 ý nhỏ thôi trước khi bỏ qua không? (Hoặc bấm "Dịu dàng" để chuyển tiếp)`,
       promptEn: `[Socratic Pushback — ${params.level.toUpperCase()} #1] "${params.stepTitleEn}" often unlocks the biggest shift. Would you be willing to try finding just one small point before skipping?`,
     };
   }
@@ -91,14 +97,14 @@ export function generateSocraticPushbackPrompt(params: {
   if (params.attemptNumber === 2) {
     return {
       shouldHoldStep: true,
-      promptVi: `[Socratic Pushback — ${params.level.toUpperCase()} #2 / Double-Standard] Nếu một người bạn thân thiết nhất đang ở đúng hoàn cảnh của bạn lúc này, bạn sẽ nói gì với họ ở bước "${params.stepTitleVi}"?`,
+      promptVi: `🌿 Gợi mở từ lòng trắc ẩn: Nếu một người bạn thân thiết nhất đang ở đúng hoàn cảnh của bạn lúc này, bạn sẽ nói gì để an ủi và khuyên họ ở bước "${params.stepTitleVi}"?`,
       promptEn: `[Socratic Pushback — ${params.level.toUpperCase()} #2 / Double-Standard] If your closest friend were in this exact situation right now, what would you tell them for "${params.stepTitleEn}"?`,
     };
   }
 
   return {
     shouldHoldStep: true,
-    promptVi: `[Socratic Pushback — FIRM #3 / Khám phá Kháng cự TEAM-CBT] Điều gì khiến việc ngồi lại với bước "${params.stepTitleVi}" trở nên khó khăn hoặc nặng nề với bạn ngay lúc này?`,
+    promptVi: `🌿 Lắng nghe cảm xúc: Điều gì khiến việc ngồi lại với bước "${params.stepTitleVi}" trở nên khó khăn hoặc nặng nề với bạn ngay lúc này? Bạn hoàn toàn có thể tạm nghỉ ngơi nếu chưa sẵn sàng.`,
     promptEn: `[Socratic Pushback — FIRM #3 / TEAM-CBT Resistance Inquiry] What makes sitting with "${params.stepTitleEn}" feel difficult or heavy for you right now?`,
   };
 }
@@ -204,7 +210,7 @@ export function processVoiceBurstAndPhase0(params: {
     detectedDistressIntensity: detectedIntensity,
     moodPalette: palette,
     earEmpathyReplyVi:
-      '[TEAM-CBT EAR Empathy — Disarming + Feeling/Thought Empathy + Affirmation] Mình nghe rất rõ sự nặng nề và áp lực trong từng lời bạn vừa chia sẻ. Hoàn toàn dễ hiểu khi bạn cảm thấy như vậy trước những gì đang diễn ra. Bạn không hề đơn độc — ở chế độ Giải tỏa (Expressive), mình sẽ chỉ lắng nghe và đồng hành cùng bạn mà không vội đưa ra lời khuyên.',
+      'Mình nghe rất rõ sự nặng nề và áp lực trong từng lời bạn vừa chia sẻ. Hoàn toàn dễ hiểu khi bạn cảm thấy như vậy trước những gì đang diễn ra. Bạn không hề đơn độc — ở chế độ lắng nghe thấu cảm, mình luôn ở đây để đồng hành và chia sẻ cùng bạn.',
     earEmpathyReplyEn:
       '[TEAM-CBT EAR Empathy — Disarming + Feeling/Thought Empathy + Affirmation] I hear the weight and exhaustion in what you just shared. It makes complete sense that you feel this way given what you are carrying. In Expressive Mode, I am here simply to listen and validate without rushing to fix.',
     suggestedTechnique,
@@ -236,7 +242,7 @@ export function evaluateThoughtRecordAccuracyCheck(params: {
       outcome: 'accurate-thought-exit',
       selectedBranch: branch,
       coachingVi:
-        'CỔNG ACCURACY CHECK (Tắt Pushback — Tránh Tích cực Độc hại): Suy nghĩ của bạn phản ánh một sự thật khách quan hoặc mất mát có thật. Chúng ta DỪNG ngay việc tìm bằng chứng phản bác để tôn trọng cảm xúc thật của bạn, và chuyển sang Giải quyết Vấn đề thực tế / Tự nâng đỡ (Coping) hoặc Tách sự kiện thật khỏi nhãn dán phóng đại.',
+        'Ghi nhận sự thật khách quan: Suy nghĩ của bạn phản ánh một thực tế hoặc mất mát có thật. Haven sẽ không ép bạn phải tìm suy nghĩ tích cực giả tạo, mà tôn trọng trọn vẹn cảm xúc của bạn và đồng hành cùng bạn tìm hướng giải quyết thực tế hoặc vỗ về, xoa dịu bản thân.',
       coachingEn:
         'ACCURACY CHECK GATE (Pushback OFF — Zero Toxic Positivity): Your thought reflects an objective reality or real loss. We immediately STOP cognitive restructuring to honor your valid pain, pivoting to Practical Problem-Solving, Self-Compassion Coping, or Splitting the true event from global self-labeling.',
     };
@@ -248,7 +254,7 @@ export function evaluateThoughtRecordAccuracyCheck(params: {
     outcome: 'completed',
     selectedBranch: 'continue-to-step6-balanced-thought',
     coachingVi:
-      'Suy nghĩ tự động có chứa các biến dạng nhận thức có thể điều chỉnh. Hãy chuyển sang Bước 6: Viết Suy nghĩ Cân bằng ("Đúng là [Bằng chứng ủng hộ], VÀ đồng thời cũng đúng là [Bằng chứng phản bác]").',
+      'Nhận diện góc nhìn mới: Suy nghĩ ban đầu có thể đang bị phóng đại bởi cảm xúc. Hãy chuyển sang Bước 6: Viết Suy nghĩ Cân bằng (kết hợp cả dữ kiện thực tế và góc nhìn rộng mở hơn).',
     coachingEn:
       'The automatic thought contains modifiable cognitive distortions. Proceed to Step 6: Craft a Balanced Dialectical Thought ("It is true that [Evidence For], AND it is also true that [Evidence Against]").',
   };
@@ -330,7 +336,7 @@ export function evaluateBehavioralActivation(params: {
     typeof params.lastPlanActualEnjoyment === 'number'
   ) {
     const diff = params.lastPlanActualEnjoyment - params.lastPlanPredictedEnjoyment;
-    predictionErrorInsightVi = `Step 0 (Hiệu chỉnh Sai số Dự đoán): Phiên trước bạn dự đoán Niềm vui là ${params.lastPlanPredictedEnjoyment}/10 nhưng thực tế đạt ${params.lastPlanActualEnjoyment}/10 (chênh lệch ${diff >= 0 ? '+' : ''}${diff}). Trầm cảm luôn đánh lừa não bộ rằng hành động sẽ chẳng mang lại chút dễ chịu nào.`;
+    predictionErrorInsightVi = `🌱 Kinh nghiệm từ lần trước: Phiên trước bạn dự đoán Niềm vui chỉ là ${params.lastPlanPredictedEnjoyment}/10 nhưng thực tế khi bắt tay làm lại đạt ${params.lastPlanActualEnjoyment}/10 (chênh lệch +${diff}). Khi tâm trạng xuống thấp, não bộ thường đánh lừa rằng làm gì cũng sẽ mệt mỏi, nhưng thực tế thường dễ chịu hơn nhiều.`;
     predictionErrorInsightEn = `Step 0 (Prediction-Error Correction): Last time you predicted Enjoyment at ${params.lastPlanPredictedEnjoyment}/10, but actually experienced ${params.lastPlanActualEnjoyment}/10 (${diff >= 0 ? '+' : ''}${diff}). Depression systematically under-predicts reward.`;
   }
 
@@ -345,7 +351,7 @@ export function evaluateBehavioralActivation(params: {
       guiltFreeRestWindow: { startTime: start, endTime: end },
       confidencePassed: true,
       outcome: 'justified-exit',
-      ifThenPlan: `Nghỉ ngơi Chủ động Không Áy náy (Deliberate Guilt-Free Rest) từ ${start} đến ${end}.`,
+      ifThenPlan: `Nghỉ ngơi trọn vẹn và không áy náy từ ${start} đến ${end}. Bạn xứng đáng được nghỉ ngơi để nạp lại năng lượng.`,
     };
   }
 
@@ -356,7 +362,7 @@ export function evaluateBehavioralActivation(params: {
       predictionErrorInsightEn,
       restCheckTriggered: false,
       confidencePassed: false,
-      requireMicroShrinkPromptVi: `Điểm tự tin hiện tại là ${params.confidenceScore}/10 (< 7/10). Quy tắc Lâm sàng: Hãy thu nhỏ hoạt động "${params.chosenActivity}" xuống phiên bản siêu nhỏ chỉ tốn 2–5 phút (ví dụ: chỉ làm 1 góc bàn hoặc bước ra cửa 3 phút) cho đến khi điểm tự tin đạt >= 7/10.`,
+      requireMicroShrinkPromptVi: `Điểm tự tin hiện tại là ${params.confidenceScore}/10 (dưới mức khuyến nghị 7/10). Lời khuyên: Hãy thu nhỏ hoạt động "${params.chosenActivity}" xuống phiên bản siêu ngắn chỉ 2–5 phút (ví dụ: chỉ dọn 1 góc bàn nhỏ hoặc bước ra hiên hít thở 2 phút) để bạn cảm thấy nhẹ nhàng và sẵn sàng bắt đầu.`,
       requireMicroShrinkPromptEn: `Confidence is ${params.confidenceScore}/10 (< 7/10). Clinical Rule: Let's shrink "${params.chosenActivity}" into a 2–5 minute micro-step until your confidence reaches at least 7/10.`,
       outcome: 'stopped-early',
       ifThenPlan: '',
@@ -397,9 +403,17 @@ export function evaluateParadoxicalAgendaSetting(state: ParadoxicalAgendaSetting
   summaryEn: string;
 } {
   const safeTarget = Math.max(10, Math.min(state.initialIntensityPercent, state.magicDialTargetPercent));
+  const symptomMap: Record<string, string> = {
+    anxiety: 'lo âu',
+    depression: 'trầm buồn',
+    guilt: 'áy náy',
+    perfectionism: 'cầu toàn',
+    anger: 'tức giận',
+  };
+  const symptomVi = symptomMap[state.symptomTarget] || state.symptomTarget;
   return {
     outcomeResistanceMelted: state.positiveBenefitsOfSymptom.length >= 1,
-    summaryVi: `TEAM-CBT Paradoxical Agenda Setting: Triệu chứng "${state.symptomTarget}" cho thấy bạn là người có phẩm chất đẹp (${state.coreValuesRevealed.join(', ') || 'trách nhiệm, tận tâm'}). Thay vì ép triệu chứng về 0% bằng Nút bấm Phép thuật, chúng ta dùng Magic Dial hạ từ ${state.initialIntensityPercent}% xuống mức vừa phải ${safeTarget}% để giữ lại giá trị cốt lõi mà không bị kiệt sức.`,
+    summaryVi: `Khám phá giá trị tích cực đằng sau cảm giác ${symptomVi}: Cảm giác này cho thấy bạn là người có những phẩm chất đáng quý (${state.coreValuesRevealed.join(', ') || 'tinh thần trách nhiệm, sự tận tâm'}). Thay vì cố gắng dập tắt hoàn toàn về 0% một cách gượng ép, chúng ta chỉ cần hạ bớt mức căng thẳng từ ${state.initialIntensityPercent}% xuống khoảng ${safeTarget}% để giữ lại sự cẩn thận mà không làm cơ thể kiệt sức.`,
     summaryEn: `TEAM-CBT Paradoxical Agenda Setting: Your "${state.symptomTarget}" reflects beautiful core values (${state.coreValuesRevealed.join(', ') || 'care, high standards'}). Rather than forcing it to 0% with the Magic Button, we set the Magic Dial from ${state.initialIntensityPercent}% down to a healthy ${safeTarget}%.`,
   };
 }
@@ -424,7 +438,7 @@ export function evaluateOppositeAction(params: {
       outcome: 'justified-exit',
       pushbackOff: true,
       directiveVi:
-        'CỔNG JUSTIFIED CHECK (An toàn Thực tế — Pushback OFF): Tình huống có mối đe dọa thực tế. Nỗi sợ và thôi thúc rút lui/bảo vệ bản thân là 100% chính đáng. Không làm ngược lại cảm xúc này — hãy ưu tiên sự an toàn của bạn.',
+        'Bảo vệ an toàn là trên hết: Tình huống có mối đe dọa thực tế. Cảm giác sợ hãi và mong muốn rút lui/bảo vệ bản thân là hoàn toàn chính đáng. Đừng ép mình làm ngược lại — hãy ưu tiên sự an toàn của bạn.',
       directiveEn:
         'JUSTIFIED CHECK GATE (Real Danger — Pushback OFF): Objective danger is present. Your fear and urge to withdraw/protect yourself are 100% justified. Do NOT act opposite — prioritize safety.',
     };
@@ -435,7 +449,7 @@ export function evaluateOppositeAction(params: {
       outcome: 'justified-exit',
       pushbackOff: true,
       directiveVi:
-        'Thôi thúc hành động phù hợp với sự thật khách quan. Hãy thực hiện Hành động Khéo léo (Skillful Action / Giải quyết vấn đề).',
+        'Thôi thúc hành động phù hợp với thực tế khách quan. Hãy tiến hành các bước giải quyết vấn đề một cách khéo léo và bình tĩnh.',
       directiveEn:
         'Your action urge fits the objective facts. Proceed with Skillful Action and problem-solving.',
     };
@@ -444,7 +458,7 @@ export function evaluateOppositeAction(params: {
   return {
     outcome: 'completed',
     pushbackOff: false,
-    directiveVi: `Step 4 — Làm Ngược Lại Toàn Diện (Act Opposite All The Way): Cảm xúc "${params.emotion}" đang xúi giục bạn "${params.actionUrge}", nhưng điều đó không giúp ích cho bạn. Trong 15 phút tới, hãy thực hiện 100% hành động ngược lại (cả nét mặt, tư thế cơ thể và hành động): "${params.oppositeActionPlan}".`,
+    directiveVi: `Hành động đối lập giúp đổi hướng cảm xúc: Cảm xúc "${params.emotion}" đang thôi thúc bạn "${params.actionUrge}", nhưng điều đó sẽ khiến bạn càng thêm mệt mỏi. Trong 15 phút tới, hãy thử làm ngược lại một cách trọn vẹn (thả lỏng nét mặt, ngồi thẳng lưng và bắt đầu): "${params.oppositeActionPlan}".`,
     directiveEn: `Step 4 — Act Opposite All The Way: "${params.emotion}" is urging you to "${params.actionUrge}". For the next 15 minutes, commit 100% (posture, facial expression, and behavior) to the opposite action: "${params.oppositeActionPlan}".`,
   };
 }
@@ -477,9 +491,9 @@ export function evaluateWiseMindProtocol(params: {
 
   const resolutionVi =
     params.resolutionType === 'nothing-yet'
-      ? 'Kết quả hợp lệ: "Chưa biết lúc này (Nothing yet)" — Tâm Trí Tuệ không bao giờ bị ép phải có câu trả lời ngay. Hẹn xem lại vào: ' +
+      ? 'Kết quả hợp lệ: "Chưa cần quyết định ngay lúc này" — Tâm trí sáng suốt không bao giờ bị thúc ép phải có câu trả lời ngay. Hãy cho phép mình nghỉ ngơi và xem lại vào: ' +
         params.nextStepOrRevisitTime
-      : `Kết luận từ Tâm Trí Tuệ (${params.resolutionType}): ${params.wiseMindSynthesisText} -> Bước tiếp theo: ${params.nextStepOrRevisitTime}`;
+      : `Kết luận từ Tâm Trí Tuệ: ${params.wiseMindSynthesisText} -> Bước tiếp theo: ${params.nextStepOrRevisitTime}`;
 
   const resolutionEn =
     params.resolutionType === 'nothing-yet'
@@ -551,7 +565,7 @@ export function evaluateChainAnalysisProtocol(params: {
     safetyAndShameCheck,
     pushbackForcedOff: safetyAndShameCheck.shameProtocolTriggered,
     outcome: 'completed',
-    summaryVi: `Đã giải phẫu chuỗi ${params.links.length} mắt xích với tinh thần Tò mò, Không phán xét. Phòng ngừa PLEASE: "${params.preventionPlan}". Hàn gắn lành mạnh (Repair): "${params.healthyRepairStep}".`,
+    summaryVi: `Đã nhận diện chuỗi ${params.links.length} mắt xích với tinh thần thấu hiểu, không phán xét. Kế hoạch chăm sóc cơ thể: "${params.preventionPlan}". Bước hàn gắn nhẹ nhàng: "${params.healthyRepairStep}".`,
     summaryEn: `Completed ${params.links.length}-link Chain Analysis with Curiosity, Not Blame. PLEASE Prevention: "${params.preventionPlan}". Healthy Repair: "${params.healthyRepairStep}".`,
   };
 }
@@ -631,15 +645,15 @@ export function buildDearManScriptAndRoleplay(
 
   const partnerReplies = {
     softer: {
-      vi: '[AI Đóng vai Đối phương — Kháng cự Nhẹ (Softer)]: "À mình không nhận ra chuyện đó làm bạn áp lực vậy. Để mình xem lại xem có thu xếp giúp bạn được không nhé."',
+      vi: '🌿 Người đối thoại: "À mình không nhận ra chuyện đó làm bạn áp lực vậy. Để mình xem lại xem có thu xếp giúp bạn được không nhé."',
       en: '[AI Roleplay Partner — Softer Resistance]: "Oh, I didn\'t realize that was putting so much pressure on you. Let me see how we can adjust this."',
     },
     moderate: {
-      vi: '[AI Đóng vai Đối phương — Kháng cự Vừa (Moderate)]: "Sao tự nhiên hôm nay bạn lại căng thẳng chuyện này thế? Ai chẳng bận rộn, bạn cố thêm một chút không được sao?"',
+      vi: '🌿 Người đối thoại: "Sao tự nhiên hôm nay bạn lại căng thẳng chuyện này thế? Ai chẳng bận rộn, bạn cố thêm một chút không được sao?"',
       en: '[AI Roleplay Partner — Moderate Resistance]: "Why are you making a big deal out of this today? Everyone is busy — can\'t you just handle it this once?"',
     },
     harder: {
-      vi: '[AI Đóng vai Đối phương — Kháng cự Cao (Harder / Đánh trống lảng & Gây cảm giác tội lỗi)]: "Bạn lúc nào cũng chỉ nghĩ cho bản thân! Trước giờ tôi giúp bạn bao nhiêu việc thì sao? Nếu bạn từ chối tức là bạn không coi trọng mối quan hệ này!"',
+      vi: '🌿 Người đối thoại: "Bạn lúc nào cũng chỉ nghĩ cho bản thân! Trước giờ tôi giúp bạn bao nhiêu việc thì sao? Nếu bạn từ chối tức là bạn không coi trọng mối quan hệ này!"',
       en: '[AI Roleplay Partner — Harder Resistance / Guilt-Tripping & Sidetracking]: "You only care about yourself! After everything I\'ve done for you, saying no proves you don\'t value this relationship!"',
     },
   };
@@ -653,7 +667,7 @@ export function buildDearManScriptAndRoleplay(
     roleplayPartnerReplyVi: partnerReplies[roleplayResistance].vi,
     roleplayPartnerReplyEn: partnerReplies[roleplayResistance].en,
     coachingStrengthVi:
-      'Điểm bạn làm rất tốt: Bạn đã nêu rõ yêu cầu (Assert) và chuẩn bị sẵn câu lặp lại bình tĩnh (Broken Record): "' +
+      'Điểm bạn làm rất tốt: Bạn đã nêu rõ ràng mong muốn của mình và chuẩn bị sẵn câu từ chối bình tĩnh, kiên định: "' +
       input.mindfulBrokenRecordPhrase +
       '".',
     coachingStrengthEn:
@@ -662,7 +676,7 @@ export function buildDearManScriptAndRoleplay(
       '".',
     coachingTweakVi:
       warningsVi[0] ??
-      'Gợi ý tinh chỉnh (Kết hợp TEAM-CBT EAR Disarming): Ở vòng tiếp theo, hãy bắt đầu bằng 1 câu tìm điểm đúng trong lời đối phương (Disarming) trước khi lặp lại câu Broken Record.',
+      'Gợi ý tinh chỉnh: Ở lượt trò chuyện tiếp theo, bạn có thể thử công nhận cảm xúc hoặc điểm hợp lý của người kia trước khi kiên định nhắc lại mong muốn của mình.',
     coachingTweakEn:
       warningsEn[0] ??
       'Refinement for next round (TEAM-CBT EAR Disarming): Find a grain of truth to disarm their pushback before calmly repeating your Broken Record phrase.',

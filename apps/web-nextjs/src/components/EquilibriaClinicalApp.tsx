@@ -87,6 +87,7 @@ import {
   type Phase3CompanionProvider,
   type PredictionCalibrationEntry,
   type PushbackLevel,
+  type SessionOutcome,
   type SessionPhase0Mode,
   type TechniqueSlug,
   type UIThemeMode,
@@ -221,6 +222,45 @@ function SanctuaryHeroBanner(props: {
         )}
       </div>
     </div>
+  );
+}
+
+function renderClinicalBadge(outcome: SessionOutcome, lang: Language) {
+  const isPositive = outcome === 'completed' || outcome === 'accurate-thought-exit' || outcome === 'justified-exit';
+  const viText =
+    outcome === 'accurate-thought-exit'
+      ? '✓ Ghi nhận sự thật khách quan'
+      : outcome === 'justified-exit'
+        ? '✓ Ưu tiên an toàn & nghỉ ngơi'
+        : outcome === 'stopped-early'
+          ? '⏳ Cần chia nhỏ hành động hơn'
+          : outcome === 'safety-stop'
+            ? '🛡️ Ưu tiên an toàn'
+            : '✓ Đã hoàn thành phân tích';
+  const enText =
+    outcome === 'accurate-thought-exit'
+      ? '✓ Objective Reality Confirmed'
+      : outcome === 'justified-exit'
+        ? '✓ Safety & Rest Prioritized'
+        : outcome === 'stopped-early'
+          ? '⏳ Step Shrinking Recommended'
+          : outcome === 'safety-stop'
+            ? '🛡️ Safety Shield Active'
+            : '✓ Complete';
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '2px 8px',
+        borderRadius: '8px',
+        fontSize: '0.8rem',
+        fontWeight: 600,
+        backgroundColor: isPositive ? 'rgba(106, 168, 130, 0.2)' : 'rgba(217, 119, 6, 0.2)',
+        color: isPositive ? '#15803d' : '#b45309',
+      }}
+    >
+      {lang === 'vi' ? viText : enText}
+    </span>
   );
 }
 
@@ -556,37 +596,27 @@ export function EquilibriaClinicalApp() {
         level: pushbackLevel,
         zone: 'Core',
         attemptNumber: pushbackAttempt,
-        stepTitleVi: 'Bước 5: Bằng chứng Phản bác (Evidence Against)',
+        stepTitleVi: 'Bước 5: Tìm bằng chứng phản bác',
         stepTitleEn: 'Step 5: Evidence Against Hot Thought',
       }),
     [pushbackLevel, pushbackAttempt]
   );
 
   // Protocol 1: CBT 7-Step Thought Record with Accuracy Check
-  const [trSituation, setTrSituation] = useState<string>(
-    'Gửi báo cáo tuần cho quản lý lúc 14:00, đến 17:00 chưa thấy phản hồi.'
-  );
-  const [trHotThought, setTrHotThought] = useState<string>(
-    'Chắc chắn họ nghĩ tôi là kẻ thất bại hoàn toàn và sắp đuổi việc tôi.'
-  );
+  const [trSituation, setTrSituation] = useState<string>('');
+  const [trHotThought, setTrHotThought] = useState<string>('');
   const [trAffect, setTrAffect] = useState<AffectFamily>('Anxiety');
-  const [trEvidenceFor, setTrEvidenceFor] = useState<string>(
-    'Quản lý đã xem tin nhắn nhưng chưa trả lời ngay.'
-  );
-  const [trEvidenceAgainst, setTrEvidenceAgainst] = useState<string>(
-    'Chiều nay quản lý họp hội đồng cả buổi; tháng trước báo cáo của tôi vẫn được đánh giá tốt.'
-  );
+  const [trEvidenceFor, setTrEvidenceFor] = useState<string>('');
+  const [trEvidenceAgainst, setTrEvidenceAgainst] = useState<string>('');
   const [trIsObjectivelyTrue, setTrIsObjectivelyTrue] = useState<boolean>(false);
-  const [trBalancedThought, setTrBalancedThought] = useState<string>(
-    'Đúng là quản lý chưa trả lời ngay, VÀ đồng thời anh ấy đang họp cả chiều nên việc chưa phản hồi không có nghĩa là mình thất bại.'
-  );
+  const [trBalancedThought, setTrBalancedThought] = useState<string>('');
   const [trPostIntensity, setTrPostIntensity] = useState<IntensityScore>(3);
 
   const thoughtRecordEval = useMemo(
     () =>
       evaluateThoughtRecordComplete({
-        situation: trSituation,
-        automaticThought: trHotThought,
+        situation: trSituation || 'Chưa ghi nhận tình huống',
+        automaticThought: trHotThought || 'Chưa ghi nhận suy nghĩ tự động',
         affectFamily: trAffect,
         preIntensity: distressIntensity,
         evidenceFor: trEvidenceFor,
@@ -610,12 +640,12 @@ export function EquilibriaClinicalApp() {
 
   // Protocol 2: CBT Behavioral Activation 6-Step
   const [baNeedsRest, setBaNeedsRest] = useState<boolean>(false);
-  const [baActivity, setBaActivity] = useState<string>('Đi bộ nhẹ quanh sân đón nắng sáng 10 phút');
+  const [baActivity, setBaActivity] = useState<string>('');
   const [baConfidence, setBaConfidence] = useState<number>(8);
   const [baPredictedPleasure, setBaPredictedPleasure] = useState<number>(4);
   const [baPredictedMastery, setBaPredictedMastery] = useState<number>(6);
-  const [baObstacle, setBaObstacle] = useState<string>('Cảm thấy nặng nề không muốn bước ra khỏi giường');
-  const [baTwoMinFallback, setBaTwoMinFallback] = useState<string>('Mở rèm cửa sổ và đứng hít thở 2 phút');
+  const [baObstacle, setBaObstacle] = useState<string>('');
+  const [baTwoMinFallback, setBaTwoMinFallback] = useState<string>('');
 
   const behavioralActivationEval = useMemo(
     () =>
@@ -625,12 +655,12 @@ export function EquilibriaClinicalApp() {
         needsBiologicalRest: baNeedsRest,
         restStartTime: '20:30',
         restEndTime: '22:00',
-        chosenActivity: baActivity,
+        chosenActivity: baActivity || 'Hoạt động nhẹ nhàng',
         confidenceScore: baConfidence,
         predictedPleasure: baPredictedPleasure,
         predictedMastery: baPredictedMastery,
-        obstacle: baObstacle,
-        twoMinuteFallback: baTwoMinFallback,
+        obstacle: baObstacle || 'Cảm giác mệt mỏi ban đầu',
+        twoMinuteFallback: baTwoMinFallback || 'Bắt đầu nhẹ nhàng 2 phút',
       }),
     [
       baNeedsRest,
@@ -682,16 +712,16 @@ export function EquilibriaClinicalApp() {
   );
 
   // Protocol 5: DBT Wise Mind
-  const [wmReasonableText, setWmReasonableText] = useState<string>(
-    'Nếu nhận thêm dự án lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.'
-  );
+  const [wmReasonableText, setWmReasonableText] = useState<string>('');
   const [wmResolution, setWmResolution] = useState<WiseMindResolutionType>('nothing-yet');
   const wiseMindEval = useMemo(
     () =>
       evaluateWiseMindProtocol({
         dilemmaQuestion: 'Tôi có nên nhận thêm dự án phụ trong tháng này không?',
         emotionMindVoice: 'Sợ bỏ lỡ cơ hội và sợ người khác đánh giá mình kém cỏi.',
-        reasonableMindVoice: wmReasonableText,
+        reasonableMindVoice:
+          wmReasonableText ||
+          'Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.',
         breathingPauseCompleted: true,
         resolutionType: wmResolution,
         wiseMindSynthesisText: 'Ưu tiên giấc ngủ trước, trả lời vào sáng mai.',
@@ -701,9 +731,7 @@ export function EquilibriaClinicalApp() {
   );
 
   // Protocol 6: DBT Chain Analysis
-  const [caTargetBehavior, setCaTargetBehavior] = useState<string>(
-    'Thức đến 3 giờ sáng lướt mạng và đặt mua đồ công nghệ đắt tiền không cần thiết'
-  );
+  const [caTargetBehavior, setCaTargetBehavior] = useState<string>('');
   const chainLinks: ChainAnalysisLink[] = [
     { category: 'external', description: 'Nhận email phê bình lúc 21:00 tối' },
     { category: 'thought', description: 'Mình phải mua thứ gì đó thật xịn để bù đắp cảm giác tệ này' },
@@ -718,14 +746,14 @@ export function EquilibriaClinicalApp() {
   const chainAnalysisEval = useMemo(
     () =>
       evaluateChainAnalysisProtocol({
-        targetBehavior: caTargetBehavior,
+        targetBehavior: caTargetBehavior || 'Thức khuya lướt mạng và mua sắm không cần thiết',
         promptingEvent: 'Đọc email công việc lúc 21:30 tối trên giường ngủ',
         pleaseVulnerabilities: ['Ngủ dưới 5 tiếng đêm trước', 'Uống 2 ly cà phê chiều muộn'],
         links: chainLinks,
         shortTermReliefPros: 'Cảm giác phấn khích tức thời và quên đi áp lực công việc trong 15 phút',
         longTermCosts: 'Thiếu ngủ hôm sau, hối tiếc tài chính và nguy cơ trượt sang pha hưng cảm nhẹ',
-        preventionPlan: 'PLEASE: Ngừng caffeine sau 14:00 và không mở email sau 20:30',
-        healthyRepairStep: 'Hủy đơn hàng trong thời gian cho phép và thiết lập hạn mức thẻ ban đêm',
+        preventionPlan: 'Tạm dừng caffeine sau 14:00 và không mở email sau 20:30 tối',
+        healthyRepairStep: 'Hủy đơn hàng nếu kịp và đặt hạn mức thẻ ban đêm',
       }),
     [caTargetBehavior]
   );
@@ -2694,16 +2722,92 @@ export function EquilibriaClinicalApp() {
                   ? '1. Bảng 7 Bước Ghi Nhận Suy Nghĩ CBT (Kiểm Tra Tính Khách Quan)'
                   : '1. CBT 7-Step Thought Record (with Objective Accuracy Check)'}
               </h3>
-              <p style={{ fontSize: '0.85rem' }}>
-                <strong>{lang === 'vi' ? 'Bước 1 (Góc nhìn camera khách quan): ' : 'Step 1 (Camera Situation): '}</strong> {trSituation}
-              </p>
-              <p style={{ fontSize: '0.85rem' }}>
-                <strong>{lang === 'vi' ? 'Bước 2 (Suy nghĩ tự động nảy sinh): ' : 'Step 2 (Hot Automatic Thought): '}</strong> {trHotThought}
-              </p>
-              <p style={{ fontSize: '0.82rem', color: theme.palette.accent }}>
-                <strong>{lang === 'vi' ? 'Khuôn mẫu Suy nghĩ Sai lệch: ' : 'Cognitive Distortions Detected: '}</strong>
-                {thoughtRecordEval.distortions.negative.map((d) => (lang === 'vi' ? d.nameVi : d.nameEn)).join(' • ') || (lang === 'vi' ? 'Không phát hiện' : 'None detected')}
-              </p>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                  {lang === 'vi' ? 'Bước 1 — Tình huống thực tế (Góc nhìn camera khách quan):' : 'Step 1 — Objective Situation:'}
+                </label>
+                <input
+                  type="text"
+                  value={trSituation}
+                  onChange={(e) => setTrSituation((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Ví dụ: Gửi tin nhắn cho quản lý lúc 14:00, đến 17:00 chưa thấy phản hồi...'
+                      : 'e.g., Sent message at 2pm, no reply by 5pm...'
+                  }
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                  {lang === 'vi' ? 'Bước 2 — Suy nghĩ tự động nảy sinh:' : 'Step 2 — Hot Automatic Thought:'}
+                </label>
+                <input
+                  type="text"
+                  value={trHotThought}
+                  onChange={(e) => setTrHotThought((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Ví dụ: Chắc chắn họ nghĩ tôi làm việc kém cỏi và sắp đuổi việc tôi...'
+                      : 'e.g., They definitely think I failed completely...'
+                  }
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Starter Sample Chip when empty */}
+              {!trSituation && !trHotThought && (
+                <div style={{ marginBottom: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrSituation('Gửi tin nhắn công việc lúc 14:00 nhưng đến 17:00 chưa thấy phản hồi.');
+                      setTrHotThought('Chắc chắn họ nghĩ tôi làm việc kém cỏi và đang khó chịu với tôi.');
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '14px',
+                      border: `1px dashed ${theme.palette.border}`,
+                      backgroundColor: 'transparent',
+                      color: theme.palette.textSecondary,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '💡 Thử điền tình huống mẫu' : '💡 Try sample scenario'}
+                  </button>
+                </div>
+              )}
+
+              {thoughtRecordEval.distortions.negative.length > 0 && (
+                <div style={{ fontSize: '0.82rem', marginBottom: '10px' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>
+                    {lang === 'vi' ? 'Khuôn mẫu suy nghĩ nhận diện:' : 'Detected Distortions:'}
+                  </strong>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {thoughtRecordEval.distortions.negative.map((d) => (
+                      <span
+                        key={d.id}
+                        style={{
+                          padding: '3px 9px',
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(121, 114, 152, 0.12)',
+                          color: theme.palette.primary,
+                          fontWeight: 600,
+                          fontSize: '0.78rem',
+                        }}
+                      >
+                        {lang === 'vi' ? d.nameVi : d.nameEn}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <label style={{ display: 'block', margin: '10px 0', fontSize: '0.88rem', fontWeight: 600 }}>
                 <input
                   type="checkbox"
@@ -2711,9 +2815,10 @@ export function EquilibriaClinicalApp() {
                   onChange={(e) => setTrIsObjectivelyTrue((e.target as HTMLInputElement).checked)}
                 />{' '}
                 {lang === 'vi'
-                  ? 'KIỂM TRA TÍNH KHÁCH QUAN: Suy nghĩ này là một sự thật khách quan (mất mát có thật, không thể chối cãi)?'
-                  : 'ACCURACY CHECK GATE: Is this thought an objectively true fact (real loss / unavoidable truth)?'}
+                  ? 'Kiểm tra tính khách quan: Suy nghĩ này là một sự thật khách quan (mất mát có thật, không thể chối cãi)?'
+                  : 'Accuracy Check: Is this thought an objectively true fact (real loss / unavoidable truth)?'}
               </label>
+
               <div
                 style={{
                   padding: '12px 14px',
@@ -2723,8 +2828,11 @@ export function EquilibriaClinicalApp() {
                   fontSize: '0.86rem',
                 }}
               >
-                <strong>{lang === 'vi' ? 'Kết quả thẩm định: ' : 'Clinical Outcome: '}`{thoughtRecordEval.outcome}`</strong>
-                <p style={{ margin: '4px 0 0 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <strong>{lang === 'vi' ? 'Kết quả thẩm định: ' : 'Clinical Outcome: '}</strong>
+                  {renderClinicalBadge(thoughtRecordEval.outcome, lang)}
+                </div>
+                <p style={{ margin: 0, lineHeight: 1.5 }}>
                   {lang === 'vi'
                     ? thoughtRecordEval.accuracyCheck.coachingVi
                     : thoughtRecordEval.accuracyCheck.coachingEn}
@@ -2753,6 +2861,49 @@ export function EquilibriaClinicalApp() {
                   ? behavioralActivationEval.predictionErrorInsightVi
                   : behavioralActivationEval.predictionErrorInsightEn}
               </p>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                  {lang === 'vi' ? 'Bước 1 — Hoạt động bạn muốn thực hiện:' : 'Step 1 — Chosen Activity:'}
+                </label>
+                <input
+                  type="text"
+                  value={baActivity}
+                  onChange={(e) => setBaActivity((e.target as HTMLInputElement).value)}
+                  className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Ví dụ: Đi bộ nhẹ quanh sân đón nắng sáng 10 phút, tưới cây...'
+                      : 'e.g., Take a gentle 10-minute walk outside...'
+                  }
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {!baActivity && (
+                <div style={{ marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBaActivity('Đi bộ nhẹ quanh sân đón nắng sáng 10 phút');
+                      setBaObstacle('Cảm thấy nặng nề không muốn bước ra khỏi giường');
+                      setBaTwoMinFallback('Mở rèm cửa sổ và đứng hít thở 2 phút');
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '14px',
+                      border: `1px dashed ${theme.palette.border}`,
+                      backgroundColor: 'transparent',
+                      color: theme.palette.textSecondary,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '💡 Thử gợi ý mẫu: Đi bộ nhẹ đón nắng' : '💡 Try sample activity'}
+                  </button>
+                </div>
+              )}
+
               <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem', fontWeight: 600 }}>
                 <input
                   type="checkbox"
@@ -2763,6 +2914,7 @@ export function EquilibriaClinicalApp() {
                   ? 'Bước 2 — KIỂM TRA NGHỈ NGƠI: Cơ thể đang kiệt sức sinh học / thiếu ngủ, cần Nghỉ Ngơi Không Áy Náy?'
                   : 'Step 2 — REST CHECK: Are you biologically exhausted / ill / sleep-deprived and in need of Guilt-Free Rest?'}
               </label>
+
               <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem' }}>
                 {lang === 'vi'
                   ? 'Bước 4 — Mức độ tự tin thực hiện (Thang 0–10, tối thiểu cần 7/10): '
@@ -2776,6 +2928,7 @@ export function EquilibriaClinicalApp() {
                   style={{ width: '55px', marginLeft: '6px' }}
                 />
               </label>
+
               <div
                 style={{
                   padding: '12px 14px',
@@ -2786,8 +2939,11 @@ export function EquilibriaClinicalApp() {
                   fontSize: '0.86rem',
                 }}
               >
-                <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}`{behavioralActivationEval.outcome}`</strong>
-                <p style={{ margin: '4px 0 0 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
+                  {renderClinicalBadge(behavioralActivationEval.outcome, lang)}
+                </div>
+                <p style={{ margin: 0, lineHeight: 1.5 }}>
                   {!behavioralActivationEval.confidencePassed
                     ? behavioralActivationEval.requireMicroShrinkPromptVi
                     : behavioralActivationEval.ifThenPlan}
@@ -2808,14 +2964,16 @@ export function EquilibriaClinicalApp() {
             >
               <h3 style={{ marginTop: 0 }}>
                 {lang === 'vi'
-                  ? '3. Phương Pháp Đặt Mục Tiêu Nghịch Lý TEAM-CBT (Nút Bấm Kỳ Diệu • Vòng Xoay Cảm Xúc)'
-                  : '3. TEAM-CBT Paradoxical Agenda Setting (Magic Button • Magic Dial)'}
+                  ? '3. Khám Phá Mặt Tích Cực Của Cảm Xúc & Hạ Nhiệt Lo Âu'
+                  : '3. TEAM-CBT Paradoxical Agenda Setting (Magic Dial)'}
               </h3>
-              <p style={{ fontSize: '0.85rem' }}>
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
                 {lang === 'vi' ? pasEval.summaryVi : pasEval.summaryEn}
               </p>
-              <label style={{ fontSize: '0.85rem' }}>
-                {lang === 'vi' ? 'Mức lo âu hữu ích bạn mong muốn giữ lại (%): ' : 'Target anxiety level you wish to keep (%): '}
+              <label style={{ fontSize: '0.88rem' }}>
+                {lang === 'vi'
+                  ? 'Mức lo âu bạn mong muốn giữ lại để duy trì sự cẩn thận (%): '
+                  : 'Target anxiety level you wish to keep (%): '}
                 <input
                   type="number"
                   min={10}
@@ -2854,8 +3012,11 @@ export function EquilibriaClinicalApp() {
                   ? 'Bước 3 — KIỂM TRA MỐI NGUY: Tình huống có nguy cơ thực tế tới tính mạng, bạo lực hay sự an toàn của bạn không?'
                   : 'Step 3 — DANGER CHECK: Is there real-world, objective danger or physical unsafety in this situation?'}
               </label>
-              <p style={{ fontSize: '0.85rem' }}>
-                <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}`{oppositeActionEval.outcome}`</strong> —{' '}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
+                {renderClinicalBadge(oppositeActionEval.outcome, lang)}
+              </div>
+              <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
                 {lang === 'vi' ? oppositeActionEval.directiveVi : oppositeActionEval.directiveEn}
               </p>
             </article>
@@ -2878,22 +3039,48 @@ export function EquilibriaClinicalApp() {
               </h3>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
                 {lang === 'vi'
-                  ? 'Bước 3 (Tiếng nói Lý trí — Thử nhập lời tự phán xét như "mình thật yếu đuối" để hệ thống phát hiện):'
-                  : 'Step 3 (Reasonable Mind — Try entering harsh self-critic words like "weak" to test the guard):'}
+                  ? 'Bước 3 — Tiếng nói lý trí (Góc nhìn thực tế, công bằng với bản thân):'
+                  : 'Step 3 (Reasonable Mind — Realistic, balanced perspective):'}
                 <input
                   type="text"
                   value={wmReasonableText}
                   onChange={(e) => setWmReasonableText((e.target as HTMLInputElement).value)}
                   className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Ví dụ: Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì sức khỏe ổn định hơn...'
+                      : 'e.g., Taking more work will reduce sleep; declining keeps routine stable...'
+                  }
                   style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                 />
               </label>
+              {!wmReasonableText && (
+                <div style={{ marginBottom: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setWmReasonableText('Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.')
+                    }
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      border: `1px dashed ${theme.palette.border}`,
+                      backgroundColor: 'transparent',
+                      color: theme.palette.textSecondary,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '💡 Thử tiếng nói lý trí mẫu' : '💡 Try sample reasonable thought'}
+                  </button>
+                </div>
+              )}
               <p style={{ fontSize: '0.82rem', color: wiseMindEval.criticGuard.isSelfCriticDisguised ? '#e11d48' : theme.palette.primary }}>
                 {lang === 'vi'
                   ? wiseMindEval.criticGuard.reframePromptVi
                   : wiseMindEval.criticGuard.reframePromptEn}
               </p>
-              <p style={{ fontSize: '0.85rem' }}>
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
                 {lang === 'vi' ? wiseMindEval.closingSummaryVi : wiseMindEval.closingSummaryEn}
               </p>
             </article>
@@ -2916,18 +3103,47 @@ export function EquilibriaClinicalApp() {
               </h3>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
                 {lang === 'vi'
-                  ? 'Bước 1 (Hành vi mục tiêu cần phân tích — Tự động dừng nếu phát hiện nguy cơ tự hại):'
-                  : 'Step 1 (Target behavior to analyze — Auto-stops if self-harm or abuse is detected):'}
+                  ? 'Bước 1 — Hành vi bạn muốn cùng Haven tìm hiểu và tháo gỡ:'
+                  : 'Step 1 — Target behavior to analyze with Haven:'}
                 <input
                   type="text"
                   value={caTargetBehavior}
                   onChange={(e) => setCaTargetBehavior((e.target as HTMLInputElement).value)}
                   className="sanctuary-input"
+                  placeholder={
+                    lang === 'vi'
+                      ? 'Ví dụ: Thức khuya lướt điện thoại đến 2 giờ sáng, ăn đồ ngọt mất kiểm soát...'
+                      : 'e.g., Staying up late scrolling until 2am...'
+                  }
                   style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                 />
               </label>
-              <p style={{ fontSize: '0.85rem' }}>
-                <strong>{lang === 'vi' ? 'Kết quả phân tích: ' : 'Outcome: '}`{chainAnalysisEval.outcome}`</strong> —{' '}
+              {!caTargetBehavior && (
+                <div style={{ marginBottom: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCaTargetBehavior('Thức đến 2 giờ sáng lướt mạng và đặt mua đồ công nghệ không cần thiết')
+                    }
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      border: `1px dashed ${theme.palette.border}`,
+                      backgroundColor: 'transparent',
+                      color: theme.palette.textSecondary,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '💡 Thử hành vi mẫu: Thức khuya mua sắm' : '💡 Try sample behavior'}
+                  </button>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <strong>{lang === 'vi' ? 'Kết quả phân tích: ' : 'Outcome: '}</strong>
+                {renderClinicalBadge(chainAnalysisEval.outcome, lang)}
+              </div>
+              <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
                 {lang === 'vi' ? chainAnalysisEval.summaryVi : chainAnalysisEval.summaryEn}
               </p>
             </article>
@@ -2973,7 +3189,7 @@ export function EquilibriaClinicalApp() {
                       ? (lang === 'vi' ? 'DỊU DÀNG' : 'SOFTER')
                       : resLvl === 'moderate'
                         ? (lang === 'vi' ? 'TIÊU CHUẨN' : 'MODERATE')
-                        : (lang === 'vi' ? 'THÁCH THỨC' : 'FIRMER')}
+                        : (lang === 'vi' ? 'THỬ THÁCH' : 'FIRMER')}
                   </button>
                 ))}
               </div>
@@ -4284,7 +4500,7 @@ export function EquilibriaClinicalApp() {
               </p>
               <div style={{ fontSize: '0.8rem', color: theme.palette.textSecondary }}>
                 <strong>{lang === 'vi' ? 'Kỹ năng Đánh lạc hướng ACCEPTS:' : 'ACCEPTS Distraction Cards:'}</strong>{' '}
-                {acceptsAndSoothePlan.acceptsCards.map((c) => lang === 'vi' ? `${c.letter} (${c.nameVi})` : `${c.letter} (${c.nameEn})`).join(' • ')}
+                {acceptsAndSoothePlan.acceptsCards.map((c) => lang === 'vi' ? `${c.letter} — ${c.nameVi}` : `${c.letter} (${c.nameEn})`).join(' • ')}
               </div>
               <div style={{ fontSize: '0.8rem', color: theme.palette.textSecondary, marginTop: '4px' }}>
                 <strong>{lang === 'vi' ? 'Xoa dịu qua 5 giác quan:' : '5-Senses Self-Soothe:'}</strong>{' '}
@@ -4708,7 +4924,7 @@ export function EquilibriaClinicalApp() {
                 </p>
                 <div style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
                   {lang === 'vi'
-                    ? `Khoảng bình thường của bạn (P25–P75): ${phase3HrvEval.p25Ms ?? 'N/A'} – ${phase3HrvEval.p75Ms ?? 'N/A'} ${phase3HrvEval.metricUnit}`
+                    ? `Mức dao động bình thường của bạn: ${phase3HrvEval.p25Ms ?? 'N/A'} – ${phase3HrvEval.p75Ms ?? 'N/A'} ${phase3HrvEval.metricUnit}`
                     : `Your 14–30 Day Baseline (P25–P75): ${phase3HrvEval.p25Ms ?? 'N/A'} – ${phase3HrvEval.p75Ms ?? 'N/A'} ${phase3HrvEval.metricUnit}`}
                 </div>
               </div>
@@ -4719,7 +4935,9 @@ export function EquilibriaClinicalApp() {
                     {lang === 'vi' ? 'Quyền riêng tư bộ nhớ hội thoại:' : 'Conversation Memory Privacy:'}
                   </strong>
                   <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
-                    {phase3Memory.rollingSummary}
+                    {lang === 'vi'
+                      ? 'Chưa có tóm tắt trò chuyện (hệ thống sẽ tự động tổng hợp sau mỗi 15 lượt tin nhắn để bảo vệ sự riêng tư của bạn).'
+                      : phase3Memory.rollingSummary}
                   </p>
                 </div>
                 <button

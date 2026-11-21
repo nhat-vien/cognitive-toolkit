@@ -73,7 +73,7 @@ export function createInitialClinicalMemoryState(
     totalMessagesProcessed: 0,
     recentMessagesWindow: [],
     rollingSummary:
-      'Chưa có tóm tắt cuộn (sẽ tự động tổng hợp sau mỗi 15 lượt tin nhắn). / No rolling summary yet (auto-refreshes every 15 messages).',
+      'Chưa có tóm tắt cuộn (sẽ tự động tổng hợp sau mỗi 15 lượt tin nhắn).',
     lastSummaryRefreshAtCount: 0,
     summaryRefreshCount: 0,
     personalProfile: {
@@ -935,10 +935,10 @@ export function evaluateBaselineRelativeHrvAndSleep(params: {
 
   const gentleCheckInMentionVi =
     classification === 'below-baseline'
-      ? `Chỉ số HRV gần nhất của bạn thấp hơn ngưỡng nền cá nhân (P25 = ${p25Ms} ${metricUnit}) và đêm qua bạn ngủ ${params.sleepDurationHours}h — cơ thể bạn có thể đang chịu tải sinh học cao, hôm nay mình ưu tiên các bước nhẹ nhàng nhé.`
+      ? `Chỉ số biến thiên nhịp tim (HRV) gần nhất của bạn thấp hơn mức nền thường ngày (${p25Ms} ${metricUnit}) và đêm qua bạn ngủ ${params.sleepDurationHours} tiếng — cơ thể có thể đang chịu tải mệt mỏi, hôm nay mình ưu tiên các bước nhẹ nhàng và nghỉ ngơi nhé.`
       : classification === 'above-baseline'
-        ? `Chỉ số HRV nằm trên phân vị 75 cá nhân (> ${p75Ms} ${metricUnit}) — hệ thần kinh tự chủ đang phục hồi tốt.`
-        : `Chỉ số HRV nằm trong dải nền cá nhân 14–30 ngày (P25 ${p25Ms} – P75 ${p75Ms} ${metricUnit}).`;
+        ? `Chỉ số HRV đạt mức phục hồi cao (> ${p75Ms} ${metricUnit}) — hệ thần kinh tự chủ đang nạp năng lượng rất tốt.`
+        : `Chỉ số biến thiên nhịp tim nằm trong dải bình thường của bạn (${p25Ms} – ${p75Ms} ${metricUnit}).`;
 
   const gentleCheckInMentionEn =
     classification === 'below-baseline'
