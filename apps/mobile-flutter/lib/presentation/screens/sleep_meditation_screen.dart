@@ -33,6 +33,7 @@ class SleepMeditationScreen extends StatefulWidget {
 class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     with SingleTickerProviderStateMixin {
   final AudioPlayer _ambientPlayer = AudioPlayer();
+  final AudioPlayer _freq432Player = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
 
   late final AnimationController _rippleCtrl;
@@ -54,6 +55,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   double _voiceVolume = 0.90;
   double _voiceSpeed = 0.95;
   double _ambientVolume = 0.45;
+  double _freq432Volume = 0.30;
   bool _showFullScript = false;
 
   Timer? _sessionTimer;
@@ -96,6 +98,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     unawaited(_stateSub?.cancel());
     _rippleCtrl.dispose();
     unawaited(_voicePlayer.dispose());
+    unawaited(_freq432Player.dispose());
     unawaited(_ambientPlayer.dispose());
     super.dispose();
   }
@@ -106,6 +109,12 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       await _ambientPlayer.setLoopMode(LoopMode.one);
       await _ambientPlayer.setVolume(_ambientVolume);
       unawaited(_ambientPlayer.play());
+    } catch (_) {}
+    try {
+      await _freq432Player.setAsset('assets/audio/freq_432hz_loop.wav');
+      await _freq432Player.setLoopMode(LoopMode.one);
+      await _freq432Player.setVolume(_freq432Volume * 0.45);
+      unawaited(_freq432Player.play());
     } catch (_) {}
   }
 
@@ -129,9 +138,11 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       await _voicePlayer.stop();
       for (int step = 4; step >= 0; step--) {
         await _ambientPlayer.setVolume(_ambientVolume * (step / 4.0));
+        await _freq432Player.setVolume(_freq432Volume * 0.45 * (step / 4.0));
         await Future<void>.delayed(const Duration(milliseconds: 400));
       }
       await _ambientPlayer.stop();
+      await _freq432Player.stop();
     } catch (_) {}
     if (!mounted) return;
     setState(() {
@@ -145,6 +156,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     _sessionTimer?.cancel();
     _rippleCtrl.stop();
     unawaited(_voicePlayer.stop());
+    unawaited(_freq432Player.stop());
     unawaited(_ambientPlayer.stop());
     setState(() {
       _phase = _MeditationPhase.idle;
@@ -194,6 +206,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _sessionTimer?.cancel();
       _rippleCtrl.stop();
       await _voicePlayer.pause();
+      await _freq432Player.pause();
       await _ambientPlayer.pause();
       if (!mounted) return;
       setState(() => _isPaused = true);
@@ -201,6 +214,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _runGeneration++;
       final gen = _runGeneration;
       unawaited(_ambientPlayer.play());
+      unawaited(_freq432Player.play());
       if (_phase == _MeditationPhase.playing) {
         unawaited(_voicePlayer.play());
       }
@@ -439,28 +453,36 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
 
               const SizedBox(height: 14),
 
-              // Speed & Sleep Timer Chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              // Continuous Speed Slider (0.70x - 1.15x)
+              Row(
                 children: [
-                  const Text(
-                    'Tốc độ đọc:',
-                    style: TextStyle(color: Color(0xFF9EB6B3), fontSize: 12),
+                  SizedBox(
+                    width: 112,
+                    child: Text(
+                      'Tốc độ (${_voiceSpeed.toStringAsFixed(2)}x)',
+                      style: const TextStyle(
+                        color: Color(0xFFB3C8C5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  for (final spd in [0.88, 0.95, 1.0])
-                    ChoiceChip(
-                      label: Text('${spd.toStringAsFixed(2)}x'),
-                      selected: (_voiceSpeed - spd).abs() < 0.01,
-                      onSelected: (_) {
-                        setState(() => _voiceSpeed = spd);
-                        unawaited(_voicePlayer.setSpeed(spd));
+                  Expanded(
+                    child: Slider(
+                      value: _voiceSpeed.clamp(0.70, 1.15),
+                      min: 0.70,
+                      max: 1.15,
+                      divisions: 9,
+                      label: '${_voiceSpeed.toStringAsFixed(2)}x',
+                      onChanged: (v) {
+                        setState(() => _voiceSpeed = v);
+                        unawaited(_voicePlayer.setSpeed(v));
                       },
                     ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
@@ -482,7 +504,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
 
               const SizedBox(height: 10),
 
-              // 2-Channel Volume Sliders
+              // 3-Channel Volume Sliders (Voice + Brook + 432Hz @ 30% default)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
@@ -497,11 +519,11 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
               ),
               Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 112,
                     child: Text(
-                      'Âm lượng giọng',
-                      style: TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
+                      'Giọng (${(_voiceVolume * 100).round()}%)',
+                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
                     ),
                   ),
                   Expanded(
@@ -521,11 +543,11 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
               ),
               Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 112,
                     child: Text(
-                      'Tiếng suối chảy',
-                      style: TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
+                      'Suối (${(_ambientVolume * 100).round()}%)',
+                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
                     ),
                   ),
                   Expanded(
@@ -536,6 +558,28 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                       onChanged: (v) {
                         setState(() => _ambientVolume = v);
                         unawaited(_ambientPlayer.setVolume(v));
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 112,
+                    child: Text(
+                      '432Hz (${(_freq432Volume * 100).round()}%)',
+                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
+                    ),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: _freq432Volume,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: (v) {
+                        setState(() => _freq432Volume = v);
+                        unawaited(_freq432Player.setVolume(v * 0.45));
                       },
                     ),
                   ),

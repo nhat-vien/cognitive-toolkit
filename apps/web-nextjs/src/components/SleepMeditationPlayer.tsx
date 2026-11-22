@@ -47,11 +47,12 @@ export function SleepMeditationPlayer({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(script.defaultTotalDurationMinutes);
 
-  // Audio mixer controls (Pure Forest Brook + Studio Voice)
+  // Audio mixer controls (Pure Forest Brook + Warm 432Hz @ 30% default + Studio Voice)
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [voiceVolume, setVoiceVolume] = useState(0.9);
   const [voiceRate, setVoiceRate] = useState(0.95);
   const [brookVolume, setBrookVolume] = useState(0.45);
+  const [freq432Volume, setFreq432Volume] = useState(0.30);
   const [showFullScript, setShowFullScript] = useState(false);
 
   const voiceEnabledRef = useRef(voiceEnabled);
@@ -123,6 +124,10 @@ export function SleepMeditationPlayer({
   }, [brookVolume]);
 
   useEffect(() => {
+    audioRef.current?.setFreq432Volume(freq432Volume);
+  }, [freq432Volume]);
+
+  useEffect(() => {
     if (voiceAudioElRef.current) {
       voiceAudioElRef.current.volume = voiceEnabled ? voiceVolume : 0;
     }
@@ -172,7 +177,7 @@ export function SleepMeditationPlayer({
     if (!audioRef.current) {
       audioRef.current = new SleepMeditationAudioEngine();
     }
-    audioRef.current.start({ brookVolume, freq432Volume: 0 });
+    audioRef.current.start({ brookVolume, freq432Volume });
     startSessionClock(runId, sleepTimerMinutes);
 
     if (typeof window !== 'undefined' && typeof window.Audio !== 'undefined') {
@@ -299,7 +304,7 @@ export function SleepMeditationPlayer({
     if (!audioRef.current) {
       audioRef.current = new SleepMeditationAudioEngine();
     }
-    audioRef.current.start({ brookVolume, freq432Volume: 0 });
+    audioRef.current.start({ brookVolume, freq432Volume });
     setIsPaused(false);
     setElapsedSeconds(0);
     setCueIndex(startAtCueIndex);
@@ -620,11 +625,11 @@ export function SleepMeditationPlayer({
         </div>
       </div>
 
-      {/* 2-Channel Mixer (Voice + Brook) */}
+      {/* 3-Channel Mixer (Voice + Speed Slider + Brook + 432Hz @ 30% default) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
           gap: '12px',
           marginBottom: '16px',
         }}
@@ -658,26 +663,23 @@ export function SleepMeditationPlayer({
             onChange={(e) => setVoiceVolume(Number(e.target.value))}
             style={{ width: '100%' }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: '#9eb6b3' }}>Tốc độ:</span>
-            {[0.88, 0.95, 1.0].map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setVoiceRate(r)}
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '8px',
-                  border: voiceRate === r ? '1px solid #7ec8b8' : '1px solid rgba(255,255,255,0.15)',
-                  backgroundColor: voiceRate === r ? 'rgba(126, 200, 184, 0.2)' : 'transparent',
-                  color: '#d9f3ed',
-                  fontSize: '0.74rem',
-                  cursor: 'pointer',
-                }}
-              >
-                {r.toFixed(2)}x
-              </button>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#c4dad6', marginTop: '8px', marginBottom: '4px' }}>
+            <span>⏩ Tốc độ đọc</span>
+            <strong>{voiceRate.toFixed(2)}x</strong>
+          </div>
+          <input
+            type="range"
+            min={0.70}
+            max={1.15}
+            step={0.05}
+            value={voiceRate}
+            onChange={(e) => setVoiceRate(Number(e.target.value))}
+            style={{ width: '100%' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#8fa9a5' }}>
+            <span>Chậm (0.70x)</span>
+            <span>Chuẩn (1.0x)</span>
+            <span>Nhanh (1.15x)</span>
           </div>
         </div>
 
@@ -704,6 +706,32 @@ export function SleepMeditationPlayer({
           />
           <div style={{ fontSize: '0.74rem', color: '#9eb6b3', marginTop: '4px' }}>
             Tiếp tục chảy êm dịu ru ngủ sau khi giọng đọc kết thúc
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.09)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.84rem' }}>
+            <span>🎵 Sóng âm tần số 432Hz</span>
+            <strong>{Math.round(freq432Volume * 100)}%</strong>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={freq432Volume}
+            onChange={(e) => setFreq432Volume(Number(e.target.value))}
+            style={{ width: '100%' }}
+          />
+          <div style={{ fontSize: '0.74rem', color: '#9eb6b3', marginTop: '4px' }}>
+            Mặc định 30% dịu ấm (có thể kéo về 0% nếu muốn tắt)
           </div>
         </div>
       </div>

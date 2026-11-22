@@ -79,11 +79,39 @@ def generate_forest_brook_wav(output_path: str, duration_sec: float = 16.0, samp
     print(f"Generated {output_path} ({size_kb:.1f} KB, {duration_sec}s seamless pure brook loop @ {sample_rate}Hz)")
 
 
+def generate_warm_432hz_wav(output_path: str, duration_sec: float = 16.0, sample_rate: int = 22050) -> None:
+    """Generate a soft, warm 432Hz + 216Hz harmonic pad (no shrill overtone, seamless loop)."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    out_samples = int(duration_sec * sample_rate)
+    two_pi = 2.0 * math.pi
+    final_pcm = bytearray()
+
+    for i in range(out_samples):
+        t = i / sample_rate
+        # Exact integer cycles over 16.0s -> 100% phase-continuous seamless loop
+        breath_lfo = 0.82 + 0.18 * math.sin(two_pi * (2.0 / duration_sec) * t)
+        tone_216 = math.sin(two_pi * 216.0 * t) * 0.14 * breath_lfo
+        tone_432 = math.sin(two_pi * 432.0 * t) * 0.10 * breath_lfo
+        sample = max(-0.90, min(0.90, tone_216 + tone_432))
+        final_pcm.extend(struct.pack('<h', int(sample * 32767.0)))
+
+    with wave.open(output_path, 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(bytes(final_pcm))
+
+    size_kb = os.path.getsize(output_path) / 1024.0
+    print(f"Generated {output_path} ({size_kb:.1f} KB, {duration_sec}s seamless warm 432Hz loop @ {sample_rate}Hz)")
+
+
 if __name__ == '__main__':
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     mobile_target = os.path.join(repo_root, 'apps', 'mobile-flutter', 'assets', 'audio', 'brook_432hz_loop.wav')
+    mobile_432 = os.path.join(repo_root, 'apps', 'mobile-flutter', 'assets', 'audio', 'freq_432hz_loop.wav')
     web_target = os.path.join(repo_root, 'apps', 'web-nextjs', 'public', 'audio', 'meditation', 'brook_loop.wav')
     generate_forest_brook_wav(mobile_target)
+    generate_warm_432hz_wav(mobile_432)
     os.makedirs(os.path.dirname(web_target), exist_ok=True)
     shutil.copy2(mobile_target, web_target)
     print(f"Copied pure brook loop to {web_target}")

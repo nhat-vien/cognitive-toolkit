@@ -80,9 +80,51 @@ jobs:
           flutter pub get
           dart run flutter_launcher_icons
 
+      - name: Configure Gradle GCS Maven Mirror (prevent 429 rate limits)
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat <<'EOF' > ~/.gradle/init.d/maven-mirror.gradle
+          allprojects {
+              buildscript {
+                  repositories {
+                      maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
+                  }
+              }
+              repositories {
+                  maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
+              }
+          }
+          settingsEvaluated { settings ->
+              settings.pluginManagement {
+                  repositories {
+                      maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
+                      google()
+                      gradlePluginPortal()
+                      mavenCentral()
+                  }
+              }
+          }
+          EOF
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-android-${{ hashFiles('apps/mobile-flutter/pubspec.yaml') }}
+          restore-keys: |
+            gradle-android-
+
       - name: Build Universal & Split APKs + Play Store AppBundle
         run: |
-          flutter build apk --release
+          for attempt in 1 2 3; do
+            if flutter build apk --release; then
+              break
+            fi
+            echo "Retry flutter build apk ($attempt/3) after transient network error..."
+            sleep 15
+          done
           flutter build apk --release --split-per-abi
           flutter build appbundle --release
           mkdir -p dist

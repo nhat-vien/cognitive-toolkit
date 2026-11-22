@@ -378,8 +378,8 @@ export class SleepMeditationAudioEngine {
   private lfoWater: OscillatorNode | null = null;
   private lfoBreath: OscillatorNode | null = null;
   private playing = false;
-  private brookVolume = 0.78;
-  private freq432Volume = 0.20;
+  private brookVolume = 0.45;
+  private freq432Volume = 0.30;
 
   public start(options?: {
     brookVolume?: number;
@@ -471,12 +471,47 @@ export class SleepMeditationAudioEngine {
       this.brookSource.start(now);
       this.lfoWater.start(now);
 
-      // 432Hz tone removed per user feedback — pure, warm forest brook soundscape only.
-      this.osc432 = null;
-      this.osc216 = null;
+      // --- LAYER 2: Warm, Soft 432Hz Harmonic Undertone (default 30%, lowpass 520Hz, zero piercing overtone) ---
+      const padFilter = ctx.createBiquadFilter();
+      padFilter.type = 'lowpass';
+      padFilter.frequency.setValueAtTime(520, now);
+
+      this.freq432Gain = ctx.createGain();
+      this.freq432Gain.gain.setValueAtTime(this.freq432Volume * 0.045, now);
+
+      this.lfoBreath = ctx.createOscillator();
+      this.lfoBreath.type = 'sine';
+      this.lfoBreath.frequency.setValueAtTime(0.08, now);
+      const lfoBreathDepth = ctx.createGain();
+      lfoBreathDepth.gain.setValueAtTime(0.008, now);
+      this.lfoBreath.connect(lfoBreathDepth);
+      lfoBreathDepth.connect(this.freq432Gain.gain);
+
+      this.osc432 = ctx.createOscillator();
+      this.osc432.type = 'sine';
+      this.osc432.frequency.setValueAtTime(432, now);
+      const main432Gain = ctx.createGain();
+      main432Gain.gain.setValueAtTime(0.62, now);
+
+      this.osc216 = ctx.createOscillator();
+      this.osc216.type = 'sine';
+      this.osc216.frequency.setValueAtTime(216, now);
+      const subGain = ctx.createGain();
+      subGain.gain.setValueAtTime(0.75, now);
+
       this.osc648 = null;
-      this.lfoBreath = null;
-      this.freq432Gain = null;
+
+      this.osc432.connect(main432Gain);
+      main432Gain.connect(padFilter);
+      this.osc216.connect(subGain);
+      subGain.connect(padFilter);
+
+      padFilter.connect(this.freq432Gain);
+      this.freq432Gain.connect(this.masterGain);
+
+      this.osc432.start(now);
+      this.osc216.start(now);
+      this.lfoBreath.start(now);
 
       this.playing = true;
       return { started: true, mode: 'web-audio-api' };
