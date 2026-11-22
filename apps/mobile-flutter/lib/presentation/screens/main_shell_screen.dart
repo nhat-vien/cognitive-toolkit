@@ -125,27 +125,28 @@ class _MainShellScreenState extends State<MainShellScreen> {
     // Check for OTA updates quietly in background after frame render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _handleCheckOtaUpdate(context, manual: false);
+        _handleCheckOtaUpdate(manual: false);
       }
     });
   }
 
-  Future<void> _handleCheckOtaUpdate(
-    BuildContext context, {
+  Future<void> _handleCheckOtaUpdate({
     required bool manual,
   }) async {
     if (_isCheckingOta) return;
     setState(() => _isCheckingOta = true);
 
+    final messenger = ScaffoldMessenger.of(context);
     final result = await _otaService.checkForUpdates();
     if (!mounted) return;
 
     setState(() => _isCheckingOta = false);
 
     if (result.hasUpdate) {
-      OtaUpdateDialog.show(context, result);
+      if (!context.mounted) return;
+      await OtaUpdateDialog.show(context, result);
     } else if (manual) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             result.isError
@@ -369,7 +370,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.system_update_outlined, size: 21),
-            onPressed: () => _handleCheckOtaUpdate(context, manual: true),
+            onPressed: () => _handleCheckOtaUpdate(manual: true),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -1252,14 +1253,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.system_update_outlined),
                   title: const Text('Cập nhật Ứng dụng (OTA Update)'),
-                  subtitle: Text(
+                  subtitle: const Text(
                     'Phiên bản hiện tại: v$kCurrentHavenAppVersion (Bản dựng #$kCurrentHavenBuildNumber)\n'
                     'Tự động kiểm tra bản cập nhật mới từ GitHub Releases',
                   ),
                   isThreeLine: true,
                   trailing: FilledButton.tonal(
-                    onPressed: () =>
-                        _handleCheckOtaUpdate(context, manual: true),
+                    onPressed: () => _handleCheckOtaUpdate(manual: true),
                     child: _isCheckingOta
                         ? const SizedBox(
                             width: 14,

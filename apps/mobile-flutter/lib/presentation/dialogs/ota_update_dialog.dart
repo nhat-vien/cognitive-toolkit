@@ -31,13 +31,15 @@ class _OtaUpdateDialogState extends State<OtaUpdateDialog> {
   bool _isDownloading = false;
 
   Future<void> _handleDownload(String url) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     setState(() => _isDownloading = true);
     final ok = await OtaUpdateService.launchApkDownload(url);
     if (!mounted) return;
     setState(() => _isDownloading = false);
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text(
             'Đang mở liên kết tải file APK cập nhật...',
@@ -46,9 +48,9 @@ class _OtaUpdateDialogState extends State<OtaUpdateDialog> {
           backgroundColor: Color(0xFF2F4A3B),
         ),
       );
-      Navigator.of(context).pop();
+      navigator.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Không thể mở liên kết tải APK.'),
           backgroundColor: Colors.redAccent,
