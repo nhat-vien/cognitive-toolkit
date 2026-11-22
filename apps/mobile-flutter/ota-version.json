@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
-  "buildNumber": 10,
-  "releaseName": "Haven v1.1 — Giao Diện Tối Giản Thanh Bình, Thiền Ngủ Toàn Màn Hình & Nghe Lặp",
-  "releaseNotesVi": "• Thiết kế lại toàn bộ giao diện Mobile theo phong cách tối giản, thoáng đãng: Trang chủ dịu mắt với 1 thẻ Ghi cảm xúc, thanh điều hướng nổi 4 mục và nút Bình tâm ngay màu hồng pastel.\n• Trình phát Thiền Buông Thư toàn màn hình tối dịu mắt kèm nút Tùy chỉnh âm thanh gọn gàng (Tốc độ đọc, Tiếng suối, 432Hz mặc định 30%, Nghe lặp bài và Hẹn giờ ngủ).",
+  "version": "1.1.1",
+  "buildNumber": 11,
+  "releaseName": "Haven v1.1.1 — Tinh Gọn 7 Bài Tập CBT/DBT & Thuần Việt Trợ Lý AI",
+  "releaseNotesVi": "• Làm gọn màn hình Thực hành 7 bài tập CBT/DBT: Mặc định cảm xúc 'Bình ổn / Thăng bằng' thay vì ép chọn Lo âu, thanh cường độ cảm xúc tự động đổi màu theo mức độ (Xanh → Vàng → Cam → Đỏ).\n• Thuần Việt hóa 100% màn hình Trợ lý AI & Dữ liệu sinh học, bỏ các gợi ý kỹ thuật gây rối và thu gọn các mục nâng cao.",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",

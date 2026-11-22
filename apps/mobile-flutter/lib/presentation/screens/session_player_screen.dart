@@ -53,12 +53,15 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
     Color(0xFFD8A657),
   ];
 
+  static const String _kBalancedEmotion = 'Bình ổn / Thăng bằng';
+
   static const List<String> _affectLabelingFamilies = [
-    'Lo âu / Sợ hãi (Anxiety)',
-    'Buồn bã / Trầm lắng (Sadness)',
-    'Giận dữ / Bức bối (Anger)',
-    'Tội lỗi — "Tôi làm sai 1 việc" (Guilt)',
-    'Xấu hổ — "Tôi tồi tệ" (Shame)',
+    _kBalancedEmotion,
+    'Lo lắng',
+    'Buồn bã',
+    'Căng thẳng / Bức bối',
+    'Áy náy về một việc',
+    'Tự trách / Xấu hổ',
   ];
 
   @override
@@ -68,8 +71,16 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
       sessionId: 'sess-${DateTime.now().millisecondsSinceEpoch}',
       moodPolarity: widget.currentMoodPolarity,
       energyLevel: widget.currentEnergyLevel,
-      emotions: const ['Lo âu / Sợ hãi (Anxiety)'],
+      preIntensity: 3,
+      emotions: const [_kBalancedEmotion],
     );
+  }
+
+  Color _intensityColor(int intensity) {
+    if (intensity <= 2) return const Color(0xFF4F9A75); // Xanh dịu — Thăng bằng
+    if (intensity <= 5) return const Color(0xFFD4A024); // Vàng ấm — Vừa phải
+    if (intensity <= 7) return const Color(0xFFDF742B); // Cam đất — Căng thẳng
+    return const Color(0xFFC83E3B); // Đỏ trầm — Rất căng thẳng
   }
 
   @override
@@ -300,59 +311,58 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
   }
 
   Widget _buildModeAndPushbackHeader() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SegmentedButton<SessionInteractionMode>(
-              segments: const [
-                ButtonSegment(
-                  value: SessionInteractionMode.expressiveVenting,
-                  icon: Icon(Icons.mic),
-                  label: Text('Xả Cảm xúc (Voice Burst & EAR)'),
-                ),
-                ButtonSegment(
-                  value: SessionInteractionMode.instrumentalProtocol,
-                  icon: Icon(Icons.psychology),
-                  label: Text('Thực hành CBT / DBT'),
-                ),
-              ],
-              selected: {_snapshot.interactionMode},
-              onSelectionChanged: (s) => setState(() {
-                _snapshot = _snapshot.copyWith(interactionMode: s.first);
-              }),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SegmentedButton<SessionInteractionMode>(
+          segments: const [
+            ButtonSegment(
+              value: SessionInteractionMode.instrumentalProtocol,
+              icon: Icon(Icons.psychology_outlined, size: 18),
+              label: Text('Thực hành gỡ rối'),
             ),
-            const SizedBox(height: 10),
-            Wrap(
+            ButtonSegment(
+              value: SessionInteractionMode.expressiveVenting,
+              icon: Icon(Icons.mic_none_rounded, size: 18),
+              label: Text('Chỉ cần tâm sự'),
+            ),
+          ],
+          selected: {_snapshot.interactionMode},
+          onSelectionChanged: (s) => setState(() {
+            _snapshot = _snapshot.copyWith(interactionMode: s.first);
+          }),
+        ),
+        if (_snapshot.phase == SessionPhase.phase3GuidedProtocol) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE4EBE8)),
+            ),
+            child: Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8,
               runSpacing: 6,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.psychology_outlined, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Socratic Pushback: ${_snapshot.pushbackLevel.code.toUpperCase()}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Độ gợi mở: ${_snapshot.pushbackLevel.labelVi}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                    color: Color(0xFF33434A),
+                  ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    OutlinedButton.icon(
+                    OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 6,
+                          vertical: 4,
                         ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -362,15 +372,14 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
                           pushbackLevel: _snapshot.pushbackLevel.softer(),
                         );
                       }),
-                      icon: const Icon(Icons.arrow_downward, size: 14),
-                      label: const Text('Nhẹ hơn', style: TextStyle(fontSize: 12)),
+                      child: const Text('Nhẹ hơn', style: TextStyle(fontSize: 12)),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
+                    const SizedBox(width: 6),
+                    OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 6,
+                          vertical: 4,
                         ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -380,16 +389,15 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
                           pushbackLevel: _snapshot.pushbackLevel.harder(),
                         );
                       }),
-                      icon: const Icon(Icons.arrow_upward, size: 14),
-                      label: const Text('Sâu hơn', style: TextStyle(fontSize: 12)),
+                      child: const Text('Sâu hơn', style: TextStyle(fontSize: 12)),
                     ),
                   ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -519,77 +527,186 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
   }
 
   Widget _buildPhase1CheckInCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Pha 1: Check-in Lâm sàng & Bộ Định tuyến Sinh lý (DBT-First, CBT-Second)',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+    final activeColor = _intensityColor(_snapshot.preIntensity);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ghi nhận tâm trạng trước khi thực hành',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2C33),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _inputController,
-              maxLines: 3,
-              onChanged: _updateMoodPaletteFromText,
-              decoration: const InputDecoration(
-                labelText:
-                    'Chuyện gì đang làm bạn bận tâm hoặc suy nghĩ tự động lúc này là gì?',
-                border: OutlineInputBorder(),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Viết vài dòng ngắn nếu bạn muốn gỡ rối, hoặc để trống để chọn ngay bài tập phù hợp.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7982), height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _inputController,
+            maxLines: 4,
+            minLines: 3,
+            onChanged: _updateMoodPaletteFromText,
+            decoration: InputDecoration(
+              hintText: 'Điều gì đang khiến bạn bận tâm lúc này? (tùy chọn)',
+              hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFF9AA7AF)),
+              filled: true,
+              fillColor: const Color(0xFFF6F8F9),
+              contentPadding: const EdgeInsets.all(14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFF6E9883), width: 1.5),
               ),
             ),
-            const SizedBox(height: 12),
-            const Text('Gọi tên Họ Cảm xúc (Affect Labeling — Phân biệt Shame vs Guilt):'),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: _affectLabelingFamilies.map((emotion) {
-                final selected = _snapshot.emotions.contains(emotion);
-                return FilterChip(
-                  label: Text(emotion),
-                  selected: selected,
-                  onSelected: (v) {
-                    final list = List<String>.from(_snapshot.emotions);
-                    if (v) {
-                      list.add(emotion);
-                    } else if (list.length > 1) {
-                      list.remove(emotion);
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Cảm xúc hiện tại của bạn',
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF233036),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _affectLabelingFamilies.map((emotion) {
+              final selected = _snapshot.emotions.contains(emotion);
+              return FilterChip(
+                label: Text(emotion),
+                selected: selected,
+                backgroundColor: const Color(0xFFF4F7F8),
+                selectedColor: emotion == _kBalancedEmotion
+                    ? const Color(0xFFE1F0E8)
+                    : const Color(0xFFEDE7F6),
+                checkmarkColor: const Color(0xFF3E6B55),
+                side: BorderSide(
+                  color: selected ? const Color(0xFF6E9883) : Colors.transparent,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                onSelected: (v) {
+                  final list = List<String>.from(_snapshot.emotions);
+                  if (v) {
+                    if (emotion == _kBalancedEmotion) {
+                      list
+                        ..clear()
+                        ..add(_kBalancedEmotion);
+                    } else {
+                      list.remove(_kBalancedEmotion);
+                      if (!list.contains(emotion)) list.add(emotion);
                     }
-                    setState(() => _snapshot = _snapshot.copyWith(emotions: list));
-                  },
-                );
-              }).toList(),
+                  } else {
+                    list.remove(emotion);
+                    if (list.isEmpty) list.add(_kBalancedEmotion);
+                  }
+                  setState(() => _snapshot = _snapshot.copyWith(emotions: list));
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Auto-Color-Shifting Emotion Intensity Slider (zero technical text)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Mức độ căng thẳng / cảm xúc',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF233036),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: activeColor, width: 1.2),
+                ),
+                child: Text(
+                  '${_snapshot.preIntensity}/10',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: activeColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: activeColor,
+              inactiveTrackColor: activeColor.withValues(alpha: 0.18),
+              thumbColor: activeColor,
+              overlayColor: activeColor.withValues(alpha: 0.15),
+              trackHeight: 7,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Cường độ Cảm xúc (SUDS): ${_snapshot.preIntensity}/10 '
-              '(${_snapshot.preIntensity >= 8 ? "Vùng Đỏ -> DBT TIPP" : _snapshot.preIntensity >= 6 ? "Vùng Cam -> DBT Regulation" : "Vùng Xanh -> CBT / TEAM-CBT"})',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Slider(
+            child: Slider(
               value: _snapshot.preIntensity.toDouble(),
               min: 0,
               max: 10,
               divisions: 10,
-              label: '${_snapshot.preIntensity}/10',
               onChanged: (v) => setState(
                 () => _snapshot = _snapshot.copyWith(preIntensity: v.round()),
               ),
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _handleCheckInContinue,
-                icon: const Icon(Icons.alt_route),
-                label: const Text('Qua Cổng An Toàn & Định Tuyến Kỹ Thuật'),
+          ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('0 · Nhẹ nhàng', style: TextStyle(fontSize: 11.5, color: Color(0xFF7B8A92))),
+              Text('5 · Vừa phải', style: TextStyle(fontSize: 11.5, color: Color(0xFF7B8A92))),
+              Text('10 · Rất căng', style: TextStyle(fontSize: 11.5, color: Color(0xFF7B8A92))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF6E9883),
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+              onPressed: _handleCheckInContinue,
+              child: const Text(
+                'Tiếp tục chọn bài tập phù hợp',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
