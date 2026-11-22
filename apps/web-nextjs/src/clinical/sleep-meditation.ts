@@ -38,10 +38,10 @@ export const SCRIPT_1_BROOK_432HZ: SleepMeditationScript = {
   numberLabel: 'Kịch bản 1',
   titleVi: 'Thiền Buông Thư Bên Dòng Suối Mát',
   settingVi: 'Dòng suối trong lành giữa rừng tĩnh lặng.',
-  soundscapeVi: 'Tiếng suối chảy róc rách + Sóng âm tần số 432Hz.',
-  introAmbientSeconds: 30,
+  soundscapeVi: 'Tiếng suối chảy róc rách êm dịu • Giọng nữ trầm ấm VieNeu-TTS.',
+  introAmbientSeconds: 0,
   defaultTotalDurationMinutes: 30,
-  outroNoteVi: 'Giọng đọc nhỏ dần và tắt hẳn — giữ tiếng suối chảy và tần số 432Hz đến hết phút 30.',
+  outroNoteVi: 'Giọng đọc nhỏ dần và tắt hẳn — giữ tiếng suối chảy róc rách êm dịu đến hết phút 30.',
   parts: [
     {
       index: 1,
@@ -424,48 +424,12 @@ export class SleepMeditationAudioEngine {
       this.brookSource.start(now);
       this.lfoWater.start(now);
 
-      // --- LAYER 2: Warm, Soft 432Hz Harmonic Undertone (lowpass filtered, no piercing overtone) ---
-      const padFilter = ctx.createBiquadFilter();
-      padFilter.type = 'lowpass';
-      padFilter.frequency.setValueAtTime(520, now);
-
-      this.freq432Gain = ctx.createGain();
-      this.freq432Gain.gain.setValueAtTime(this.freq432Volume * 0.045, now);
-
-      // Gentle breathing LFO modulating 432Hz gain softly
-      this.lfoBreath = ctx.createOscillator();
-      this.lfoBreath.type = 'sine';
-      this.lfoBreath.frequency.setValueAtTime(0.08, now); // 12.5s slow calm wave
-      const lfoBreathDepth = ctx.createGain();
-      lfoBreathDepth.gain.setValueAtTime(0.008, now);
-      this.lfoBreath.connect(lfoBreathDepth);
-      lfoBreathDepth.connect(this.freq432Gain.gain);
-
-      this.osc432 = ctx.createOscillator();
-      this.osc432.type = 'sine';
-      this.osc432.frequency.setValueAtTime(432, now);
-      const main432Gain = ctx.createGain();
-      main432Gain.gain.setValueAtTime(0.62, now);
-
-      this.osc216 = ctx.createOscillator();
-      this.osc216.type = 'sine';
-      this.osc216.frequency.setValueAtTime(216, now);
-      const subGain = ctx.createGain();
-      subGain.gain.setValueAtTime(0.75, now);
-
+      // 432Hz tone removed per user feedback — pure, warm forest brook soundscape only.
+      this.osc432 = null;
+      this.osc216 = null;
       this.osc648 = null;
-
-      this.osc432.connect(main432Gain);
-      main432Gain.connect(padFilter);
-      this.osc216.connect(subGain);
-      subGain.connect(padFilter);
-
-      padFilter.connect(this.freq432Gain);
-      this.freq432Gain.connect(this.masterGain);
-
-      this.osc432.start(now);
-      this.osc216.start(now);
-      this.lfoBreath.start(now);
+      this.lfoBreath = null;
+      this.freq432Gain = null;
 
       this.playing = true;
       return { started: true, mode: 'web-audio-api' };

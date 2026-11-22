@@ -1,7 +1,8 @@
 // lib/presentation/screens/sleep_meditation_screen.dart
 // Haven Night Sanctuary — Guided Sleep Body-Scan Relaxation ("Thiền Buông Thư")
-// Plays seamless offline Forest Brook + 432Hz audio via `just_audio`
-// combined with Vietnamese voice guidance (`flutter_tts`) honoring exact [Nghỉ Xs] pauses.
+// Plays pure seamless Forest Brook ambient audio via `just_audio`
+// combined with pre-rendered warm female Vietnamese VieNeu-TTS audio clips
+// honoring exact [Nghỉ Xs] pauses (starts immediately at Phần 1, zero 432Hz tone).
 
 import 'dart:async';
 
@@ -13,7 +14,6 @@ import '../../domain/models/sleep_meditation_script.dart';
 
 enum _MeditationPhase {
   idle,
-  introAmbient,
   speaking,
   pausing,
   outroAmbient,
@@ -35,7 +35,8 @@ class SleepMeditationScreen extends StatefulWidget {
 class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     with SingleTickerProviderStateMixin {
   final AudioPlayer _ambientPlayer = AudioPlayer();
-  final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _voicePlayer = AudioPlayer();
+  final FlutterTts _ttsFallback = FlutterTts();
 
   late final List<MeditationCue> _allCues;
   late final AnimationController _rippleCtrl;
@@ -49,8 +50,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   int _runGeneration = 0;
 
   bool _voiceEnabled = true;
-  double _voiceVolume = 0.72;
-  double _ambientVolume = 0.78;
+  double _voiceVolume = 0.85;
+  double _ambientVolume = 0.75;
   bool _showFullScript = false;
 
   Timer? _pauseTimer;
@@ -65,56 +66,17 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       vsync: this,
       duration: const Duration(seconds: 6),
     );
-    unawaited(_initAudioAndTts());
+    unawaited(_initTtsFallback());
   }
 
-  Future<void> _initAudioAndTts() async {
+  Future<void> _initTtsFallback() async {
     try {
-      await _tts.setLanguage('vi-VN');
-      // Slower, deeper, warm female voice configuration (avoids shrill tone)
-      await _tts.setSpeechRate(0.35);
-      await _tts.setPitch(0.85);
-      await _tts.setVolume(_voiceVolume);
-      await _tts.awaitSpeakCompletion(true);
-
-      // Prefer warm female Vietnamese voices on Android (gft/vie/vic) & iOS (Linh)
-      final dynamic rawVoices = await _tts.getVoices;
-      if (rawVoices is List) {
-        final viVoices = rawVoices
-            .whereType<Map<dynamic, dynamic>>()
-            .where((v) => (v['locale']?.toString().toLowerCase() ?? '')
-                .startsWith('vi'))
-            .toList();
-        if (viVoices.isNotEmpty) {
-          Map<dynamic, dynamic>? chosen;
-          for (final v in viVoices) {
-            final name = v['name']?.toString().toLowerCase() ?? '';
-            if (name.contains('linh') ||
-                name.contains('hoaimy') ||
-                name.contains('female') ||
-                name.contains('gft') ||
-                name.contains('vie')) {
-              chosen = v;
-              break;
-            }
-          }
-          chosen ??= viVoices.firstWhere(
-            (v) {
-              final name = v['name']?.toString().toLowerCase() ?? '';
-              return !name.contains('male') && !name.contains('vid');
-            },
-            orElse: () => viVoices.first,
-          );
-          final name = chosen['name']?.toString();
-          final locale = chosen['locale']?.toString();
-          if (name != null && locale != null) {
-            await _tts.setVoice({'name': name, 'locale': locale});
-          }
-        }
-      }
-    } catch (_) {
-      // Gracefully continue if TTS engine is unavailable (e.g., headless test)
-    }
+      await _ttsFallback.setLanguage('vi-VN');
+      await _ttsFallback.setSpeechRate(0.35);
+      await _ttsFallback.setPitch(0.85);
+      await _ttsFallback.setVolume(_voiceVolume);
+      await _ttsFallback.awaitSpeakCompletion(true);
+    } catch (_) {}
   }
 
   @override
@@ -123,7 +85,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     _pauseTimer?.cancel();
     _sessionTimer?.cancel();
     _rippleCtrl.dispose();
-    unawaited(_tts.stop());
+    unawaited(_ttsFallback.stop());
+    unawaited(_voicePlayer.dispose());
     unawaited(_ambientPlayer.dispose());
     super.dispose();
   }
@@ -134,9 +97,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       await _ambientPlayer.setLoopMode(LoopMode.one);
       await _ambientPlayer.setVolume(_ambientVolume);
       unawaited(_ambientPlayer.play());
-    } catch (_) {
-      // Continue silently in environments without audio device
-    }
+    } catch (_) {}
   }
 
   void _startSessionClock(int gen) {
@@ -157,8 +118,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     _sessionTimer?.cancel();
     _rippleCtrl.stop();
     try {
-      await _tts.stop();
-      // Gentle volume fade out over 2 seconds
+      await _voicePlayer.stop();
+      await _ttsFallback.stop();
       for (int step = 4; step >= 0; step--) {
         await _ambientPlayer.setVolume(_ambientVolume * (step / 4.0));
         await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -178,7 +139,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     _pauseTimer?.cancel();
     _sessionTimer?.cancel();
     _rippleCtrl.stop();
-    unawaited(_tts.stop());
+    unawaited(_voicePlayer.stop());
+    unawaited(_ttsFallback.stop());
     unawaited(_ambientPlayer.stop());
     setState(() {
       _phase = _MeditationPhase.idle;
@@ -211,6 +173,58 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     });
   }
 
+  Future<void> _playVoiceCueAssetOrFallback(MeditationCue cue, int gen) async {
+    if (!_voiceEnabled) {
+      final estSec = (cue.textVi.split(' ').length / 2.4).round().clamp(4, 14);
+      await Future<void>.delayed(Duration(seconds: estSec));
+      return;
+    }
+
+    // 1. Play studio-synthesized VieNeu-TTS MP3 asset (Kim Chi / Huyen Mi)
+    try {
+      await _voicePlayer.stop();
+      await _voicePlayer.setAsset('assets/audio/meditation/${cue.id}.mp3');
+      await _voicePlayer.setSpeed(cue.isFinalFadeOut ? 0.88 : 0.94);
+      await _voicePlayer.setVolume(
+        cue.isFinalFadeOut
+            ? (_voiceVolume * 0.65).clamp(0.2, 1.0)
+            : _voiceVolume,
+      );
+
+      final completer = Completer<void>();
+      late final StreamSubscription<PlayerState> sub;
+      sub = _voicePlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed &&
+            !completer.isCompleted) {
+          unawaited(sub.cancel());
+          completer.complete();
+        }
+      });
+
+      unawaited(_voicePlayer.play());
+      await completer.future;
+      return;
+    } catch (_) {
+      // 2. Fallback to device TTS if asset playback fails
+      try {
+        await _ttsFallback.setVolume(
+          cue.isFinalFadeOut
+              ? (_voiceVolume * 0.5).clamp(0.18, 1.0)
+              : _voiceVolume,
+        );
+        await _ttsFallback.setPitch(0.85);
+        await _ttsFallback.setSpeechRate(cue.isFinalFadeOut ? 0.30 : 0.35);
+        await _ttsFallback.speak(cue.textVi);
+      } catch (_) {
+        if (_runGeneration == gen) {
+          final estSec =
+              (cue.textVi.split(' ').length / 2.4).round().clamp(4, 14);
+          await Future<void>.delayed(Duration(seconds: estSec));
+        }
+      }
+    }
+  }
+
   Future<void> _playCueAt(int index, int gen) async {
     if (!mounted || _runGeneration != gen) return;
     if (index >= _allCues.length) {
@@ -228,25 +242,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _countdownSeconds = 0;
     });
 
-    if (_voiceEnabled) {
-      try {
-        await _tts.setVolume(
-          cue.isFinalFadeOut
-              ? (_voiceVolume * 0.50).clamp(0.18, 1.0)
-              : _voiceVolume,
-        );
-        await _tts.setPitch(0.85);
-        await _tts.setSpeechRate(cue.isFinalFadeOut ? 0.30 : 0.35);
-        await _tts.speak(cue.textVi);
-      } catch (_) {
-        // Fallback timed reading if TTS fails
-        final estSec = (cue.textVi.split(' ').length / 2.6).round().clamp(4, 14);
-        await Future<void>.delayed(Duration(seconds: estSec));
-      }
-    } else {
-      final estSec = (cue.textVi.split(' ').length / 2.6).round().clamp(4, 14);
-      await Future<void>.delayed(Duration(seconds: estSec));
-    }
+    await _playVoiceCueAssetOrFallback(cue, gen);
 
     if (!mounted || _runGeneration != gen) return;
 
@@ -264,15 +260,14 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     });
   }
 
-  Future<void> _startMeditation({
-    bool skipIntro = false,
-    int startAtCue = 0,
-  }) async {
+  // Starts immediately at Phần 1 (no 30s intro, no 432Hz tone)
+  Future<void> _startMeditation({int startAtCue = 0}) async {
     _runGeneration++;
     final gen = _runGeneration;
     _pauseTimer?.cancel();
     _sessionTimer?.cancel();
-    await _tts.stop();
+    await _voicePlayer.stop();
+    await _ttsFallback.stop();
     await _startAmbientAudio();
 
     if (!mounted || _runGeneration != gen) return;
@@ -283,15 +278,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _cueIndex = startAtCue;
     });
     _startSessionClock(gen);
-
-    if (skipIntro || startAtCue > 0) {
-      unawaited(_playCueAt(startAtCue, gen));
-    } else {
-      setState(() => _phase = _MeditationPhase.introAmbient);
-      _runCountdown(widget.script.introAmbientSeconds, gen, () {
-        unawaited(_playCueAt(0, gen));
-      });
-    }
+    unawaited(_playCueAt(startAtCue, gen));
   }
 
   Future<void> _togglePause() async {
@@ -306,7 +293,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _pauseTimer?.cancel();
       _sessionTimer?.cancel();
       _rippleCtrl.stop();
-      await _tts.stop();
+      await _voicePlayer.stop();
+      await _ttsFallback.stop();
       await _ambientPlayer.pause();
       if (!mounted) return;
       setState(() => _isPaused = true);
@@ -317,13 +305,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       unawaited(_rippleCtrl.repeat(reverse: true));
       setState(() => _isPaused = false);
       _startSessionClock(gen);
-      if (_phase == _MeditationPhase.introAmbient) {
-        _runCountdown(
-          _countdownSeconds > 0 ? _countdownSeconds : 1,
-          gen,
-          () => unawaited(_playCueAt(0, gen)),
-        );
-      } else if (_phase != _MeditationPhase.outroAmbient) {
+      if (_phase != _MeditationPhase.outroAmbient) {
         unawaited(_playCueAt(_cueIndex, gen));
       }
     }
@@ -332,7 +314,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   void _jumpToPart(int partIndex) {
     final idx = _allCues.indexWhere((c) => c.partIndex == partIndex);
     if (idx >= 0) {
-      unawaited(_startMeditation(skipIntro: true, startAtCue: idx));
+      unawaited(_startMeditation(startAtCue: idx));
     }
   }
 
@@ -340,7 +322,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   Widget build(BuildContext context) {
     final currentCue = _allCues[_cueIndex.clamp(0, _allCues.length - 1)];
     final totalTargetSec = _sleepTimerMinutes * 60;
-    final remainingSec = (totalTargetSec - _elapsedSeconds).clamp(0, totalTargetSec);
+    final remainingSec =
+        (totalTargetSec - _elapsedSeconds).clamp(0, totalTargetSec);
     final progress = totalTargetSec > 0
         ? (_elapsedSeconds / totalTargetSec).clamp(0.0, 1.0)
         : 0.0;
@@ -348,7 +331,6 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
       children: [
-        // Main Night Sanctuary Card
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -365,9 +347,9 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tag & Title
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFF7EC8B8).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
@@ -399,7 +381,6 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                   height: 1.45,
                 ),
               ),
-
               const SizedBox(height: 16),
 
               // Animated Water Ripple + Live Teleprompter
@@ -428,12 +409,15 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
                                 colors: [
-                                  const Color(0xFF7EC8B8).withValues(alpha: 0.55),
-                                  const Color(0xFF3E7C71).withValues(alpha: 0.15),
+                                  const Color(0xFF7EC8B8)
+                                      .withValues(alpha: 0.55),
+                                  const Color(0xFF3E7C71)
+                                      .withValues(alpha: 0.15),
                                 ],
                               ),
                               border: Border.all(
-                                color: const Color(0xFF9EE2D4).withValues(alpha: 0.5),
+                                color: const Color(0xFF9EE2D4)
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                             child: Icon(
@@ -475,7 +459,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                         value: progress,
                         minHeight: 5,
                         backgroundColor: Colors.white12,
-                        valueColor: const AlwaysStoppedAnimation(Color(0xFF7EC8B8)),
+                        valueColor:
+                            const AlwaysStoppedAnimation(Color(0xFF7EC8B8)),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -511,7 +496,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
 
               const SizedBox(height: 14),
 
-              // Primary Playback Controls (Wrap to avoid overflow)
+              // Primary Playback Controls
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -522,7 +507,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                       backgroundColor: const Color(0xFF63B3A1),
                       foregroundColor: const Color(0xFF0B1816),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
+                        horizontal: 20,
                         vertical: 11,
                       ),
                     ),
@@ -537,27 +522,13 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                     label: Text(
                       _phase == _MeditationPhase.idle ||
                               _phase == _MeditationPhase.completed
-                          ? 'Bắt đầu Thiền (30s nhạc dạo)'
+                          ? 'Bắt đầu Thiền Buông Thư Ngay'
                           : _isPaused
                               ? 'Tiếp tục'
                               : 'Tạm dừng',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  if (_phase == _MeditationPhase.idle ||
-                      _phase == _MeditationPhase.introAmbient)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFD0F2EA),
-                        side: BorderSide(
-                          color: const Color(0xFF9EE2D4).withValues(alpha: 0.45),
-                        ),
-                      ),
-                      onPressed: () =>
-                          unawaited(_startMeditation(skipIntro: true)),
-                      icon: const Icon(Icons.skip_next, size: 18),
-                      label: const Text('Vào ngay Phần 1'),
-                    ),
                   if (_phase != _MeditationPhase.idle)
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
@@ -599,7 +570,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
-                  '🎙️ Giọng đọc dẫn thiền tiếng Việt',
+                  '🎙️ Giọng nữ trầm ấm VieNeu-TTS',
                   style: TextStyle(color: Color(0xFFE7F2F0), fontSize: 13.5),
                 ),
                 value: _voiceEnabled,
@@ -622,7 +593,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                       onChanged: _voiceEnabled
                           ? (v) {
                               setState(() => _voiceVolume = v);
-                              unawaited(_tts.setVolume(v));
+                              unawaited(_voicePlayer.setVolume(v));
                             }
                           : null,
                     ),
@@ -634,7 +605,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                   const SizedBox(
                     width: 112,
                     child: Text(
-                      'Suối & 432Hz',
+                      'Tiếng suối chảy',
                       style: TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
                     ),
                   ),
@@ -753,15 +724,13 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   String _phaseStatusLabel(MeditationCue currentCue) {
     switch (_phase) {
       case _MeditationPhase.idle:
-        return '✨ Sẵn sàng buông thư — Hãy nằm xuống thoải mái';
-      case _MeditationPhase.introAmbient:
-        return '🌊 Nhạc nền suối chảy & 432Hz mở đầu (${_countdownSeconds}s)';
+        return '✨ Sẵn sàng buông thư — Bấm phát để vào ngay Phần 1';
       case _MeditationPhase.speaking:
         return '🎙️ ${currentCue.partTitleVi}';
       case _MeditationPhase.pausing:
         return '🍃 ${currentCue.partTitleVi} • Thả lỏng (${_countdownSeconds}s)';
       case _MeditationPhase.outroAmbient:
-        return '🌌 Giọng đọc đã lắng xuống — Giữ tiếng suối & sóng 432Hz ru ngủ';
+        return '🌌 Giọng đọc đã lắng xuống — Giữ tiếng suối chảy êm dịu ru ngủ';
       case _MeditationPhase.completed:
         return '🌙 Đã hoàn tất phiên thiền — Chúc bạn ngủ ngon';
     }
@@ -771,8 +740,6 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     switch (_phase) {
       case _MeditationPhase.idle:
         return '“Hãy nằm xuống, để cơ thể bạn được nâng niu bởi mặt đất, như được ôm trọn trong vòng tay của đất mẹ dịu dàng.”';
-      case _MeditationPhase.introAmbient:
-        return 'Khép nhẹ đôi mắt… lắng nghe tiếng suối chảy róc rách và sóng âm 432Hz êm dịu lan tỏa khắp không gian…';
       case _MeditationPhase.speaking:
       case _MeditationPhase.pausing:
         return '“${currentCue.textVi}”';

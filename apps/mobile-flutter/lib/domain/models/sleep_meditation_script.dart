@@ -78,12 +78,12 @@ const SleepMeditationScript kScript1Brook432Hz = SleepMeditationScript(
   numberLabel: 'Kịch bản 1',
   titleVi: 'Thiền Buông Thư Bên Dòng Suối Mát',
   settingVi: 'Dòng suối trong lành giữa rừng tĩnh lặng.',
-  soundscapeVi: 'Tiếng suối chảy róc rách + Sóng âm tần số 432Hz.',
+  soundscapeVi: 'Tiếng suối chảy róc rách êm dịu • Giọng nữ trầm ấm VieNeu-TTS.',
   ambientAudioAsset: 'assets/audio/brook_432hz_loop.wav',
-  introAmbientSeconds: 30,
+  introAmbientSeconds: 0,
   defaultTotalDurationMinutes: 30,
   outroNoteVi:
-      'Giọng đọc nhỏ dần và tắt hẳn — giữ tiếng suối chảy và tần số 432Hz đến hết phút 30.',
+      'Giọng đọc nhỏ dần và tắt hẳn — giữ tiếng suối chảy róc rách êm dịu đến hết phút 30.',
   parts: [
     MeditationPart(
       index: 1,

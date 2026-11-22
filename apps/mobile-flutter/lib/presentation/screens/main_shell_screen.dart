@@ -503,7 +503,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 ButtonSegment(
                   value: 1,
                   icon: Icon(Icons.water_drop_outlined, size: 17),
-                  label: Text('Thiền Ngủ 432Hz'),
+                  label: Text('Thiền Ngủ'),
                 ),
               ],
               selected: {_moodSubIndex},
@@ -724,7 +724,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ (432Hz)',
+                  '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ',
                   style: TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,
@@ -733,7 +733,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Kịch bản 1: Thiền Buông Thư Bên Dòng Suối Mát — Tiếng suối chảy róc rách + Sóng âm 432Hz + Giọng đọc dẫn thiền 6 phần (30 phút).',
+                  'Kịch bản 1: Thiền Buông Thư Bên Dòng Suối Mát — Tiếng suối chảy róc rách + Giọng nữ trầm ấm VieNeu-TTS (6 phần, 30 phút).',
                   style: TextStyle(
                     fontSize: 12.5,
                     height: 1.45,

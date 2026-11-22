@@ -9,7 +9,7 @@ void main() {
     test('contains all 6 structured parts and 27 exact cues', () {
       expect(kScript1Brook432Hz.parts.length, equals(6));
       expect(kScript1Brook432Hz.allCues.length, equals(27));
-      expect(kScript1Brook432Hz.introAmbientSeconds, equals(30));
+      expect(kScript1Brook432Hz.introAmbientSeconds, equals(0));
       expect(kScript1Brook432Hz.defaultTotalDurationMinutes, equals(30));
       expect(
         kScript1Brook432Hz.ambientAudioAsset,

@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
-  "buildNumber": 5,
-  "releaseName": "Haven — Thiền Buông Thư Giọng Nữ Trầm Ấm & Suối Chảy Dịu Êm",
-  "releaseNotesVi": "• Tinh chỉnh âm thanh Thiền Buông Thư 432Hz: Giảm âm lượng 432Hz dịu nhẹ không chói tai, nâng tiếng suối chảy róc rách ấm áp hơn.\n• Chọn ưu tiên giọng nữ tiếng Việt trầm ấm (pitch 0.85, tốc độ đọc chậm êm 0.35) giúp dễ chìm vào giấc ngủ sâu.\n• Sửa triệt để lỗi bẻ gãy chữ và tích hợp cập nhật OTA trực tiếp trong app.",
+  "version": "1.0.3",
+  "buildNumber": 6,
+  "releaseName": "Haven — Thiền Buông Thư Giọng Đọc Studio VieNeu-TTS & Tiếng Suối Tự Nhiên",
+  "releaseNotesVi": "• Nâng cấp toàn bộ 27 câu Thiền Buông Thư bằng giọng nữ trầm tự nhiên tổng hợp từ VieNeu-TTS v3 Turbo (tốc độ đọc chậm êm, phát ngoại tuyến không cần mạng).\n• Bỏ đoạn intro 30s và bỏ hoàn toàn tần số 432Hz — vào thẳng Phần 1 trên nền tiếng suối chảy róc rách dịu êm.\n• Tích hợp sẵn trong ứng dụng Android/iOS và Web.",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",

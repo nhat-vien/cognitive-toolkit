@@ -3541,7 +3541,7 @@ export function EquilibriaClinicalApp() {
                 {(
                   [
                     ['mood-chart', '📊', lang === 'vi' ? 'Biểu đồ Tâm trạng & Giấc ngủ' : 'Mood & Sleep Chart'],
-                    ['sleep-meditation', '🌊', lang === 'vi' ? 'Thiền Buông Thư Giấc Ngủ (432Hz)' : 'Sleep Body-Scan Meditation'],
+                    ['sleep-meditation', '🌊', lang === 'vi' ? 'Thiền Buông Thư Giấc Ngủ' : 'Sleep Body-Scan Meditation'],
                     ['ipsrt-rhythm', '🕰️', lang === 'vi' ? 'Nhịp sinh hoạt hàng ngày' : 'Daily Rhythm Anchors'],
                     ['safety-plan', '🛡️', lang === 'vi' ? 'Khoang suy nghĩ 48 giờ & Kế hoạch an toàn' : '48h Reflection & Care Plan'],
                   ] as const

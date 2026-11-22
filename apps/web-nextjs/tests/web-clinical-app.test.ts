@@ -1123,7 +1123,7 @@ test('12. Sleep Support — Thiền Buông Thư Bên Dòng Suối Mát (432Hz + 
   assert.equal(SCRIPT_1_BROOK_432HZ.parts.length, 6);
   const cues = flattenMeditationCues(SCRIPT_1_BROOK_432HZ);
   assert.equal(cues.length, 27);
-  assert.equal(SCRIPT_1_BROOK_432HZ.introAmbientSeconds, 30);
+  assert.equal(SCRIPT_1_BROOK_432HZ.introAmbientSeconds, 0);
   assert.equal(SCRIPT_1_BROOK_432HZ.defaultTotalDurationMinutes, 30);
   assert.equal(computeScriptPauseTotalSeconds(SCRIPT_1_BROOK_432HZ), 297);
   assert.equal(cues[0]?.pauseAfterSeconds, 5);

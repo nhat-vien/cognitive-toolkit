@@ -52,3 +52,4 @@ flutter:
   assets:
     - assets/icon/haven_icon.png
     - assets/audio/brook_432hz_loop.wav
+    - assets/audio/meditation/
