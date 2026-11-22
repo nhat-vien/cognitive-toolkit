@@ -30,14 +30,12 @@ class _AiCompanionBiometricsScreenState
     extends State<AiCompanionBiometricsScreen> {
   final GroundedAiCompanionService _companionService =
       GroundedAiCompanionService();
-  final MultimodalVoiceBurstAnalyzer _voiceAnalyzer =
-      const MultimodalVoiceBurstAnalyzer();
-  final HealthBiometricsEngine _biometricsEngine =
-      const HealthBiometricsEngine();
+  final MobileBiometricsBridgeService _biometricsBridge =
+      const MobileBiometricsBridgeService();
 
   final TextEditingController _chatInputCtrl = TextEditingController();
   final TextEditingController _ollamaEndpointCtrl = TextEditingController(
-    text: 'http://192.168.1.10:11434/api/chat',
+    text: 'http://127.0.0.1:11434/api/chat',
   );
   final List<GroundedCompanionResponse> _chatHistory = [];
 
@@ -48,22 +46,7 @@ class _AiCompanionBiometricsScreenState
   bool _healthOptIn = false;
   String _selectedPlatformSource = 'Health Connect (Android)';
   String _selectedDeviceId = 'galaxy-watch-7';
-  double _simulatedLatestHrvMs = 46;
-  late List<HrvReadingSample> _baselineSamples;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _baselineSamples = List<HrvReadingSample>.generate(
-      14,
-      (i) => HrvReadingSample(
-        deviceId: _selectedDeviceId,
-        recordedAt: now.subtract(Duration(days: i + 1)),
-        rmssdMs: 42.0 + (i % 5) * 4.0,
-      ),
-    );
-  }
+  double _simulatedLatestHrvMs = 46.0;
 
   @override
   void dispose() {
@@ -77,12 +60,13 @@ class _AiCompanionBiometricsScreenState
     final text = (presetText ?? _chatInputCtrl.text).trim();
     if (text.isEmpty) return;
 
-    final response = _companionService.generateGroundedResponse(
+    final response = _companionService.sendUserMessage(
       userMessage: text,
-      moodPolarity: widget.currentMoodPolarity,
-      energyLevel: widget.currentEnergyLevel,
+      currentMoodPolarity: widget.currentMoodPolarity,
     );
-    _chatInputCtrl.clear();
+    if (presetText == null) {
+      _chatInputCtrl.clear();
+    }
     setState(() {
       _chatHistory.insert(0, response);
     });
@@ -92,32 +76,24 @@ class _AiCompanionBiometricsScreenState
     final transcript = _voiceTranscriptCtrl.text.trim();
     if (transcript.isEmpty) return;
     setState(() {
-      _latestVoiceResult = _voiceAnalyzer.analyzeVoiceBurst(
+      _latestVoiceResult = analyzeVoiceBurstRecording(
         transcript: transcript,
         durationSeconds: 15,
-        moodPolarity: widget.currentMoodPolarity,
-        energyLevel: widget.currentEnergyLevel,
+        baselineWpm: 125.0,
+        currentMoodPolarity: widget.currentMoodPolarity,
       );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final memSnap = _companionService.memoryStore.snapshot();
-    final now = DateTime.now();
-    final bioSnap = _biometricsEngine.evaluateBiometrics(
-      optInEnabled: _healthOptIn,
-      platformSource: _selectedPlatformSource,
-      latestHrvSample: _healthOptIn
-          ? HrvReadingSample(
-              deviceId: _selectedDeviceId,
-              recordedAt: now.subtract(const Duration(hours: 2)),
-              rmssdMs: _simulatedLatestHrvMs,
-            )
-          : null,
-      historical14To30DayBaseline: _baselineSamples,
-      now: now,
-      latestSleepDurationHours: widget.currentSleepHours,
+    final memSnap = _companionService.memoryStore.snapshot;
+    final bioSnap = _biometricsBridge.buildBaselineSnapshot(
+      platformSourceLabel: _selectedPlatformSource,
+      sourceDeviceId: _selectedDeviceId,
+      latestHrvMs: _simulatedLatestHrvMs,
+      latestSampleAgeHours: 2.0,
+      lastNightSleepHours: widget.currentSleepHours,
       feltNeedForSleep: widget.currentFeltNeedForSleep,
     );
 
@@ -265,13 +241,13 @@ class _AiCompanionBiometricsScreenState
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: turn.isSafetyStop
+                  color: turn.safetyStopTriggered
                       ? const Color(0xFFFDF0EE)
                       : const Color(0xFFF5F8F7),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  turn.replyVi,
+                  turn.replyTextVi,
                   style: const TextStyle(
                     fontSize: 13.5,
                     height: 1.5,
