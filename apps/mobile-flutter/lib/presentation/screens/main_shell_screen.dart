@@ -733,7 +733,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Kịch bản 1: Thiền Buông Thư Bên Dòng Suối Mát — Tiếng suối chảy róc rách + Giọng nữ trầm ấm VieNeu-TTS (6 phần, 30 phút).',
+                  'Bộ 3 bài Thiền Buông Thư phòng thu (Nam Trầm Ấm, Nữ Dịu Ấm & Nam Trầm Sâu) kết hợp tiếng suối chảy êm dịu.',
                   style: TextStyle(
                     fontSize: 12.5,
                     height: 1.45,

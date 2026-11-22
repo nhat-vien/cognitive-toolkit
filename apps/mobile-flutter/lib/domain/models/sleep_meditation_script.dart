@@ -73,6 +73,66 @@ String formatMeditationClock(int totalSeconds) {
   return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
+class StudioMeditationTrack {
+  final String id;
+  final int trackNumber;
+  final String titleVi;
+  final String voiceNameVi;
+  final String voiceStyleBadgeVi;
+  final String descriptionVi;
+  final int durationSeconds;
+  final String audioAssetPath;
+
+  const StudioMeditationTrack({
+    required this.id,
+    required this.trackNumber,
+    required this.titleVi,
+    required this.voiceNameVi,
+    required this.voiceStyleBadgeVi,
+    required this.descriptionVi,
+    required this.durationSeconds,
+    required this.audioAssetPath,
+  });
+}
+
+const List<StudioMeditationTrack> kStudioMeditationTracks = [
+  StudioMeditationTrack(
+    id: 'voice-1-suoi-mat',
+    trackNumber: 1,
+    titleVi: 'Bài 1: Thiền Buông Thư Bên Dòng Suối Mát',
+    voiceNameVi: 'Giọng Nam Trầm Ấm (DgNguyen)',
+    voiceStyleBadgeVi: 'Nam · Miền Bắc · Trầm ấm',
+    descriptionVi:
+        'Hãy nằm xuống để cơ thể được nâng niu bởi đất mẹ dịu dàng, thả lỏng từng nhịp thở cho mọi lo lắng tan dần.',
+    durationSeconds: 264,
+    audioAssetPath: 'assets/audio/meditation/voice_1_suoi_mat_nam_tram.mp3',
+  ),
+  StudioMeditationTrack(
+    id: 'voice-2-haven-got-rua',
+    trackNumber: 2,
+    titleVi: 'Bài 2: Thiền Buông Thư Cùng Haven — Gột Rửa Phiền Lo',
+    voiceNameVi: 'Giọng Nữ Dịu Ấm (Vita)',
+    voiceStyleBadgeVi: 'Nữ · Dịu dàng · Ấm áp',
+    descriptionVi:
+        'Thiết kế dành riêng cho bạn để gột rửa mọi phiền lo và vỗ về tâm trí sau một ngày dài vất vả.',
+    durationSeconds: 359,
+    audioAssetPath:
+        'assets/audio/meditation/voice_2_haven_got_rua_phien_lo_nu_am.mp3',
+  ),
+  StudioMeditationTrack(
+    id: 'voice-3-giac-ngu-sau',
+    trackNumber: 3,
+    titleVi: 'Bài 3: Thiền Buông Thư Giấc Ngủ Sâu — Ôm Trọn Bình Yên',
+    voiceNameVi: 'Giọng Nam Trầm Sâu (DgNguyen)',
+    voiceStyleBadgeVi: 'Nam · Miền Bắc · Trầm sâu',
+    descriptionVi:
+        'Thả lỏng toàn thân trên chiếc giường êm ái, dẫn dắt nhịp chậm rãi giúp bạn dễ dàng chìm vào giấc ngủ sâu.',
+    durationSeconds: 363,
+    audioAssetPath:
+        'assets/audio/meditation/voice_3_giac_ngu_sau_nam_tram_sau.mp3',
+  ),
+];
+
 const SleepMeditationScript kScript1Brook432Hz = SleepMeditationScript(
   id: 'thien-buong-thu-dong-suoi-432hz',
   numberLabel: 'Kịch bản 1',

@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SCRIPT_1_BROOK_432HZ,
+  STUDIO_MEDITATION_TRACKS,
   SleepMeditationAudioEngine,
   flattenMeditationCues,
   formatMeditationClock,
   type SleepMeditationScript,
+  type StudioMeditationTrack,
 } from '../clinical/sleep-meditation.ts';
 
 interface SleepMeditationPlayerProps {
@@ -14,6 +16,7 @@ interface SleepMeditationPlayerProps {
   lang?: 'vi' | 'en';
 }
 
+type PlayerMode = 'studio-3' | 'step-cues';
 type PlayerPhase = 'idle' | 'speaking' | 'pausing' | 'outro-ambient' | 'completed';
 
 export function SleepMeditationPlayer({
@@ -27,18 +30,28 @@ export function SleepMeditationPlayer({
   const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRunIdRef = useRef<number>(0);
 
+  const [mode, setMode] = useState<PlayerMode>('studio-3');
+  const [selectedTrackId, setSelectedTrackId] = useState<string>(
+    STUDIO_MEDITATION_TRACKS[0]?.id ?? 'voice-1-suoi-mat',
+  );
+  const selectedTrack: StudioMeditationTrack =
+    STUDIO_MEDITATION_TRACKS.find((t) => t.id === selectedTrackId) ?? STUDIO_MEDITATION_TRACKS[0]!;
+
   const [phase, setPhase] = useState<PlayerPhase>('idle');
   const [isPaused, setIsPaused] = useState(false);
+  const [trackPositionSec, setTrackPositionSec] = useState(0);
+  const [trackDurationSec, setTrackDurationSec] = useState(selectedTrack.durationSeconds);
+
   const [cueIndex, setCueIndex] = useState(0);
   const [countdownSeconds, setCountdownSeconds] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(script.defaultTotalDurationMinutes);
 
-  // Audio mixer controls (Pure Forest Brook + VieNeu-TTS Kim Chi / Huyen Mi voice)
+  // Audio mixer controls (Pure Forest Brook + Studio Voice)
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [voiceVolume, setVoiceVolume] = useState(0.85);
-  const [voiceRate, setVoiceRate] = useState(0.92);
-  const [brookVolume, setBrookVolume] = useState(0.75);
+  const [voiceVolume, setVoiceVolume] = useState(0.9);
+  const [voiceRate, setVoiceRate] = useState(0.95);
+  const [brookVolume, setBrookVolume] = useState(0.45);
   const [showFullScript, setShowFullScript] = useState(false);
 
   const voiceEnabledRef = useRef(voiceEnabled);
@@ -66,6 +79,8 @@ export function SleepMeditationPlayer({
       try {
         voiceAudioElRef.current.onended = null;
         voiceAudioElRef.current.onerror = null;
+        voiceAudioElRef.current.ontimeupdate = null;
+        voiceAudioElRef.current.onloadedmetadata = null;
         voiceAudioElRef.current.pause();
         voiceAudioElRef.current.currentTime = 0;
       } catch {
@@ -91,6 +106,7 @@ export function SleepMeditationPlayer({
     setIsPaused(false);
     setCountdownSeconds(0);
     setElapsedSeconds(0);
+    setTrackPositionSec(0);
   };
 
   useEffect(() => {
@@ -102,16 +118,15 @@ export function SleepMeditationPlayer({
     };
   }, []);
 
-  // Sync live volume & speed sliders
   useEffect(() => {
     audioRef.current?.setBrookVolume(brookVolume);
   }, [brookVolume]);
 
   useEffect(() => {
     if (voiceAudioElRef.current) {
-      voiceAudioElRef.current.volume = voiceVolume;
+      voiceAudioElRef.current.volume = voiceEnabled ? voiceVolume : 0;
     }
-  }, [voiceVolume]);
+  }, [voiceVolume, voiceEnabled]);
 
   useEffect(() => {
     if (voiceAudioElRef.current) {
@@ -139,6 +154,60 @@ export function SleepMeditationPlayer({
     }, 1000);
   };
 
+  // --- STUDIO 3-TRACK PLAYBACK ---
+  const startStudioTrack = (track: StudioMeditationTrack) => {
+    activeRunIdRef.current += 1;
+    const runId = activeRunIdRef.current;
+    clearAllTimers();
+    stopVoicePlayback();
+
+    setMode('studio-3');
+    setSelectedTrackId(track.id);
+    setTrackPositionSec(0);
+    setTrackDurationSec(track.durationSeconds);
+    setIsPaused(false);
+    setElapsedSeconds(0);
+    setPhase('speaking');
+
+    if (!audioRef.current) {
+      audioRef.current = new SleepMeditationAudioEngine();
+    }
+    audioRef.current.start({ brookVolume, freq432Volume: 0 });
+    startSessionClock(runId, sleepTimerMinutes);
+
+    if (typeof window !== 'undefined' && typeof window.Audio !== 'undefined') {
+      const audioEl = new window.Audio(track.audioUrl);
+      audioEl.volume = voiceEnabledRef.current ? voiceVolumeRef.current : 0;
+      audioEl.playbackRate = voiceRateRef.current;
+      voiceAudioElRef.current = audioEl;
+
+      audioEl.onloadedmetadata = () => {
+        if (Number.isFinite(audioEl.duration) && audioEl.duration > 0) {
+          setTrackDurationSec(Math.round(audioEl.duration));
+        }
+      };
+      audioEl.ontimeupdate = () => {
+        if (activeRunIdRef.current !== runId) return;
+        setTrackPositionSec(Math.floor(audioEl.currentTime));
+      };
+      audioEl.onended = () => {
+        if (activeRunIdRef.current !== runId) return;
+        setPhase('outro-ambient');
+      };
+      void audioEl.play().catch(() => {
+        // ignore autoplay errors
+      });
+    }
+  };
+
+  const handleSeekStudioTrack = (newSec: number) => {
+    setTrackPositionSec(newSec);
+    if (voiceAudioElRef.current) {
+      voiceAudioElRef.current.currentTime = newSec;
+    }
+  };
+
+  // --- STEP-BY-STEP 27-CUE PLAYBACK ---
   const runCountdown = (seconds: number, runId: number, onComplete: () => void) => {
     if (pauseTimerRef.current) clearInterval(pauseTimerRef.current);
     if (seconds <= 0) {
@@ -165,50 +234,8 @@ export function SleepMeditationPlayer({
     }, 1000);
   };
 
-  const playBrowserTtsFallback = (cueText: string, isFinal: boolean, proceedToPause: () => void) => {
-    const hasSpeechApi =
-      typeof window !== 'undefined' &&
-      'speechSynthesis' in window &&
-      typeof window.SpeechSynthesisUtterance !== 'undefined';
-
-    if (hasSpeechApi) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new window.SpeechSynthesisUtterance(cueText);
-        utterance.lang = 'vi-VN';
-        utterance.rate = isFinal ? 0.60 : 0.68;
-        utterance.pitch = 0.84;
-        utterance.volume = isFinal ? Math.max(0.2, voiceVolumeRef.current * 0.5) : voiceVolumeRef.current;
-
-        const voices = window.speechSynthesis.getVoices();
-        const viVoices = voices.filter(
-          (v) => v.lang.toLowerCase().includes('vi') || v.name.toLowerCase().includes('viet'),
-        );
-        const femaleVoice =
-          viVoices.find((v) => /hoaimy|hoài my|linh|female|nữ/i.test(v.name)) ?? viVoices[0];
-        if (femaleVoice) utterance.voice = femaleVoice;
-
-        utterance.onend = proceedToPause;
-        utterance.onerror = proceedToPause;
-        window.speechSynthesis.speak(utterance);
-        return;
-      } catch {
-        // fallback timer below
-      }
-    }
-    const wordCount = cueText.split(/\s+/).length;
-    const estSec = Math.max(4, Math.round(wordCount / 2.4));
-    runCountdown(estSec, activeRunIdRef.current, proceedToPause);
-  };
-
   const playCueAtIndex = (idx: number, runId: number) => {
     if (activeRunIdRef.current !== runId) return;
-    if (idx >= allCues.length) {
-      setPhase('outro-ambient');
-      setCountdownSeconds(0);
-      return;
-    }
-
     const cue = allCues[idx];
     if (!cue) {
       setPhase('outro-ambient');
@@ -232,51 +259,43 @@ export function SleepMeditationPlayer({
       });
     };
 
-    if (!voiceEnabledRef.current) {
+    if (!voiceEnabledRef.current || typeof window === 'undefined' || typeof window.Audio === 'undefined') {
       const wordCount = cue.textVi.split(/\s+/).length;
-      const estimatedReadSec = Math.max(4, Math.round(wordCount / 2.4));
-      runCountdown(estimatedReadSec, runId, proceedToPause);
+      runCountdown(Math.max(4, Math.round(wordCount / 2.4)), runId, proceedToPause);
       return;
     }
 
-    // Play studio-synthesized VieNeu-TTS (Kim Chi / Huyen Mi) audio clip
-    if (typeof window !== 'undefined' && typeof window.Audio !== 'undefined') {
-      stopVoicePlayback();
-      const audioEl = new window.Audio(`/audio/meditation/${cue.id}.mp3`);
-      audioEl.volume = cue.isFinalFadeOut
-        ? Math.max(0.25, voiceVolumeRef.current * 0.65)
-        : voiceVolumeRef.current;
-      audioEl.playbackRate = cue.isFinalFadeOut
-        ? Math.max(0.78, voiceRateRef.current - 0.06)
-        : voiceRateRef.current;
-      voiceAudioElRef.current = audioEl;
+    stopVoicePlayback();
+    const audioEl = new window.Audio(`/audio/meditation/${cue.id}.mp3`);
+    audioEl.volume = cue.isFinalFadeOut
+      ? Math.max(0.25, voiceVolumeRef.current * 0.65)
+      : voiceVolumeRef.current;
+    audioEl.playbackRate = cue.isFinalFadeOut
+      ? Math.max(0.78, voiceRateRef.current - 0.06)
+      : voiceRateRef.current;
+    voiceAudioElRef.current = audioEl;
 
-      audioEl.onended = () => {
-        if (activeRunIdRef.current !== runId) return;
-        proceedToPause();
-      };
-      audioEl.onerror = () => {
-        if (activeRunIdRef.current !== runId) return;
-        playBrowserTtsFallback(cue.textVi, Boolean(cue.isFinalFadeOut), proceedToPause);
-      };
-
-      void audioEl.play().catch(() => {
-        if (activeRunIdRef.current !== runId) return;
-        playBrowserTtsFallback(cue.textVi, Boolean(cue.isFinalFadeOut), proceedToPause);
-      });
-      return;
-    }
-
-    playBrowserTtsFallback(cue.textVi, Boolean(cue.isFinalFadeOut), proceedToPause);
+    audioEl.onended = () => {
+      if (activeRunIdRef.current !== runId) return;
+      proceedToPause();
+    };
+    audioEl.onerror = () => {
+      if (activeRunIdRef.current !== runId) return;
+      proceedToPause();
+    };
+    void audioEl.play().catch(() => {
+      if (activeRunIdRef.current !== runId) return;
+      proceedToPause();
+    });
   };
 
-  // Start immediately into Phần 1 (no 30s intro, no 432Hz tone)
-  const startMeditation = (startAtCueIndex = 0) => {
+  const startStepCues = (startAtCueIndex = 0) => {
     activeRunIdRef.current += 1;
     const runId = activeRunIdRef.current;
     clearAllTimers();
     stopVoicePlayback();
 
+    setMode('step-cues');
     if (!audioRef.current) {
       audioRef.current = new SleepMeditationAudioEngine();
     }
@@ -290,40 +309,46 @@ export function SleepMeditationPlayer({
 
   const handleTogglePause = () => {
     if (phase === 'idle' || phase === 'completed') {
-      startMeditation(0);
+      if (mode === 'studio-3') {
+        startStudioTrack(selectedTrack);
+      } else {
+        startStepCues(0);
+      }
       return;
     }
 
     if (!isPaused) {
-      activeRunIdRef.current += 1;
-      clearAllTimers();
-      stopVoicePlayback();
-      audioRef.current?.stop(0.6);
-      setIsPaused(true);
+      if (mode === 'studio-3' && voiceAudioElRef.current && phase === 'speaking') {
+        voiceAudioElRef.current.pause();
+        audioRef.current?.stop(0.5);
+        clearAllTimers();
+        setIsPaused(true);
+      } else {
+        activeRunIdRef.current += 1;
+        clearAllTimers();
+        stopVoicePlayback();
+        audioRef.current?.stop(0.6);
+        setIsPaused(true);
+      }
     } else {
       const runId = activeRunIdRef.current + 1;
       activeRunIdRef.current = runId;
       audioRef.current?.start({ brookVolume, freq432Volume: 0 });
       setIsPaused(false);
       startSessionClock(runId, sleepTimerMinutes);
-      if (phase === 'outro-ambient') {
-        setPhase('outro-ambient');
-      } else {
+
+      if (mode === 'studio-3') {
+        if (voiceAudioElRef.current && phase === 'speaking') {
+          void voiceAudioElRef.current.play().catch(() => {});
+        }
+      } else if (phase !== 'outro-ambient') {
         playCueAtIndex(cueIndex, runId);
       }
     }
   };
 
-  const handleJumpToPart = (partIndex: number) => {
-    const targetCueIdx = allCues.findIndex((c) => c.partIndex === partIndex);
-    if (targetCueIdx >= 0) {
-      startMeditation(targetCueIdx);
-    }
-  };
-
   const totalTargetSeconds = sleepTimerMinutes * 60;
   const remainingSessionSeconds = Math.max(0, totalTargetSeconds - elapsedSeconds);
-  const progressPct = Math.min(100, Math.round((elapsedSeconds / Math.max(1, totalTargetSeconds)) * 100));
 
   return (
     <section
@@ -361,13 +386,13 @@ export function SleepMeditationPlayer({
               marginBottom: '6px',
             }}
           >
-            🌙 {script.numberLabel} • {lang === 'vi' ? 'Hỗ trợ Giấc ngủ Sâu' : 'Deep Sleep Body-Scan'}
+            🌙 {lang === 'vi' ? 'Bộ 3 Bài Thiền Buông Thư Phòng Thu' : '3 Studio Guided Sleep Meditations'}
           </span>
           <h3 style={{ margin: '0 0 4px 0', fontSize: '1.3rem', color: '#f7faf9' }}>
-            🌊 {script.titleVi}
+            🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ Sâu
           </h3>
           <p style={{ margin: 0, fontSize: '0.88rem', color: '#b4c9c5' }}>
-            {script.settingVi} • {script.soundscapeVi}
+            Chọn 1 trong 3 giọng đọc trầm ấm chuẩn phòng thu kết hợp tiếng suối chảy êm dịu.
           </p>
         </div>
 
@@ -400,13 +425,75 @@ export function SleepMeditationPlayer({
         </div>
       </div>
 
-      {/* Live Teleprompter Stage */}
+      {/* 3 Studio Voice Track Cards */}
       <div
         style={{
-          padding: '22px 20px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+          gap: '12px',
+          marginBottom: '18px',
+        }}
+      >
+        {STUDIO_MEDITATION_TRACKS.map((track) => {
+          const isSelected = mode === 'studio-3' && selectedTrack.id === track.id;
+          const isPlayingThis = isSelected && phase === 'speaking' && !isPaused;
+          return (
+            <button
+              key={track.id}
+              type="button"
+              onClick={() => startStudioTrack(track)}
+              style={{
+                textAlign: 'left',
+                padding: '14px 15px',
+                borderRadius: '14px',
+                border: isSelected
+                  ? '1.8px solid #7ec8b8'
+                  : '1px solid rgba(255,255,255,0.14)',
+                backgroundColor: isSelected
+                  ? 'rgba(126, 200, 184, 0.16)'
+                  : 'rgba(255,255,255,0.04)',
+                color: '#eef6f5',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    backgroundColor: 'rgba(126, 200, 184, 0.2)',
+                    color: '#a3e8d9',
+                  }}
+                >
+                  {track.voiceStyleBadgeVi}
+                </span>
+                <span style={{ fontSize: '0.76rem', color: '#9eb6b3', fontWeight: 600 }}>
+                  {isPlayingThis ? '🔊 Đang phát' : `⏱ ${formatMeditationClock(track.durationSeconds)}`}
+                </span>
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '0.94rem', color: '#f7fbfa', lineHeight: 1.35 }}>
+                {track.titleVi}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#b9ceca', lineHeight: 1.45 }}>
+                {track.descriptionVi}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Active Player Stage */}
+      <div
+        style={{
+          padding: '20px',
           borderRadius: '16px',
-          backgroundColor: 'rgba(8, 14, 21, 0.55)',
-          border: '1px solid rgba(126, 200, 184, 0.2)',
+          backgroundColor: 'rgba(8, 14, 21, 0.58)',
+          border: '1px solid rgba(126, 200, 184, 0.22)',
           textAlign: 'center',
           marginBottom: '18px',
         }}
@@ -422,74 +509,63 @@ export function SleepMeditationPlayer({
             color: '#9ee2d4',
             fontSize: '0.82rem',
             fontWeight: 700,
-            marginBottom: '12px',
+            marginBottom: '10px',
           }}
         >
-          {phase === 'idle' && '✨ Sẵn sàng buông thư — Bấm phát để bắt đầu ngay Phần 1'}
-          {phase === 'speaking' && `🎙️ ${currentCue.partTitleVi}`}
-          {phase === 'pausing' &&
-            `🍃 ${currentCue.partTitleVi} • Đang thả lỏng (${countdownSeconds}s)`}
+          {phase === 'idle' && `✨ Sẵn sàng: ${selectedTrack.titleVi}`}
+          {phase === 'speaking' &&
+            (mode === 'studio-3'
+              ? `🎙️ ${selectedTrack.voiceNameVi}`
+              : `🎙️ ${currentCue.partTitleVi}`)}
+          {phase === 'pausing' && `🍃 ${currentCue.partTitleVi} • Thả lỏng (${countdownSeconds}s)`}
           {phase === 'outro-ambient' &&
-            '🌌 Giọng đọc đã lắng xuống — Giữ tiếng suối chảy êm dịu ru ngủ'}
+            '🌌 Giọng đọc đã kết thúc — Giữ tiếng suối chảy êm dịu ru ngủ'}
           {phase === 'completed' && '🌙 Phiên thiền đã kết thúc êm dịu. Chúc bạn ngủ ngon.'}
         </div>
 
-        {/* Active Spoken Line */}
         <p
           style={{
             margin: '4px auto 14px auto',
-            maxWidth: '680px',
-            fontSize: '1.08rem',
-            lineHeight: 1.72,
+            maxWidth: '660px',
+            fontSize: '1.02rem',
+            lineHeight: 1.65,
             color: '#f2f7f6',
             fontWeight: 500,
-            minHeight: '72px',
           }}
         >
-          {phase === 'idle'
-            ? '“Hãy nằm xuống, để cơ thể bạn được nâng niu bởi mặt đất, như được ôm trọn trong vòng tay của đất mẹ dịu dàng.”'
-            : phase === 'outro-ambient'
-              ? script.outroNoteVi
-              : phase === 'completed'
-                ? 'Chúc bạn một giấc ngủ thật sâu, an lành và trọn vẹn.'
-                : `“${currentCue.textVi}”`}
+          {mode === 'studio-3'
+            ? phase === 'outro-ambient'
+              ? 'Hãy thả lỏng toàn thân và tiếp tục lắng nghe tiếng suối chảy róc rách để chìm vào giấc ngủ sâu…'
+              : selectedTrack.descriptionVi
+            : `“${currentCue.textVi}”`}
         </p>
 
-        {/* Session Progress & Clock */}
-        <div style={{ maxWidth: '520px', margin: '0 auto 14px auto' }}>
-          <div
-            style={{
-              height: '6px',
-              borderRadius: '999px',
-              backgroundColor: 'rgba(255,255,255,0.12)',
-              overflow: 'hidden',
-            }}
-          >
+        {/* Seek Bar for Studio Track */}
+        {mode === 'studio-3' && (
+          <div style={{ maxWidth: '540px', margin: '0 auto 14px auto' }}>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(1, trackDurationSec)}
+              value={Math.min(trackPositionSec, trackDurationSec)}
+              onChange={(e) => handleSeekStudioTrack(Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
             <div
               style={{
-                width: `${progressPct}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #5ba898, #8fd4c4)',
-                transition: 'width 0.5s ease',
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.78rem',
+                color: '#9eb6b3',
+                marginTop: '4px',
               }}
-            />
+            >
+              <span>{formatMeditationClock(trackPositionSec)}</span>
+              <span>Hẹn giờ còn lại: {formatMeditationClock(remainingSessionSeconds)}</span>
+              <span>{formatMeditationClock(trackDurationSec)}</span>
+            </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: '0.78rem',
-              color: '#9eb6b3',
-              marginTop: '6px',
-            }}
-          >
-            <span>Đã phát: {formatMeditationClock(elapsedSeconds)}</span>
-            <span>
-              Câu {Math.min(cueIndex + 1, allCues.length)}/{allCues.length}
-            </span>
-            <span>Còn lại: {formatMeditationClock(remainingSessionSeconds)}</span>
-          </div>
-        </div>
+        )}
 
         {/* Primary Playback Controls */}
         <div
@@ -517,7 +593,7 @@ export function SleepMeditationPlayer({
             }}
           >
             {phase === 'idle' || phase === 'completed'
-              ? '▶ Bắt đầu Thiền Buông Thư Ngay'
+              ? `▶ Phát ${selectedTrack.titleVi.split(':')[0]}`
               : isPaused
                 ? '▶ Tiếp tục phát'
                 : '⏸ Tạm dừng'}
@@ -544,13 +620,13 @@ export function SleepMeditationPlayer({
         </div>
       </div>
 
-      {/* Independent 2-Channel Sound Mixer (Voice + Pure Forest Brook) */}
+      {/* 2-Channel Mixer (Voice + Brook) */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: '12px',
-          marginBottom: '18px',
+          marginBottom: '16px',
         }}
       >
         <div
@@ -568,7 +644,7 @@ export function SleepMeditationPlayer({
                 checked={voiceEnabled}
                 onChange={(e) => setVoiceEnabled(e.target.checked)}
               />
-              <span>🎙️ Giọng nữ trầm VieNeu-TTS</span>
+              <span>🎙️ Âm lượng giọng đọc</span>
             </label>
             <strong>{Math.round(voiceVolume * 100)}%</strong>
           </div>
@@ -582,23 +658,26 @@ export function SleepMeditationPlayer({
             onChange={(e) => setVoiceVolume(Number(e.target.value))}
             style={{ width: '100%' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9eb6b3', marginTop: '4px' }}>
-            <span>Nhịp đọc chậm êm: {voiceRate.toFixed(2)}x</span>
-            <button
-              type="button"
-              onClick={() => setVoiceRate((r) => (r <= 0.88 ? 0.96 : 0.86))}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#8fd4c4',
-                cursor: 'pointer',
-                padding: 0,
-                fontSize: '0.75rem',
-                textDecoration: 'underline',
-              }}
-            >
-              {voiceRate <= 0.88 ? 'Chậm vừa (0.96x)' : 'Siêu chậm (0.86x)'}
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.75rem', color: '#9eb6b3' }}>Tốc độ:</span>
+            {[0.88, 0.95, 1.0].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setVoiceRate(r)}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  border: voiceRate === r ? '1px solid #7ec8b8' : '1px solid rgba(255,255,255,0.15)',
+                  backgroundColor: voiceRate === r ? 'rgba(126, 200, 184, 0.2)' : 'transparent',
+                  color: '#d9f3ed',
+                  fontSize: '0.74rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {r.toFixed(2)}x
+              </button>
+            ))}
           </div>
         </div>
 
@@ -624,48 +703,40 @@ export function SleepMeditationPlayer({
             style={{ width: '100%' }}
           />
           <div style={{ fontSize: '0.74rem', color: '#9eb6b3', marginTop: '4px' }}>
-            Âm thanh dòng suối tự nhiên, không chói tai
+            Tiếp tục chảy êm dịu ru ngủ sau khi giọng đọc kết thúc
           </div>
         </div>
       </div>
 
-      {/* 6 Parts Quick Jump */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '0.82rem', color: '#9eb6b3', marginBottom: '8px', fontWeight: 600 }}>
-          Chuyển nhanh đến từng phần của bài Thiền Buông Thư:
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {script.parts.map((part) => {
-            const isCurrentPart = phase !== 'idle' && currentCue.partIndex === part.index;
-            return (
-              <button
-                key={part.index}
-                type="button"
-                onClick={() => handleJumpToPart(part.index)}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '10px',
-                  border: isCurrentPart
-                    ? '1.5px solid #7ec8b8'
-                    : '1px solid rgba(255,255,255,0.14)',
-                  backgroundColor: isCurrentPart
-                    ? 'rgba(126, 200, 184, 0.22)'
-                    : 'rgba(255,255,255,0.04)',
-                  color: isCurrentPart ? '#eefaf7' : '#bdd0cd',
-                  fontSize: '0.81rem',
-                  fontWeight: isCurrentPart ? 700 : 500,
-                  cursor: 'pointer',
-                }}
-              >
-                Phần {part.index}: {part.bodyRegionVi}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Footer Utilities: Switch to 27-Cue Mode & Full Script */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => (mode === 'studio-3' ? startStepCues(0) : startStudioTrack(selectedTrack))}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            color: '#c9dfdb',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+        >
+          {mode === 'studio-3'
+            ? '🎧 Chuyển sang bản 27 câu có đếm ngược [Nghỉ Xs] (VieNeu-TTS)'
+            : '🎙️ Quay lại 3 bài Thiền Phòng Thu'}
+        </button>
 
-      {/* Collapsible Full Script */}
-      <div style={{ textAlign: 'right' }}>
         <button
           type="button"
           onClick={() => setShowFullScript((prev) => !prev)}
@@ -678,7 +749,7 @@ export function SleepMeditationPlayer({
             fontWeight: 600,
           }}
         >
-          {showFullScript ? '▲ Ẩn toàn văn kịch bản' : '▼ Xem toàn văn kịch bản & nhịp nghỉ [Nghỉ Xs]'}
+          {showFullScript ? '▲ Ẩn kịch bản chữ' : '▼ Xem kịch bản chữ 6 phần'}
         </button>
       </div>
 
@@ -690,7 +761,7 @@ export function SleepMeditationPlayer({
             borderRadius: '14px',
             backgroundColor: 'rgba(8, 14, 21, 0.45)',
             border: '1px solid rgba(255,255,255,0.1)',
-            maxHeight: '340px',
+            maxHeight: '320px',
             overflowY: 'auto',
             fontSize: '0.86rem',
             lineHeight: 1.65,

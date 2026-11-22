@@ -1,21 +1,19 @@
 // lib/presentation/screens/sleep_meditation_screen.dart
-// Haven Night Sanctuary — Guided Sleep Body-Scan Relaxation ("Thiền Buông Thư")
-// Plays pure seamless Forest Brook ambient audio via `just_audio`
-// combined with pre-rendered warm female Vietnamese VieNeu-TTS audio clips
-// honoring exact [Nghỉ Xs] pauses (starts immediately at Phần 1, zero 432Hz tone).
+// Haven Night Sanctuary — 3 Studio Guided Sleep Body-Scan Meditations
+// Plays the 3 studio recordings (DgNguyen Nam Trầm Ấm, Vita Nữ Dịu Ấm, DgNguyen Nam Trầm Sâu)
+// layered over a pure seamless Forest Brook ambient loop via `just_audio`,
+// with seek bar, speed control, independent mixer, and 15/30/45-min sleep timer.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../domain/models/sleep_meditation_script.dart';
 
 enum _MeditationPhase {
   idle,
-  speaking,
-  pausing,
+  playing,
   outroAmbient,
   completed,
 }
@@ -36,62 +34,73 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     with SingleTickerProviderStateMixin {
   final AudioPlayer _ambientPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
-  final FlutterTts _ttsFallback = FlutterTts();
 
-  late final List<MeditationCue> _allCues;
   late final AnimationController _rippleCtrl;
+  StreamSubscription<Duration>? _posSub;
+  StreamSubscription<Duration?>? _durSub;
+  StreamSubscription<PlayerState>? _stateSub;
 
+  int _selectedTrackIndex = 0;
   _MeditationPhase _phase = _MeditationPhase.idle;
   bool _isPaused = false;
-  int _cueIndex = 0;
-  int _countdownSeconds = 0;
-  int _elapsedSeconds = 0;
+
+  int _trackPositionSec = 0;
+  int _trackDurationSec = kStudioMeditationTracks.first.durationSeconds;
+  int _elapsedSessionSec = 0;
   int _sleepTimerMinutes = 30;
   int _runGeneration = 0;
 
   bool _voiceEnabled = true;
-  double _voiceVolume = 0.85;
-  double _ambientVolume = 0.75;
+  double _voiceVolume = 0.90;
+  double _voiceSpeed = 0.95;
+  double _ambientVolume = 0.45;
   bool _showFullScript = false;
 
-  Timer? _pauseTimer;
   Timer? _sessionTimer;
+
+  StudioMeditationTrack get _selectedTrack =>
+      kStudioMeditationTracks[_selectedTrackIndex];
 
   @override
   void initState() {
     super.initState();
-    _allCues = widget.script.allCues;
     _sleepTimerMinutes = widget.script.defaultTotalDurationMinutes;
     _rippleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
     );
-    unawaited(_initTtsFallback());
-  }
 
-  Future<void> _initTtsFallback() async {
-    try {
-      await _ttsFallback.setLanguage('vi-VN');
-      await _ttsFallback.setSpeechRate(0.35);
-      await _ttsFallback.setPitch(0.85);
-      await _ttsFallback.setVolume(_voiceVolume);
-      await _ttsFallback.awaitSpeakCompletion(true);
-    } catch (_) {}
+    _posSub = _voicePlayer.positionStream.listen((pos) {
+      if (!mounted) return;
+      setState(() => _trackPositionSec = pos.inSeconds);
+    });
+    _durSub = _voicePlayer.durationStream.listen((dur) {
+      if (!mounted || dur == null || dur.inSeconds <= 0) return;
+      setState(() => _trackDurationSec = dur.inSeconds);
+    });
+    _stateSub = _voicePlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      if (state.processingState == ProcessingState.completed &&
+          _phase == _MeditationPhase.playing) {
+        setState(() => _phase = _MeditationPhase.outroAmbient);
+      }
+    });
   }
 
   @override
   void dispose() {
     _runGeneration++;
-    _pauseTimer?.cancel();
     _sessionTimer?.cancel();
+    unawaited(_posSub?.cancel());
+    unawaited(_durSub?.cancel());
+    unawaited(_stateSub?.cancel());
     _rippleCtrl.dispose();
-    unawaited(_ttsFallback.stop());
     unawaited(_voicePlayer.dispose());
     unawaited(_ambientPlayer.dispose());
     super.dispose();
   }
 
-  Future<void> _startAmbientAudio() async {
+  Future<void> _startAmbientBrook() async {
     try {
       await _ambientPlayer.setAsset(widget.script.ambientAudioAsset);
       await _ambientPlayer.setLoopMode(LoopMode.one);
@@ -105,8 +114,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     final targetSec = _sleepTimerMinutes * 60;
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _runGeneration != gen) return;
-      setState(() => _elapsedSeconds++);
-      if (_elapsedSeconds >= targetSec) {
+      setState(() => _elapsedSessionSec++);
+      if (_elapsedSessionSec >= targetSec) {
         unawaited(_finishSessionGracefully());
       }
     });
@@ -114,12 +123,10 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
 
   Future<void> _finishSessionGracefully() async {
     _runGeneration++;
-    _pauseTimer?.cancel();
     _sessionTimer?.cancel();
     _rippleCtrl.stop();
     try {
       await _voicePlayer.stop();
-      await _ttsFallback.stop();
       for (int step = 4; step >= 0; step--) {
         await _ambientPlayer.setVolume(_ambientVolume * (step / 4.0));
         await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -130,171 +137,63 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     setState(() {
       _phase = _MeditationPhase.completed;
       _isPaused = false;
-      _countdownSeconds = 0;
     });
   }
 
   void _stopSession() {
     _runGeneration++;
-    _pauseTimer?.cancel();
     _sessionTimer?.cancel();
     _rippleCtrl.stop();
     unawaited(_voicePlayer.stop());
-    unawaited(_ttsFallback.stop());
     unawaited(_ambientPlayer.stop());
     setState(() {
       _phase = _MeditationPhase.idle;
       _isPaused = false;
-      _countdownSeconds = 0;
-      _elapsedSeconds = 0;
+      _trackPositionSec = 0;
+      _elapsedSessionSec = 0;
     });
   }
 
-  void _runCountdown(int seconds, int gen, VoidCallback onComplete) {
-    _pauseTimer?.cancel();
-    if (seconds <= 0) {
-      if (mounted) setState(() => _countdownSeconds = 0);
-      onComplete();
-      return;
-    }
-    int remaining = seconds;
-    if (mounted) setState(() => _countdownSeconds = remaining);
-    _pauseTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted || _runGeneration != gen) {
-        t.cancel();
-        return;
-      }
-      remaining--;
-      setState(() => _countdownSeconds = remaining < 0 ? 0 : remaining);
-      if (remaining <= 0) {
-        t.cancel();
-        onComplete();
-      }
-    });
-  }
-
-  Future<void> _playVoiceCueAssetOrFallback(MeditationCue cue, int gen) async {
-    if (!_voiceEnabled) {
-      final estSec = (cue.textVi.split(' ').length / 2.4).round().clamp(4, 14);
-      await Future<void>.delayed(Duration(seconds: estSec));
-      return;
-    }
-
-    // 1. Play studio-synthesized VieNeu-TTS MP3 asset (Kim Chi / Huyen Mi)
-    try {
-      await _voicePlayer.stop();
-      await _voicePlayer.setAsset('assets/audio/meditation/${cue.id}.mp3');
-      await _voicePlayer.setSpeed(cue.isFinalFadeOut ? 0.88 : 0.94);
-      await _voicePlayer.setVolume(
-        cue.isFinalFadeOut
-            ? (_voiceVolume * 0.65).clamp(0.2, 1.0)
-            : _voiceVolume,
-      );
-
-      final completer = Completer<void>();
-      late final StreamSubscription<PlayerState> sub;
-      sub = _voicePlayer.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed &&
-            !completer.isCompleted) {
-          unawaited(sub.cancel());
-          completer.complete();
-        }
-      });
-
-      unawaited(_voicePlayer.play());
-      await completer.future;
-      return;
-    } catch (_) {
-      // 2. Fallback to device TTS if asset playback fails
-      try {
-        await _ttsFallback.setVolume(
-          cue.isFinalFadeOut
-              ? (_voiceVolume * 0.5).clamp(0.18, 1.0)
-              : _voiceVolume,
-        );
-        await _ttsFallback.setPitch(0.85);
-        await _ttsFallback.setSpeechRate(cue.isFinalFadeOut ? 0.30 : 0.35);
-        await _ttsFallback.speak(cue.textVi);
-      } catch (_) {
-        if (_runGeneration == gen) {
-          final estSec =
-              (cue.textVi.split(' ').length / 2.4).round().clamp(4, 14);
-          await Future<void>.delayed(Duration(seconds: estSec));
-        }
-      }
-    }
-  }
-
-  Future<void> _playCueAt(int index, int gen) async {
-    if (!mounted || _runGeneration != gen) return;
-    if (index >= _allCues.length) {
-      setState(() {
-        _phase = _MeditationPhase.outroAmbient;
-        _countdownSeconds = 0;
-      });
-      return;
-    }
-
-    final cue = _allCues[index];
-    setState(() {
-      _cueIndex = index;
-      _phase = _MeditationPhase.speaking;
-      _countdownSeconds = 0;
-    });
-
-    await _playVoiceCueAssetOrFallback(cue, gen);
-
-    if (!mounted || _runGeneration != gen) return;
-
-    if (cue.isFinalFadeOut) {
-      setState(() {
-        _phase = _MeditationPhase.outroAmbient;
-        _countdownSeconds = 0;
-      });
-      return;
-    }
-
-    setState(() => _phase = _MeditationPhase.pausing);
-    _runCountdown(cue.pauseAfterSeconds, gen, () {
-      unawaited(_playCueAt(index + 1, gen));
-    });
-  }
-
-  // Starts immediately at Phần 1 (no 30s intro, no 432Hz tone)
-  Future<void> _startMeditation({int startAtCue = 0}) async {
+  Future<void> _playTrackAtIndex(int idx) async {
     _runGeneration++;
     final gen = _runGeneration;
-    _pauseTimer?.cancel();
     _sessionTimer?.cancel();
-    await _voicePlayer.stop();
-    await _ttsFallback.stop();
-    await _startAmbientAudio();
+
+    final track = kStudioMeditationTracks[idx];
+    setState(() {
+      _selectedTrackIndex = idx;
+      _trackPositionSec = 0;
+      _trackDurationSec = track.durationSeconds;
+      _elapsedSessionSec = 0;
+      _isPaused = false;
+      _phase = _MeditationPhase.playing;
+    });
+
+    await _startAmbientBrook();
+    try {
+      await _voicePlayer.stop();
+      await _voicePlayer.setAsset(track.audioAssetPath);
+      await _voicePlayer.setSpeed(_voiceSpeed);
+      await _voicePlayer.setVolume(_voiceEnabled ? _voiceVolume : 0.0);
+      unawaited(_voicePlayer.play());
+    } catch (_) {}
 
     if (!mounted || _runGeneration != gen) return;
     unawaited(_rippleCtrl.repeat(reverse: true));
-    setState(() {
-      _isPaused = false;
-      _elapsedSeconds = 0;
-      _cueIndex = startAtCue;
-    });
     _startSessionClock(gen);
-    unawaited(_playCueAt(startAtCue, gen));
   }
 
   Future<void> _togglePause() async {
     if (_phase == _MeditationPhase.idle ||
         _phase == _MeditationPhase.completed) {
-      await _startMeditation();
+      await _playTrackAtIndex(_selectedTrackIndex);
       return;
     }
 
     if (!_isPaused) {
-      _runGeneration++;
-      _pauseTimer?.cancel();
       _sessionTimer?.cancel();
       _rippleCtrl.stop();
-      await _voicePlayer.stop();
-      await _ttsFallback.stop();
+      await _voicePlayer.pause();
       await _ambientPlayer.pause();
       if (!mounted) return;
       setState(() => _isPaused = true);
@@ -302,31 +201,22 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       _runGeneration++;
       final gen = _runGeneration;
       unawaited(_ambientPlayer.play());
+      if (_phase == _MeditationPhase.playing) {
+        unawaited(_voicePlayer.play());
+      }
       unawaited(_rippleCtrl.repeat(reverse: true));
       setState(() => _isPaused = false);
       _startSessionClock(gen);
-      if (_phase != _MeditationPhase.outroAmbient) {
-        unawaited(_playCueAt(_cueIndex, gen));
-      }
-    }
-  }
-
-  void _jumpToPart(int partIndex) {
-    final idx = _allCues.indexWhere((c) => c.partIndex == partIndex);
-    if (idx >= 0) {
-      unawaited(_startMeditation(startAtCue: idx));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentCue = _allCues[_cueIndex.clamp(0, _allCues.length - 1)];
+    final track = _selectedTrack;
     final totalTargetSec = _sleepTimerMinutes * 60;
-    final remainingSec =
-        (totalTargetSec - _elapsedSeconds).clamp(0, totalTargetSec);
-    final progress = totalTargetSec > 0
-        ? (_elapsedSeconds / totalTargetSec).clamp(0.0, 1.0)
-        : 0.0;
+    final remainingSessionSec =
+        (totalTargetSec - _elapsedSessionSec).clamp(0, totalTargetSec);
+    final maxDur = _trackDurationSec > 0 ? _trackDurationSec : 1;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
@@ -354,9 +244,9 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                   color: const Color(0xFF7EC8B8).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(
-                  '🌙 ${widget.script.numberLabel} • Hỗ trợ Giấc ngủ Sâu',
-                  style: const TextStyle(
+                child: const Text(
+                  '🌙 Bộ 3 Bài Thiền Buông Thư Phòng Thu',
+                  style: TextStyle(
                     color: Color(0xFF9EE2D4),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
@@ -364,26 +254,32 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                '🌊 ${widget.script.titleVi}',
-                style: const TextStyle(
+              const Text(
+                '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ Sâu',
+                style: TextStyle(
                   color: Color(0xFFF5FAF9),
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                '${widget.script.settingVi}\n${widget.script.soundscapeVi}',
-                style: const TextStyle(
+              const Text(
+                'Chọn 1 trong 3 giọng đọc trầm ấm kết hợp tiếng suối chảy róc rách tự nhiên.',
+                style: TextStyle(
                   color: Color(0xFFB3C8C5),
                   fontSize: 12.5,
                   height: 1.45,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Animated Water Ripple + Live Teleprompter
+              // 3 Studio Track Selection Cards
+              for (int i = 0; i < kStudioMeditationTracks.length; i++)
+                _buildTrackCard(i, kStudioMeditationTracks[i]),
+
+              const SizedBox(height: 12),
+
+              // Active Player Stage with Ripple & Seek Bar
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -403,8 +299,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                         return Transform.scale(
                           scale: scale,
                           child: Container(
-                            width: 68,
-                            height: 68,
+                            width: 62,
+                            height: 62,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -421,19 +317,19 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                               ),
                             ),
                             child: Icon(
-                              _phase == _MeditationPhase.speaking
-                                  ? Icons.record_voice_over_outlined
+                              _phase == _MeditationPhase.playing
+                                  ? Icons.headphones_rounded
                                   : Icons.water_drop_outlined,
                               color: const Color(0xFFE5F9F4),
-                              size: 28,
+                              size: 26,
                             ),
                           ),
                         );
                       },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
-                      _phaseStatusLabel(currentCue),
+                      _statusLabel(track),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFF9EE2D4),
@@ -441,48 +337,47 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      _activeTeleprompterText(currentCue),
+                      _phase == _MeditationPhase.outroAmbient
+                          ? 'Hãy thả lỏng toàn thân và lắng nghe tiếng suối chảy êm dịu để chìm vào giấc ngủ sâu…'
+                          : track.descriptionVi,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFFF1F7F6),
-                        fontSize: 14.5,
-                        height: 1.6,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 13.5,
+                        height: 1.55,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 5,
-                        backgroundColor: Colors.white12,
-                        valueColor:
-                            const AlwaysStoppedAnimation(Color(0xFF7EC8B8)),
-                      ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: _trackPositionSec.clamp(0, maxDur).toDouble(),
+                      min: 0,
+                      max: maxDur.toDouble(),
+                      onChanged: (v) {
+                        setState(() => _trackPositionSec = v.round());
+                        unawaited(_voicePlayer.seek(Duration(seconds: v.round())));
+                      },
                     ),
-                    const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          formatMeditationClock(_elapsedSeconds),
+                          formatMeditationClock(_trackPositionSec),
                           style: const TextStyle(
                             color: Color(0xFF9EB6B3),
                             fontSize: 11.5,
                           ),
                         ),
                         Text(
-                          'Câu ${_cueIndex + 1}/${_allCues.length}',
+                          'Hẹn giờ: ${formatMeditationClock(remainingSessionSec)}',
                           style: const TextStyle(
                             color: Color(0xFF9EB6B3),
                             fontSize: 11.5,
                           ),
                         ),
                         Text(
-                          '-${formatMeditationClock(remainingSec)}',
+                          formatMeditationClock(_trackDurationSec),
                           style: const TextStyle(
                             color: Color(0xFF9EB6B3),
                             fontSize: 11.5,
@@ -522,7 +417,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                     label: Text(
                       _phase == _MeditationPhase.idle ||
                               _phase == _MeditationPhase.completed
-                          ? 'Bắt đầu Thiền Buông Thư Ngay'
+                          ? 'Phát Bài ${track.trackNumber}'
                           : _isPaused
                               ? 'Tiếp tục'
                               : 'Tạm dừng',
@@ -542,16 +437,37 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Sleep Timer Chips
+              // Speed & Sleep Timer Chips
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   const Text(
-                    'Hẹn giờ tắt nhạc:',
+                    'Tốc độ đọc:',
+                    style: TextStyle(color: Color(0xFF9EB6B3), fontSize: 12),
+                  ),
+                  for (final spd in [0.88, 0.95, 1.0])
+                    ChoiceChip(
+                      label: Text('${spd.toStringAsFixed(2)}x'),
+                      selected: (_voiceSpeed - spd).abs() < 0.01,
+                      onSelected: (_) {
+                        setState(() => _voiceSpeed = spd);
+                        unawaited(_voicePlayer.setSpeed(spd));
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Text(
+                    'Hẹn giờ ngủ:',
                     style: TextStyle(color: Color(0xFF9EB6B3), fontSize: 12),
                   ),
                   for (final mins in [15, 30, 45])
@@ -564,17 +480,20 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Audio Mixer Sliders
+              // 2-Channel Volume Sliders
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
-                  '🎙️ Giọng nữ trầm ấm VieNeu-TTS',
+                  '🎙️ Giọng đọc dẫn thiền phòng thu',
                   style: TextStyle(color: Color(0xFFE7F2F0), fontSize: 13.5),
                 ),
                 value: _voiceEnabled,
-                onChanged: (v) => setState(() => _voiceEnabled = v),
+                onChanged: (v) {
+                  setState(() => _voiceEnabled = v);
+                  unawaited(_voicePlayer.setVolume(v ? _voiceVolume : 0.0));
+                },
               ),
               Row(
                 children: [
@@ -623,44 +542,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                 ],
               ),
 
-              const SizedBox(height: 10),
-
-              // 6 Parts Quick Jump
-              const Text(
-                'Chuyển nhanh đến từng phần:',
-                style: TextStyle(
-                  color: Color(0xFF9EB6B3),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final part in widget.script.parts)
-                    ActionChip(
-                      backgroundColor: _phase != _MeditationPhase.idle &&
-                              currentCue.partIndex == part.index
-                          ? const Color(0xFF2D5E55)
-                          : const Color(0xFF1F303B),
-                      side: BorderSide(
-                        color: const Color(0xFF7EC8B8).withValues(alpha: 0.35),
-                      ),
-                      label: Text(
-                        'Phần ${part.index}: ${part.bodyRegionVi}',
-                        style: const TextStyle(
-                          color: Color(0xFFE6F5F2),
-                          fontSize: 12,
-                        ),
-                      ),
-                      onPressed: () => _jumpToPart(part.index),
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
@@ -674,8 +556,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                   ),
                   label: Text(
                     _showFullScript
-                        ? 'Ẩn toàn văn kịch bản'
-                        : 'Xem toàn văn kịch bản & [Nghỉ Xs]',
+                        ? 'Ẩn kịch bản chữ'
+                        : 'Xem kịch bản chữ 6 phần',
                     style: const TextStyle(
                       color: Color(0xFF9EE2D4),
                       fontSize: 12.5,
@@ -702,9 +584,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
-                        cue.pauseAfterSeconds > 0
-                            ? '${cue.textVi}  [Nghỉ ${cue.pauseAfterSeconds}s]'
-                            : cue.textVi,
+                        cue.textVi,
                         style: const TextStyle(
                           color: Color(0xFFD5E3E1),
                           fontSize: 12.5,
@@ -721,32 +601,98 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     );
   }
 
-  String _phaseStatusLabel(MeditationCue currentCue) {
-    switch (_phase) {
-      case _MeditationPhase.idle:
-        return '✨ Sẵn sàng buông thư — Bấm phát để vào ngay Phần 1';
-      case _MeditationPhase.speaking:
-        return '🎙️ ${currentCue.partTitleVi}';
-      case _MeditationPhase.pausing:
-        return '🍃 ${currentCue.partTitleVi} • Thả lỏng (${_countdownSeconds}s)';
-      case _MeditationPhase.outroAmbient:
-        return '🌌 Giọng đọc đã lắng xuống — Giữ tiếng suối chảy êm dịu ru ngủ';
-      case _MeditationPhase.completed:
-        return '🌙 Đã hoàn tất phiên thiền — Chúc bạn ngủ ngon';
-    }
+  Widget _buildTrackCard(int idx, StudioMeditationTrack track) {
+    final isSelected = _selectedTrackIndex == idx;
+    final isPlayingThis =
+        isSelected && _phase == _MeditationPhase.playing && !_isPaused;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => unawaited(_playTrackAtIndex(idx)),
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF7EC8B8).withValues(alpha: 0.16)
+                : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF7EC8B8)
+                  : Colors.white.withValues(alpha: 0.14),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7EC8B8).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      track.voiceStyleBadgeVi,
+                      style: const TextStyle(
+                        color: Color(0xFFA3E8D9),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    isPlayingThis
+                        ? '🔊 Đang phát'
+                        : '⏱ ${formatMeditationClock(track.durationSeconds)}',
+                    style: const TextStyle(
+                      color: Color(0xFF9EB6B3),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                track.titleVi,
+                style: const TextStyle(
+                  color: Color(0xFFF7FBFA),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                track.voiceNameVi,
+                style: const TextStyle(
+                  color: Color(0xFF9EE2D4),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  String _activeTeleprompterText(MeditationCue currentCue) {
+  String _statusLabel(StudioMeditationTrack track) {
     switch (_phase) {
       case _MeditationPhase.idle:
-        return '“Hãy nằm xuống, để cơ thể bạn được nâng niu bởi mặt đất, như được ôm trọn trong vòng tay của đất mẹ dịu dàng.”';
-      case _MeditationPhase.speaking:
-      case _MeditationPhase.pausing:
-        return '“${currentCue.textVi}”';
+        return '✨ Sẵn sàng: ${track.titleVi}';
+      case _MeditationPhase.playing:
+        return '🎙️ ${track.voiceNameVi}';
       case _MeditationPhase.outroAmbient:
-        return widget.script.outroNoteVi;
+        return '🌌 Giọng đọc đã kết thúc — Giữ tiếng suối chảy ru ngủ';
       case _MeditationPhase.completed:
-        return 'Chúc bạn một giấc ngủ thật sâu, an lành và trọn vẹn.';
+        return '🌙 Đã hoàn tất phiên thiền — Chúc bạn ngủ ngon';
     }
   }
 }

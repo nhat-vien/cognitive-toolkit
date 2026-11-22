@@ -297,6 +297,53 @@ export const SCRIPT_1_BROOK_432HZ: SleepMeditationScript = {
   ],
 };
 
+export interface StudioMeditationTrack {
+  readonly id: string;
+  readonly trackNumber: number;
+  readonly titleVi: string;
+  readonly voiceNameVi: string;
+  readonly voiceStyleBadgeVi: string;
+  readonly descriptionVi: string;
+  readonly durationSeconds: number;
+  readonly audioUrl: string;
+}
+
+export const STUDIO_MEDITATION_TRACKS: readonly StudioMeditationTrack[] = [
+  {
+    id: 'voice-1-suoi-mat',
+    trackNumber: 1,
+    titleVi: 'Bài 1: Thiền Buông Thư Bên Dòng Suối Mát',
+    voiceNameVi: 'Giọng Nam Trầm Ấm (DgNguyen)',
+    voiceStyleBadgeVi: 'Nam · Miền Bắc · Trầm ấm',
+    descriptionVi:
+      'Hãy nằm xuống để cơ thể được nâng niu bởi đất mẹ dịu dàng, thả lỏng từng nhịp thở cho mọi lo lắng tan dần.',
+    durationSeconds: 264, // 04:24
+    audioUrl: '/audio/meditation/voice_1_suoi_mat_nam_tram.mp3',
+  },
+  {
+    id: 'voice-2-haven-got-rua',
+    trackNumber: 2,
+    titleVi: 'Bài 2: Thiền Buông Thư Cùng Haven — Gột Rửa Phiền Lo',
+    voiceNameVi: 'Giọng Nữ Dịu Ấm (Vita)',
+    voiceStyleBadgeVi: 'Nữ · Dịu dàng · Ấm áp',
+    descriptionVi:
+      'Thiết kế dành riêng cho bạn để gột rửa mọi phiền lo và vỗ về tâm trí sau một ngày dài vất vả.',
+    durationSeconds: 359, // 05:59
+    audioUrl: '/audio/meditation/voice_2_haven_got_rua_phien_lo_nu_am.mp3',
+  },
+  {
+    id: 'voice-3-giac-ngu-sau',
+    trackNumber: 3,
+    titleVi: 'Bài 3: Thiền Buông Thư Giấc Ngủ Sâu — Ôm Trọn Bình Yên',
+    voiceNameVi: 'Giọng Nam Trầm Sâu (DgNguyen)',
+    voiceStyleBadgeVi: 'Nam · Miền Bắc · Trầm sâu',
+    descriptionVi:
+      'Thả lỏng toàn thân trên chiếc giường êm ái, dẫn dắt nhịp chậm rãi giúp bạn dễ dàng chìm vào giấc ngủ sâu.',
+    durationSeconds: 363, // 06:03
+    audioUrl: '/audio/meditation/voice_3_giac_ngu_sau_nam_tram_sau.mp3',
+  },
+];
+
 export const SLEEP_MEDITATION_SCRIPTS: readonly SleepMeditationScript[] = [SCRIPT_1_BROOK_432HZ];
 
 export function flattenMeditationCues(script: SleepMeditationScript): MeditationCue[] {

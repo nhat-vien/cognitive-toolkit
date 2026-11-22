@@ -35,6 +35,22 @@ void main() {
       expect(kScript1Brook432Hz.totalPauseSeconds, equals(297));
     });
 
+    test('provides all 3 studio voice tracks from ./voice', () {
+      expect(kStudioMeditationTracks.length, equals(3));
+      expect(
+        kStudioMeditationTracks[0].audioAssetPath,
+        equals('assets/audio/meditation/voice_1_suoi_mat_nam_tram.mp3'),
+      );
+      expect(
+        kStudioMeditationTracks[1].audioAssetPath,
+        equals('assets/audio/meditation/voice_2_haven_got_rua_phien_lo_nu_am.mp3'),
+      );
+      expect(
+        kStudioMeditationTracks[2].audioAssetPath,
+        equals('assets/audio/meditation/voice_3_giac_ngu_sau_nam_tram_sau.mp3'),
+      );
+    });
+
     test('formatMeditationClock formats mm:ss cleanly', () {
       expect(formatMeditationClock(0), equals('00:00'));
       expect(formatMeditationClock(30), equals('00:30'));
