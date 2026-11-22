@@ -89,7 +89,7 @@ export function generateSocraticPushbackPrompt(params: {
           : '💡 Gợi mở suy nghĩ: ';
     return {
       shouldHoldStep: true,
-      promptVi: `${tonePrefix}Bước "${params.stepTitleVi}" thường mang lại sự nhẹ nhõm và chuyển hóa lớn nhất. Bạn có muốn thử tìm 1 ý nhỏ thôi trước khi bỏ qua không? (Hoặc bấm "Dịu dàng" để chuyển tiếp)`,
+      promptVi: `${tonePrefix}"${params.stepTitleVi}" thường mang lại sự nhẹ nhõm và chuyển hóa lớn nhất. Bạn có muốn thử tìm 1 ý nhỏ trước khi bỏ qua không? (Hoặc bấm "Dịu dàng" để chuyển tiếp)`,
       promptEn: `[Socratic Pushback — ${params.level.toUpperCase()} #1] "${params.stepTitleEn}" often unlocks the biggest shift. Would you be willing to try finding just one small point before skipping?`,
     };
   }

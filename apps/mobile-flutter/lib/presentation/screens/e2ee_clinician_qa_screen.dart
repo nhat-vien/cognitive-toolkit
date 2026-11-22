@@ -217,15 +217,22 @@ class _E2eeClinicianQaScreenState extends State<E2eeClinicianQaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                const Icon(Icons.enhanced_encryption, color: Color(0xFF1E4E44)),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    '1. Zero-Knowledge E2EE Sync (24-Word Master Recovery Key & CRDT)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.enhanced_encryption, color: Color(0xFF1E4E44)),
+                    SizedBox(width: 8),
+                    Text(
+                      '1. Đồng Bộ E2EE Không Lưu Khóa',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
                 Chip(
                   label: Text(
@@ -361,18 +368,25 @@ class _E2eeClinicianQaScreenState extends State<E2eeClinicianQaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                const Icon(
-                  Icons.medical_information_outlined,
-                  color: Color(0xFF1E4E44),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    '2. Cổng Bác sĩ Zero-Knowledge (#key=...) & Báo cáo PDF Chuẩn A4',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.medical_information_outlined,
+                      color: Color(0xFF1E4E44),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '2. Cổng Bác Sĩ & Báo Cáo PDF Chuẩn A4',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
                 SegmentedButton<int>(
                   segments: const [
@@ -486,18 +500,25 @@ class _E2eeClinicianQaScreenState extends State<E2eeClinicianQaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                const Icon(Icons.verified_user, color: Color(0xFF1E4E44)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '3. Kiểm định Lâm sàng Red-Team (${_redTeamAudit.passedCases}/${_redTeamAudit.totalCases} • ${_redTeamAudit.passRatePct}%) & Chuẩn Y tế Số',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_user, color: Color(0xFF1E4E44)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '3. Kiểm Định Red-Team (${_redTeamAudit.passedCases}/${_redTeamAudit.totalCases} • ${_redTeamAudit.passRatePct}%)',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 FilledButton.tonalIcon(
                   onPressed: _rerun105RedTeamAudit,

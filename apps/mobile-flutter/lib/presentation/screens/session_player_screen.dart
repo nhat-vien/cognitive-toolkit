@@ -325,31 +325,65 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
               }),
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Expanded(
-                  child: Text(
-                    'Socratic Pushback: ${_snapshot.pushbackLevel.code.toUpperCase()}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.psychology_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Socratic Pushback: ${_snapshot.pushbackLevel.code.toUpperCase()}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
-                TextButton.icon(
-                  onPressed: () => setState(() {
-                    _snapshot = _snapshot.copyWith(
-                      pushbackLevel: _snapshot.pushbackLevel.softer(),
-                    );
-                  }),
-                  icon: const Icon(Icons.arrow_downward, size: 16),
-                  label: const Text('Nhẹ hơn (Softer)'),
-                ),
-                TextButton.icon(
-                  onPressed: () => setState(() {
-                    _snapshot = _snapshot.copyWith(
-                      pushbackLevel: _snapshot.pushbackLevel.harder(),
-                    );
-                  }),
-                  icon: const Icon(Icons.arrow_upward, size: 16),
-                  label: const Text('Sâu hơn (Harder)'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => setState(() {
+                        _snapshot = _snapshot.copyWith(
+                          pushbackLevel: _snapshot.pushbackLevel.softer(),
+                        );
+                      }),
+                      icon: const Icon(Icons.arrow_downward, size: 14),
+                      label: const Text('Nhẹ hơn', style: TextStyle(fontSize: 12)),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => setState(() {
+                        _snapshot = _snapshot.copyWith(
+                          pushbackLevel: _snapshot.pushbackLevel.harder(),
+                        );
+                      }),
+                      icon: const Icon(Icons.arrow_upward, size: 14),
+                      label: const Text('Sâu hơn', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -738,22 +772,35 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Expanded(
-                  child: Text(
-                    step.titleVi,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  step.titleVi,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Chip(
-                  label: Text(
-                    'Bước ${_snapshot.currentStepIndex + 1}/${steps.length} • Zone: ${step.zone.name}',
-                    style: const TextStyle(fontSize: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Bước ${_snapshot.currentStepIndex + 1}/${steps.length} • ${step.zone.name}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ),
               ],
@@ -791,13 +838,16 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   OutlinedButton(
                     onPressed: _handleAttemptSkipCurrentStep,
-                    child: const Text('Bỏ qua bước này (Skip)'),
+                    child: const Text('Bỏ qua bước này'),
                   ),
-                  const Spacer(),
                   FilledButton.icon(
                     onPressed: _handleStepSubmit,
                     icon: const Icon(Icons.arrow_forward),

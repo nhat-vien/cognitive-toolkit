@@ -971,13 +971,15 @@ class _MainShellScreenState extends State<MainShellScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 84),
       children: [
-        Row(
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
           children: [
-            const Expanded(
-              child: Text(
-                'Các Bài Tự Kiểm Tra Sức Khỏe Tâm Trí Định Kỳ',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-              ),
+            const Text(
+              'Các Bài Tự Kiểm Tra Sức Khỏe Định Kỳ',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             TextButton(
               onPressed: () => setState(

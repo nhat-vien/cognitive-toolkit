@@ -160,22 +160,45 @@ class _AiCompanionBiometricsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Icon(Icons.verified_user_outlined, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Grounded AI Companion (Ngưỡng RAG = 0.46 • 100% Abstention • Local Ollama Bridge)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_user_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Trợ lý AI Tham vấn Lâm sàng',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Grounded RAG • Local Ollama Bridge',
+                          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Chip(
-                  label: Text(
-                    'Threshold >= $kClinicalRagAbstentionThreshold',
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.teal.shade300),
+                  ),
+                  child: const Text(
+                    'Ngưỡng RAG >= $kClinicalRagAbstentionThreshold',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
+                      color: Colors.teal,
                     ),
                   ),
                 ),
@@ -362,24 +385,45 @@ class _AiCompanionBiometricsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                const Icon(Icons.memory, size: 20),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Trình Kiểm tra Bộ nhớ 2 Tầng (2-Tier Clinical Memory Inspector)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.memory, size: 20),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Kiểm tra Bộ nhớ Lâm sàng 2 Tầng',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '2-Tier Memory Inspector • Bảo vệ danh tính',
+                          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: () {
                     setState(() {
                       _companionService.memoryStore.eraseAllDerivedMemory();
                     });
                   },
-                  icon: const Icon(Icons.delete_forever, size: 18),
-                  label: const Text('Xóa Bộ nhớ Suy diễn (Erase)'),
+                  icon: const Icon(Icons.delete_forever, size: 15),
+                  label: const Text('Xóa Bộ nhớ Suy diễn', style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
@@ -466,9 +510,19 @@ class _AiCompanionBiometricsScreenState
                 Icon(Icons.mic_none_outlined, size: 22),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Hold-to-Record Voice "Burst" Studio • Cảnh báo Nói nhanh Hưng cảm (> +30% WPM) & Mood-Palette',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Phòng Thu Âm Xả Cảm Xúc (Audio Burst)',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Đo tốc độ lời nói & Cảnh báo nói nhanh hưng cảm (> +30% WPM)',
+                        style: TextStyle(fontSize: 11.5, color: Colors.black54),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -716,9 +770,19 @@ class _AiCompanionBiometricsScreenState
                 const Icon(Icons.monitor_heart_outlined, size: 22),
                 const SizedBox(width: 8),
                 const Expanded(
-                  child: Text(
-                    'HealthKit (iOS) & Health Connect (Android) • Baseline-Relative HRV (14–30 Ngày) & Giấc ngủ',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Đồng Bộ Dữ Liệu Sinh Học (HRV & Giấc Ngủ)',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Apple HealthKit & Health Connect • 14–30 Ngày Baseline',
+                        style: TextStyle(fontSize: 11.5, color: Colors.black54),
+                      ),
+                    ],
                   ),
                 ),
                 Switch(

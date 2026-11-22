@@ -277,19 +277,30 @@ class _BipolarHubScreenState extends State<BipolarHubScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                const Expanded(
-                  child: Text(
-                    '5 Điểm Neo Nhịp Sinh Học IPSRT (Social Rhythm Metric)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                const Text(
+                  '5 Điểm Neo Nhịp Sinh Học (IPSRT)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Chip(
-                  label: Text(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.teal.shade300),
+                  ),
+                  child: Text(
                     'Ổn định: ${stabilityScore.toStringAsFixed(0)}/100',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade900,
+                    ),
                   ),
                 ),
               ],

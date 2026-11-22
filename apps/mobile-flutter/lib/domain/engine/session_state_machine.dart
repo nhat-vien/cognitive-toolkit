@@ -823,7 +823,7 @@ class SessionStateMachine {
 
     if (nextAttempt == 1) {
       promptVi =
-          '[Gợi mở Socratic Lần 1] Bước "${step.titleVi}" thường mang lại chuyển hóa lớn nhất. Bạn có muốn thử tìm dù chỉ 1 ý nhỏ thôi trước khi đi tiếp không?';
+          '[Gợi mở Socratic Lần 1] "${step.titleVi}" thường mang lại chuyển hóa lớn nhất. Bạn có muốn thử tìm dù chỉ 1 ý nhỏ trước khi đi tiếp không?';
       promptEn =
           '[Socratic Nudge 1] "${step.titleEn}" often brings the biggest shift. Would you be willing to try jotting down just one small point?';
     } else if (nextAttempt == 2) {
