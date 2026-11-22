@@ -1111,6 +1111,36 @@ test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in 
   signOutUserAccount();
 });
 
+import {
+  SCRIPT_1_BROOK_432HZ,
+  SleepMeditationAudioEngine,
+  computeScriptPauseTotalSeconds,
+  flattenMeditationCues,
+  formatMeditationClock,
+} from '../src/clinical/index.ts';
+
+test('12. Sleep Support — Thiền Buông Thư Bên Dòng Suối Mát (432Hz + Brook Audio Engine & Exact Pauses)', () => {
+  assert.equal(SCRIPT_1_BROOK_432HZ.parts.length, 6);
+  const cues = flattenMeditationCues(SCRIPT_1_BROOK_432HZ);
+  assert.equal(cues.length, 27);
+  assert.equal(SCRIPT_1_BROOK_432HZ.introAmbientSeconds, 30);
+  assert.equal(SCRIPT_1_BROOK_432HZ.defaultTotalDurationMinutes, 30);
+  assert.equal(computeScriptPauseTotalSeconds(SCRIPT_1_BROOK_432HZ), 297);
+  assert.equal(cues[0]?.pauseAfterSeconds, 5);
+  assert.equal(cues[cues.length - 1]?.isFinalFadeOut, true);
+  assert.equal(formatMeditationClock(1800), '30:00');
+
+  const engine = new SleepMeditationAudioEngine();
+  assert.equal(engine.isPlaying(), false);
+  const started = engine.start({ brookVolume: 0.6, freq432Volume: 0.4 });
+  assert.equal(started.started, true);
+  assert.equal(engine.isPlaying(), true);
+  engine.setBrookVolume(0.7);
+  engine.setFreq432Volume(0.3);
+  engine.stop(0.2);
+  assert.equal(engine.isPlaying(), false);
+});
+
 
 
 

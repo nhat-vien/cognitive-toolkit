@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { SleepMeditationPlayer } from './SleepMeditationPlayer.tsx';
 import {
   BREATHING_PATTERNS,
   DBT_STOP_STEPS,
@@ -278,7 +279,7 @@ export function EquilibriaClinicalApp() {
   >('catalog-36');
   const [tab1SubView, setTab1SubView] = useState<'companion' | 'practice-7' | 'emotions'>('companion');
   const [tab2SubView, setTab2SubView] = useState<'worry-box' | 'wave-90s' | 'exposure' | 'prediction'>('worry-box');
-  const [tab3SubView, setTab3SubView] = useState<'mood-chart' | 'ipsrt-rhythm' | 'safety-plan'>('mood-chart');
+  const [tab3SubView, setTab3SubView] = useState<'mood-chart' | 'ipsrt-rhythm' | 'safety-plan' | 'sleep-meditation'>('mood-chart');
   const [tab4SubView, setTab4SubView] = useState<'scales-6' | 'doctor-report'>('scales-6');
   const [tab6SubView, setTab6SubView] = useState<'ai-chat' | 'voice-palette' | 'hrv-memory'>('ai-chat');
   const [tab7SubView, setTab7SubView] = useState<'profile' | 'doctor-link' | 'recovery-key'>('profile');
@@ -3540,6 +3541,7 @@ export function EquilibriaClinicalApp() {
                 {(
                   [
                     ['mood-chart', '📊', lang === 'vi' ? 'Biểu đồ Tâm trạng & Giấc ngủ' : 'Mood & Sleep Chart'],
+                    ['sleep-meditation', '🌊', lang === 'vi' ? 'Thiền Buông Thư Giấc Ngủ (432Hz)' : 'Sleep Body-Scan Meditation'],
                     ['ipsrt-rhythm', '🕰️', lang === 'vi' ? 'Nhịp sinh hoạt hàng ngày' : 'Daily Rhythm Anchors'],
                     ['safety-plan', '🛡️', lang === 'vi' ? 'Khoang suy nghĩ 48 giờ & Kế hoạch an toàn' : '48h Reflection & Care Plan'],
                   ] as const
@@ -3823,6 +3825,10 @@ export function EquilibriaClinicalApp() {
                       : medAdherenceReview.balancedAdherenceThoughtEn}
                   </p>
                 </section>
+              )}
+
+              {tab3SubView === 'sleep-meditation' && (
+                <SleepMeditationPlayer lang={lang} />
               )}
             </main>
           )}

@@ -26,6 +26,7 @@ import 'assessment_runner_screen.dart';
 import 'bipolar_hub_screen.dart';
 import 'e2ee_clinician_qa_screen.dart';
 import 'session_player_screen.dart';
+import 'sleep_meditation_screen.dart';
 import 'sos_portal_screen.dart';
 import 'tools_36_and_team_cbt_screen.dart';
 
@@ -93,6 +94,7 @@ class MainShellScreen extends StatefulWidget {
 class _MainShellScreenState extends State<MainShellScreen> {
   int _navIndex = 0;
   int _practiceSubIndex = 0; // 0: SessionPlayer, 1: Anxiety Hub, 2: 36 Tools
+  int _moodSubIndex = 0; // 0: Bipolar & Rhythm Hub, 1: Sleep Meditation (432Hz)
   int _checkSubIndex = 0; // 0: 6 Questionnaires, 1: Doctor Report & E2EE, 2: Profile
   bool _showAdvancedBipolarScales = false;
 
@@ -471,15 +473,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       case 1:
         return _buildPracticeHubTab();
       case 2:
-        return BipolarHubScreen(
-          moodLogs: widget.moodLogs,
-          impulseVaultItems: widget.impulseVaultItems,
-          ulyssesContract: widget.ulyssesContract,
-          latestAsrmScore: widget.latestAsrmScore,
-          onAddMoodLog: (_) {},
-          onAddImpulseVaultItem: widget.onAddImpulseVaultItem,
-          onUpdateUlyssesContract: widget.onUpdateUlyssesContract,
-        );
+        return _buildMoodAndSleepHubTab();
       case 3:
         return AiCompanionBiometricsScreen(
           currentMoodPolarity: widget.moodPolarity,
@@ -490,6 +484,49 @@ class _MainShellScreenState extends State<MainShellScreen> {
       default:
         return _buildAssessmentsAndProfileHubTab();
     }
+  }
+
+  Widget _buildMoodAndSleepHubTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(
+                  value: 0,
+                  icon: Icon(Icons.nights_stay_outlined, size: 17),
+                  label: Text('Khí sắc & Nhịp'),
+                ),
+                ButtonSegment(
+                  value: 1,
+                  icon: Icon(Icons.water_drop_outlined, size: 17),
+                  label: Text('Thiền Ngủ 432Hz'),
+                ),
+              ],
+              selected: {_moodSubIndex},
+              onSelectionChanged: (s) =>
+                  setState(() => _moodSubIndex = s.first),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _moodSubIndex == 0
+              ? BipolarHubScreen(
+                  moodLogs: widget.moodLogs,
+                  impulseVaultItems: widget.impulseVaultItems,
+                  ulyssesContract: widget.ulyssesContract,
+                  latestAsrmScore: widget.latestAsrmScore,
+                  onAddMoodLog: (_) {},
+                  onAddImpulseVaultItem: widget.onAddImpulseVaultItem,
+                  onUpdateUlyssesContract: widget.onUpdateUlyssesContract,
+                )
+              : const SleepMeditationScreen(),
+        ),
+      ],
+    );
   }
 
   Widget _buildCheckInAndAdaptiveHomeTab() {
@@ -669,6 +706,60 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ),
             ),
           ),
+
+        const SizedBox(height: 12),
+
+        // Quick-Launch Night Sanctuary: Thiền Buông Thư Giấc Ngủ (432Hz + Tiếng Suối)
+        Card(
+          color: const Color(0xFF15222C),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: const Color(0xFF7EC8B8).withValues(alpha: 0.35),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ (432Hz)',
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFF3FAF8),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Kịch bản 1: Thiền Buông Thư Bên Dòng Suối Mát — Tiếng suối chảy róc rách + Sóng âm 432Hz + Giọng đọc dẫn thiền 6 phần (30 phút).',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: Color(0xFFB7CECA),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF63B3A1),
+                    foregroundColor: const Color(0xFF0A1715),
+                  ),
+                  onPressed: () => setState(() {
+                    _navIndex = 2;
+                    _moodSubIndex = 1;
+                  }),
+                  icon: const Icon(Icons.headphones_outlined, size: 18),
+                  label: const Text(
+                    'Nghe Thiền Buông Thư Ngay',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
         const SizedBox(height: 12),
 
