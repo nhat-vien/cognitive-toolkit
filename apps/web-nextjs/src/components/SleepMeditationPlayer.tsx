@@ -33,12 +33,12 @@ export function SleepMeditationPlayer({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(script.defaultTotalDurationMinutes);
 
-  // Audio mixer controls
+  // Audio mixer controls (tuned for warm, soothing night listening)
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [voiceVolume, setVoiceVolume] = useState(0.88);
-  const [voiceRate, setVoiceRate] = useState(0.78);
-  const [brookVolume, setBrookVolume] = useState(0.58);
-  const [freq432Volume, setFreq432Volume] = useState(0.38);
+  const [voiceVolume, setVoiceVolume] = useState(0.72);
+  const [voiceRate, setVoiceRate] = useState(0.68);
+  const [brookVolume, setBrookVolume] = useState(0.78);
+  const [freq432Volume, setFreq432Volume] = useState(0.20);
   const [showFullScript, setShowFullScript] = useState(false);
 
   const voiceEnabledRef = useRef(voiceEnabled);
@@ -188,18 +188,28 @@ export function SleepMeditationPlayer({
         window.speechSynthesis.cancel();
         const utterance = new window.SpeechSynthesisUtterance(cue.textVi);
         utterance.lang = 'vi-VN';
-        utterance.rate = cue.isFinalFadeOut ? Math.max(0.65, voiceRateRef.current - 0.1) : voiceRateRef.current;
-        utterance.pitch = 0.92;
+        utterance.rate = cue.isFinalFadeOut
+          ? Math.max(0.56, voiceRateRef.current - 0.08)
+          : voiceRateRef.current;
+        // Warm, soft, low-pitch female tone (eliminates sharp/shrill TTS edge)
+        utterance.pitch = 0.84;
         utterance.volume = cue.isFinalFadeOut
-          ? Math.max(0.25, voiceVolumeRef.current * 0.55)
+          ? Math.max(0.20, voiceVolumeRef.current * 0.5)
           : voiceVolumeRef.current;
 
         const voices = window.speechSynthesis.getVoices();
-        const viVoice =
-          voices.find((v) => v.lang.toLowerCase().includes('vi')) ??
-          voices.find((v) => v.name.toLowerCase().includes('viet'));
-        if (viVoice) {
-          utterance.voice = viVoice;
+        const viVoices = voices.filter(
+          (v) => v.lang.toLowerCase().includes('vi') || v.name.toLowerCase().includes('viet'),
+        );
+        // Prioritize natural warm female Vietnamese voices (HoaiMy, Linh, Google Tiếng Việt)
+        // and avoid male voices (NamMinh, An)
+        const preferredFemaleVoice =
+          viVoices.find((v) => /hoaimy|hoài my/i.test(v.name) && /natural|online/i.test(v.name)) ??
+          viVoices.find((v) => /hoaimy|hoài my|linh|female|nữ/i.test(v.name)) ??
+          viVoices.find((v) => !/namminh|nam minh|\ban\b|male|nam/i.test(v.name)) ??
+          viVoices[0];
+        if (preferredFemaleVoice) {
+          utterance.voice = preferredFemaleVoice;
         }
 
         utterance.onend = () => {
@@ -568,10 +578,10 @@ export function SleepMeditationPlayer({
             style={{ width: '100%' }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9eb6b3', marginTop: '4px' }}>
-            <span>Tốc độ đọc: {voiceRate.toFixed(2)}x</span>
+            <span>Tốc độ đọc: {voiceRate.toFixed(2)}x (Nữ trầm ấm)</span>
             <button
               type="button"
-              onClick={() => setVoiceRate((r) => (r <= 0.72 ? 0.85 : 0.72))}
+              onClick={() => setVoiceRate((r) => (r <= 0.65 ? 0.74 : 0.62))}
               style={{
                 background: 'none',
                 border: 'none',
@@ -582,7 +592,7 @@ export function SleepMeditationPlayer({
                 textDecoration: 'underline',
               }}
             >
-              {voiceRate <= 0.75 ? 'Đổi chậm vừa' : 'Đổi siêu chậm'}
+              {voiceRate <= 0.65 ? 'Đổi chậm vừa' : 'Đổi siêu chậm'}
             </button>
           </div>
         </div>

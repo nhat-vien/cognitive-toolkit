@@ -63,19 +63,17 @@ def generate_brook_432hz_wav(output_path: str, duration_sec: float = 16.0, sampl
         hp_prev = hp_out
         hp_in_prev = brook_raw
 
-        # Smooth soft trickle shimmer
-        lp_trickle = lp_trickle + 0.35 * (hp_out - lp_trickle)
-        brook = lp_trickle * 0.42
+        # Smooth soft trickle shimmer — boosted slightly for lush, soothing brook presence
+        lp_trickle = lp_trickle + 0.30 * (hp_out - lp_trickle)
+        brook = lp_trickle * 0.68
 
-        # 2. Warm 432Hz Harmonic Soundscape
-        breath_lfo = 0.78 + 0.22 * math.sin(two_pi * (2.0 / duration_sec) * t)
-        shimmer_lfo = 0.85 + 0.15 * math.sin(two_pi * (3.0 / duration_sec) * t + 1.0)
+        # 2. Warm, subtle 432Hz Harmonic Undertone (softened significantly, no shrill 648Hz overtone)
+        breath_lfo = 0.80 + 0.20 * math.sin(two_pi * (2.0 / duration_sec) * t)
 
-        tone_216 = math.sin(two_pi * 216.0 * t) * 0.10 * breath_lfo
-        tone_432 = math.sin(two_pi * 432.0 * t) * 0.14 * breath_lfo
-        tone_648 = math.sin(two_pi * 648.0 * t) * 0.03 * shimmer_lfo
+        tone_216 = math.sin(two_pi * 216.0 * t) * 0.042 * breath_lfo
+        tone_432 = math.sin(two_pi * 432.0 * t) * 0.030 * breath_lfo
 
-        harmonic_432 = tone_216 + tone_432 + tone_648
+        harmonic_432 = tone_216 + tone_432
 
         raw[i] = brook + harmonic_432
 

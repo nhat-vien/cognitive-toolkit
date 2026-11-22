@@ -49,8 +49,8 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   int _runGeneration = 0;
 
   bool _voiceEnabled = true;
-  double _voiceVolume = 0.88;
-  double _ambientVolume = 0.62;
+  double _voiceVolume = 0.72;
+  double _ambientVolume = 0.78;
   bool _showFullScript = false;
 
   Timer? _pauseTimer;
@@ -71,10 +71,47 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   Future<void> _initAudioAndTts() async {
     try {
       await _tts.setLanguage('vi-VN');
-      await _tts.setSpeechRate(0.42);
-      await _tts.setPitch(0.95);
+      // Slower, deeper, warm female voice configuration (avoids shrill tone)
+      await _tts.setSpeechRate(0.35);
+      await _tts.setPitch(0.85);
       await _tts.setVolume(_voiceVolume);
       await _tts.awaitSpeakCompletion(true);
+
+      // Prefer warm female Vietnamese voices on Android (gft/vie/vic) & iOS (Linh)
+      final dynamic rawVoices = await _tts.getVoices;
+      if (rawVoices is List) {
+        final viVoices = rawVoices
+            .whereType<Map<dynamic, dynamic>>()
+            .where((v) => (v['locale']?.toString().toLowerCase() ?? '')
+                .startsWith('vi'))
+            .toList();
+        if (viVoices.isNotEmpty) {
+          Map<dynamic, dynamic>? chosen;
+          for (final v in viVoices) {
+            final name = v['name']?.toString().toLowerCase() ?? '';
+            if (name.contains('linh') ||
+                name.contains('hoaimy') ||
+                name.contains('female') ||
+                name.contains('gft') ||
+                name.contains('vie')) {
+              chosen = v;
+              break;
+            }
+          }
+          chosen ??= viVoices.firstWhere(
+            (v) {
+              final name = v['name']?.toString().toLowerCase() ?? '';
+              return !name.contains('male') && !name.contains('vid');
+            },
+            orElse: () => viVoices.first,
+          );
+          final name = chosen['name']?.toString();
+          final locale = chosen['locale']?.toString();
+          if (name != null && locale != null) {
+            await _tts.setVoice({'name': name, 'locale': locale});
+          }
+        }
+      }
     } catch (_) {
       // Gracefully continue if TTS engine is unavailable (e.g., headless test)
     }
@@ -195,10 +232,11 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
       try {
         await _tts.setVolume(
           cue.isFinalFadeOut
-              ? (_voiceVolume * 0.55).clamp(0.2, 1.0)
+              ? (_voiceVolume * 0.50).clamp(0.18, 1.0)
               : _voiceVolume,
         );
-        await _tts.setSpeechRate(cue.isFinalFadeOut ? 0.36 : 0.42);
+        await _tts.setPitch(0.85);
+        await _tts.setSpeechRate(cue.isFinalFadeOut ? 0.30 : 0.35);
         await _tts.speak(cue.textVi);
       } catch (_) {
         // Fallback timed reading if TTS fails

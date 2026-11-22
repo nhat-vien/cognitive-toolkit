@@ -1,8 +1,8 @@
 {
   "version": "1.0.2",
-  "buildNumber": 4,
-  "releaseName": "Haven — Hỗ Trợ Giấc Ngủ Thiền Buông Thư 432Hz & OTA",
-  "releaseNotesVi": "• Bổ sung tính năng Hỗ trợ Giấc ngủ bằng Thiền Buông Thư (Kịch bản 1: Thiền Buông Thư Bên Dòng Suối Mát — Tiếng suối chảy róc rách + Sóng âm 432Hz + Giọng đọc dẫn thiền tiếng Việt 6 phần với nhịp nghỉ chuẩn [Nghỉ Xs] và hẹn giờ ngủ 30 phút).\n• Sửa triệt để lỗi bẻ gãy chữ trong các trang Trợ lý AI và Thực hành 7 bài tập.\n• Tích hợp tính năng Cập nhật OTA (Over-The-Air) trực tiếp ngay trong ứng dụng.",
+  "buildNumber": 5,
+  "releaseName": "Haven — Thiền Buông Thư Giọng Nữ Trầm Ấm & Suối Chảy Dịu Êm",
+  "releaseNotesVi": "• Tinh chỉnh âm thanh Thiền Buông Thư 432Hz: Giảm âm lượng 432Hz dịu nhẹ không chói tai, nâng tiếng suối chảy róc rách ấm áp hơn.\n• Chọn ưu tiên giọng nữ tiếng Việt trầm ấm (pitch 0.85, tốc độ đọc chậm êm 0.35) giúp dễ chìm vào giấc ngủ sâu.\n• Sửa triệt để lỗi bẻ gãy chữ và tích hợp cập nhật OTA trực tiếp trong app.",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",
