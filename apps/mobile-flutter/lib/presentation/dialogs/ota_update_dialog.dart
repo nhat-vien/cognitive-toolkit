@@ -200,7 +200,7 @@ class _OtaUpdateDialogState extends State<OtaUpdateDialog> {
 
             const SizedBox(height: 18),
 
-            // Action Buttons
+            // Action Buttons (Default to compact arm64-v8a APK on Android)
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -215,7 +215,9 @@ class _OtaUpdateDialogState extends State<OtaUpdateDialog> {
                   ),
                   onPressed: _isDownloading
                       ? null
-                      : () => _handleDownload(release.apkUniversalUrl),
+                      : () => _handleDownload(
+                            release.apkArm64Url ?? release.apkUniversalUrl,
+                          ),
                   icon: _isDownloading
                       ? const SizedBox(
                           width: 16,
@@ -227,28 +229,27 @@ class _OtaUpdateDialogState extends State<OtaUpdateDialog> {
                         )
                       : const Icon(Icons.download, size: 18),
                   label: const Text(
-                    'Tải bản APK Universal (Phổ biến)',
+                    'Tải bản cập nhật (arm64-v8a · Gọn nhẹ)',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (release.apkArm64Url != null)
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: _isDownloading
-                        ? null
-                        : () => _handleDownload(release.apkArm64Url!),
-                    icon: const Icon(Icons.bolt, size: 16),
-                    label: const Text(
-                      'Tải bản APK Arm64 (Gọn nhẹ cho máy mới)',
-                      style: TextStyle(fontSize: 12.5),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
+                  onPressed: _isDownloading
+                      ? null
+                      : () => _handleDownload(release.apkUniversalUrl),
+                  icon: const Icon(Icons.devices_other_rounded, size: 16),
+                  label: const Text(
+                    'Tải bản Universal (cho máy Android đời cũ)',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

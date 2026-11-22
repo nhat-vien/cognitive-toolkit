@@ -119,15 +119,19 @@ jobs:
 
       - name: Build Universal & Split APKs + Play Store AppBundle
         run: |
+          OTA_VER=$(python3 -c "import json; print(json.load(open('ota-version.json'))['version'])")
+          OTA_BUILD=$(python3 -c "import json; print(json.load(open('ota-version.json'))['buildNumber'])")
+          echo "Embedding OTA version: $OTA_VER (Build $OTA_BUILD)"
+          DART_FLAGS="--build-name=$OTA_VER --build-number=$OTA_BUILD --dart-define=HAVEN_APP_VERSION=$OTA_VER --dart-define=HAVEN_BUILD_NUMBER=$OTA_BUILD"
           for attempt in 1 2 3; do
-            if flutter build apk --release; then
+            if flutter build apk --release $DART_FLAGS; then
               break
             fi
             echo "Retry flutter build apk ($attempt/3) after transient network error..."
             sleep 15
           done
-          flutter build apk --release --split-per-abi
-          flutter build appbundle --release
+          flutter build apk --release --split-per-abi $DART_FLAGS
+          flutter build appbundle --release $DART_FLAGS
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/haven-android-universal.apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/haven-android-arm64-v8a.apk
@@ -172,7 +176,9 @@ jobs:
 
       - name: Build iOS release binary (unsigned IPA)
         run: |
-          flutter build ios --release --no-codesign
+          OTA_VER=$(python3 -c "import json; print(json.load(open('ota-version.json'))['version'])")
+          OTA_BUILD=$(python3 -c "import json; print(json.load(open('ota-version.json'))['buildNumber'])")
+          flutter build ios --release --no-codesign --build-name=$OTA_VER --build-number=$OTA_BUILD --dart-define=HAVEN_APP_VERSION=$OTA_VER --dart-define=HAVEN_BUILD_NUMBER=$OTA_BUILD
           mkdir -p dist Payload
           cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
           zip -r dist/haven-ios-unsigned.ipa Payload

@@ -8,8 +8,14 @@ import 'dart:io';
 
 import 'package:url_launcher/url_launcher.dart';
 
-const String kCurrentHavenAppVersion = '1.0.1';
-const int kCurrentHavenBuildNumber = 2;
+const String kCurrentHavenAppVersion = String.fromEnvironment(
+  'HAVEN_APP_VERSION',
+  defaultValue: '1.1.2',
+);
+const int kCurrentHavenBuildNumber = int.fromEnvironment(
+  'HAVEN_BUILD_NUMBER',
+  defaultValue: 12,
+);
 
 const String kHavenManifestRawUrl =
     'https://raw.githubusercontent.com/nhat-vien/cognitive-toolkit/main/apps/mobile-flutter/ota-version.json';

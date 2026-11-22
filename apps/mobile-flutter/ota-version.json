@@ -1,8 +1,8 @@
 {
-  "version": "1.1.1",
-  "buildNumber": 11,
-  "releaseName": "Haven v1.1.1 — Tinh Gọn 7 Bài Tập CBT/DBT & Thuần Việt Trợ Lý AI",
-  "releaseNotesVi": "• Làm gọn màn hình Thực hành 7 bài tập CBT/DBT: Mặc định cảm xúc 'Bình ổn / Thăng bằng' thay vì ép chọn Lo âu, thanh cường độ cảm xúc tự động đổi màu theo mức độ (Xanh → Vàng → Cam → Đỏ).\n• Thuần Việt hóa 100% màn hình Trợ lý AI & Dữ liệu sinh học, bỏ các gợi ý kỹ thuật gây rối và thu gọn các mục nâng cao.",
+  "version": "1.1.2",
+  "buildNumber": 12,
+  "releaseName": "Haven v1.1.2 — Sửa Lỗi Lặp Thông Báo OTA & Mặc Định Tải Bản arm64-v8a",
+  "releaseNotesVi": "• Đồng bộ tự động mã phiên bản khi build APK/IPA: Sau khi cài bản mới, ứng dụng không còn báo cập nhật lặp lại.\n• Đặt mặc định nút tải chính trên Android là bản arm64-v8a.apk gọn nhẹ (~20MB), bản universal.apk làm tùy chọn phụ cho máy đời cũ.",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",
