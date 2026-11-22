@@ -3,7 +3,7 @@ description: >-
   Haven (Equilibria) — Local-First Multi-Platform CBT, TEAM-CBT, DBT &
   Bipolar IPSRT Clinical Companion for Anxiety, Depression, and Bipolar Disorder.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

@@ -18,6 +18,8 @@ import 'package:printing/printing.dart';
 import '../../domain/engine/clinical_assessments.dart';
 import '../../domain/models/clinical_models.dart';
 import '../../domain/models/haven_account_model.dart';
+import '../../domain/services/ota_update_service.dart';
+import '../dialogs/ota_update_dialog.dart';
 import '../theme/adaptive_clinical_theme.dart';
 import 'ai_companion_biometrics_screen.dart';
 import 'assessment_runner_screen.dart';
@@ -104,6 +106,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
   final TextEditingController _exposureSituationCtrl = TextEditingController();
   int _exposureSuds = 60;
   String? _biometricStatusVi;
+  bool _isCheckingOta = false;
+  final OtaUpdateService _otaService = const OtaUpdateService();
 
   @override
   void initState() {
@@ -116,6 +120,43 @@ class _MainShellScreenState extends State<MainShellScreen> {
         widget.accountProfile.disorderFocus == DisorderFocus.bipolar2 ||
         widget.accountProfile.disorderFocus == DisorderFocus.cyclothymia) {
       _showAdvancedBipolarScales = true;
+    }
+
+    // Check for OTA updates quietly in background after frame render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleCheckOtaUpdate(context, manual: false);
+      }
+    });
+  }
+
+  Future<void> _handleCheckOtaUpdate(
+    BuildContext context, {
+    required bool manual,
+  }) async {
+    if (_isCheckingOta) return;
+    setState(() => _isCheckingOta = true);
+
+    final result = await _otaService.checkForUpdates();
+    if (!mounted) return;
+
+    setState(() => _isCheckingOta = false);
+
+    if (result.hasUpdate) {
+      OtaUpdateDialog.show(context, result);
+    } else if (manual) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.isError
+                ? result.message
+                : '✓ Bạn đang ở phiên bản Haven mới nhất (v$kCurrentHavenAppVersion).',
+          ),
+          backgroundColor: result.isError
+              ? Colors.grey.shade800
+              : const Color(0xFF2F4A3B),
+        ),
+      );
     }
   }
 
@@ -319,6 +360,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Kiểm tra Cập nhật OTA',
+            icon: _isCheckingOta
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.system_update_outlined, size: 21),
+            onPressed: () => _handleCheckOtaUpdate(context, manual: true),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
@@ -1193,6 +1245,28 @@ class _MainShellScreenState extends State<MainShellScreen> {
                       });
                     },
                     child: const Text('Kiểm tra'),
+                  ),
+                ),
+                const Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.system_update_outlined),
+                  title: const Text('Cập nhật Ứng dụng (OTA Update)'),
+                  subtitle: Text(
+                    'Phiên bản hiện tại: v$kCurrentHavenAppVersion (Bản dựng #$kCurrentHavenBuildNumber)\n'
+                    'Tự động kiểm tra bản cập nhật mới từ GitHub Releases',
+                  ),
+                  isThreeLine: true,
+                  trailing: FilledButton.tonal(
+                    onPressed: () =>
+                        _handleCheckOtaUpdate(context, manual: true),
+                    child: _isCheckingOta
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Kiểm tra'),
                   ),
                 ),
                 const SizedBox(height: 14),

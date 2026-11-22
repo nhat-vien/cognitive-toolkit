@@ -1,0 +1,12 @@
+{
+  "version": "1.0.1",
+  "buildNumber": 3,
+  "releaseName": "Haven — Bản Cập Nhật Nâng Cấp Giao Diện & Tính Năng Cập Nhật OTA",
+  "releaseNotesVi": "• Sửa triệt để lỗi bẻ gãy chữ trong các trang Trợ lý AI và Thực hành 7 bài tập.\n• Tái cấu trúc thanh điều khiển Socratic Pushback sang dạng Wrap tự co giãn.\n• Bổ sung tính năng Cập nhật OTA (Over-The-Air) trực tiếp ngay trong ứng dụng.\n• Tối ưu hóa hiển thị thẻ kiểm tra sức khỏe định kỳ và bảo vệ nhịp sinh học IPSRT.\n• Nâng cấp giao diện Sanctuary thanh bình, chống kích thích thị giác.",
+  "publishedAt": "2026-11-22T00:30:00Z",
+  "minAppVersion": "1.0.0",
+  "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",
+  "apkArm64Url": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-arm64-v8a.apk",
+  "htmlUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/tag/mobile-latest",
+  "apkUniversalSizeBytes": 55556004
+}
