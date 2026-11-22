@@ -84,23 +84,24 @@ jobs:
         run: |
           mkdir -p ~/.gradle/init.d
           cat <<'EOF' > ~/.gradle/init.d/maven-mirror.gradle
-          allprojects {
-              buildscript {
-                  repositories {
-                      maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
+          beforeSettings { settings ->
+              settings.pluginManagement.repositories.all { repo ->
+                  if (repo instanceof MavenArtifactRepository && repo.url.toString().contains("repo.maven.apache.org")) {
+                      repo.url = uri("https://maven-central.storage-download.googleapis.com/maven2")
                   }
               }
-              repositories {
-                  maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
-              }
           }
-          settingsEvaluated { settings ->
-              settings.pluginManagement {
-                  repositories {
-                      maven { url "https://maven-central.storage-download.googleapis.com/maven2" }
-                      google()
-                      gradlePluginPortal()
-                      mavenCentral()
+          allprojects {
+              buildscript {
+                  repositories.all { repo ->
+                      if (repo instanceof MavenArtifactRepository && repo.url.toString().contains("repo.maven.apache.org")) {
+                          repo.url = uri("https://maven-central.storage-download.googleapis.com/maven2")
+                      }
+                  }
+              }
+              repositories.all { repo ->
+                  if (repo instanceof MavenArtifactRepository && repo.url.toString().contains("repo.maven.apache.org")) {
+                      repo.url = uri("https://maven-central.storage-download.googleapis.com/maven2")
                   }
               }
           }

@@ -56,6 +56,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
   double _voiceSpeed = 0.95;
   double _ambientVolume = 0.45;
   double _freq432Volume = 0.30;
+  bool _loopTrack = false;
   bool _showFullScript = false;
 
   Timer? _sessionTimer;
@@ -185,6 +186,7 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     try {
       await _voicePlayer.stop();
       await _voicePlayer.setAsset(track.audioAssetPath);
+      await _voicePlayer.setLoopMode(_loopTrack ? LoopMode.one : LoopMode.off);
       await _voicePlayer.setSpeed(_voiceSpeed);
       await _voicePlayer.setVolume(_voiceEnabled ? _voiceVolume : 0.0);
       unawaited(_voicePlayer.play());
@@ -437,6 +439,37 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                               : 'Tạm dừng',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: _loopTrack
+                          ? const Color(0xFF7EC8B8).withValues(alpha: 0.22)
+                          : Colors.transparent,
+                      foregroundColor: _loopTrack
+                          ? const Color(0xFFE9FBF7)
+                          : const Color(0xFFCBD9D7),
+                      side: BorderSide(
+                        color: _loopTrack
+                            ? const Color(0xFF7EC8B8)
+                            : Colors.white24,
+                      ),
+                    ),
+                    onPressed: () {
+                      final next = !_loopTrack;
+                      setState(() => _loopTrack = next);
+                      unawaited(
+                        _voicePlayer.setLoopMode(
+                          next ? LoopMode.one : LoopMode.off,
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      _loopTrack
+                          ? Icons.repeat_one_rounded
+                          : Icons.repeat_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_loopTrack ? 'Lặp bài: Bật' : 'Lặp bài: Tắt'),
                   ),
                   if (_phase != _MeditationPhase.idle)
                     OutlinedButton.icon(

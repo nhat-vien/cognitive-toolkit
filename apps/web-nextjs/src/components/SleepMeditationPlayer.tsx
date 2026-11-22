@@ -53,14 +53,17 @@ export function SleepMeditationPlayer({
   const [voiceRate, setVoiceRate] = useState(0.95);
   const [brookVolume, setBrookVolume] = useState(0.45);
   const [freq432Volume, setFreq432Volume] = useState(0.30);
+  const [loopTrack, setLoopTrack] = useState(false);
   const [showFullScript, setShowFullScript] = useState(false);
 
   const voiceEnabledRef = useRef(voiceEnabled);
   const voiceVolumeRef = useRef(voiceVolume);
   const voiceRateRef = useRef(voiceRate);
+  const loopTrackRef = useRef(loopTrack);
   voiceEnabledRef.current = voiceEnabled;
   voiceVolumeRef.current = voiceVolume;
   voiceRateRef.current = voiceRate;
+  loopTrackRef.current = loopTrack;
 
   const currentCue = allCues[Math.min(cueIndex, allCues.length - 1)] ?? allCues[0]!;
 
@@ -139,6 +142,12 @@ export function SleepMeditationPlayer({
     }
   }, [voiceRate]);
 
+  useEffect(() => {
+    if (voiceAudioElRef.current && mode === 'studio-3') {
+      voiceAudioElRef.current.loop = loopTrack;
+    }
+  }, [loopTrack, mode]);
+
   const startSessionClock = (runId: number, targetMinutes: number) => {
     if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
     const totalTargetSeconds = targetMinutes * 60;
@@ -184,6 +193,7 @@ export function SleepMeditationPlayer({
       const audioEl = new window.Audio(track.audioUrl);
       audioEl.volume = voiceEnabledRef.current ? voiceVolumeRef.current : 0;
       audioEl.playbackRate = voiceRateRef.current;
+      audioEl.loop = loopTrackRef.current;
       voiceAudioElRef.current = audioEl;
 
       audioEl.onloadedmetadata = () => {
@@ -197,7 +207,12 @@ export function SleepMeditationPlayer({
       };
       audioEl.onended = () => {
         if (activeRunIdRef.current !== runId) return;
-        setPhase('outro-ambient');
+        if (loopTrackRef.current) {
+          audioEl.currentTime = 0;
+          void audioEl.play().catch(() => {});
+        } else {
+          setPhase('outro-ambient');
+        }
       };
       void audioEl.play().catch(() => {
         // ignore autoplay errors
@@ -254,8 +269,13 @@ export function SleepMeditationPlayer({
     const proceedToPause = () => {
       if (activeRunIdRef.current !== runId) return;
       if (cue.isFinalFadeOut) {
-        setPhase('outro-ambient');
-        setCountdownSeconds(0);
+        if (loopTrackRef.current) {
+          setPhase('pausing');
+          runCountdown(5, runId, () => playCueAtIndex(0, runId));
+        } else {
+          setPhase('outro-ambient');
+          setCountdownSeconds(0);
+        }
         return;
       }
       setPhase('pausing');
@@ -602,6 +622,27 @@ export function SleepMeditationPlayer({
               : isPaused
                 ? '▶ Tiếp tục phát'
                 : '⏸ Tạm dừng'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLoopTrack((prev) => !prev)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '999px',
+              border: loopTrack
+                ? '1.5px solid #7ec8b8'
+                : '1px solid rgba(255,255,255,0.2)',
+              backgroundColor: loopTrack
+                ? 'rgba(126, 200, 184, 0.22)'
+                : 'transparent',
+              color: loopTrack ? '#e9fbf7' : '#d0dedb',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+            }}
+          >
+            {loopTrack ? '🔁 Lặp bài: Đang bật' : '🔁 Lặp bài: Tắt'}
           </button>
 
           {phase !== 'idle' && (
