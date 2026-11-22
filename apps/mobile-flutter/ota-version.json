@@ -1,8 +1,8 @@
 {
-  "version": "1.0.4",
-  "buildNumber": 9,
-  "releaseName": "Haven — Bộ 3 Bài Thiền Buông Thư Giọng Đọc Studio (Nam Trầm & Nữ Dịu Ấm)",
-  "releaseNotesVi": "• Bổ sung trọn bộ 3 bài Thiền Buông Thư chất lượng phòng thu: Bài 1 (Giọng Nam Trầm Ấm), Bài 2 (Giọng Nữ Dịu Ấm cùng Haven — Gột Rửa Phiền Lo), và Bài 3 (Giọng Nam Trầm Sâu — Giấc Ngủ Sâu).\n• Hỗ trợ thanh tua thời gian, chỉnh tốc độ đọc chậm/vừa, kết hợp tiếng suối chảy êm dịu và hẹn giờ tắt nhạc ngủ 15/30/45 phút.",
+  "version": "1.1.0",
+  "buildNumber": 10,
+  "releaseName": "Haven v1.1 — Giao Diện Tối Giản Thanh Bình, Thiền Ngủ Toàn Màn Hình & Nghe Lặp",
+  "releaseNotesVi": "• Thiết kế lại toàn bộ giao diện Mobile theo phong cách tối giản, thoáng đãng: Trang chủ dịu mắt với 1 thẻ Ghi cảm xúc, thanh điều hướng nổi 4 mục và nút Bình tâm ngay màu hồng pastel.\n• Trình phát Thiền Buông Thư toàn màn hình tối dịu mắt kèm nút Tùy chỉnh âm thanh gọn gàng (Tốc độ đọc, Tiếng suối, 432Hz mặc định 30%, Nghe lặp bài và Hẹn giờ ngủ).",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",

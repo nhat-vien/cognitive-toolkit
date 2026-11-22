@@ -54,6 +54,7 @@ export function SleepMeditationPlayer({
   const [brookVolume, setBrookVolume] = useState(0.45);
   const [freq432Volume, setFreq432Volume] = useState(0.30);
   const [loopTrack, setLoopTrack] = useState(false);
+  const [showMixerDrawer, setShowMixerDrawer] = useState(false);
   const [showFullScript, setShowFullScript] = useState(false);
 
   const voiceEnabledRef = useRef(voiceEnabled);
@@ -645,6 +646,27 @@ export function SleepMeditationPlayer({
             {loopTrack ? '🔁 Lặp bài: Đang bật' : '🔁 Lặp bài: Tắt'}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setShowMixerDrawer((prev) => !prev)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '999px',
+              border: showMixerDrawer
+                ? '1.5px solid #7ec8b8'
+                : '1px solid rgba(255,255,255,0.2)',
+              backgroundColor: showMixerDrawer
+                ? 'rgba(126, 200, 184, 0.22)'
+                : 'transparent',
+              color: '#e6faf5',
+              fontWeight: 600,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+            }}
+          >
+            🎛️ Tùy chỉnh âm thanh ({voiceRate.toFixed(2)}x · 432Hz {Math.round(freq432Volume * 100)}%)
+          </button>
+
           {phase !== 'idle' && (
             <button
               type="button"
@@ -666,7 +688,8 @@ export function SleepMeditationPlayer({
         </div>
       </div>
 
-      {/* 3-Channel Mixer (Voice + Speed Slider + Brook + 432Hz @ 30% default) */}
+      {/* Collapsible 3-Channel Mixer (keeps player uncluttered until user taps Tùy chỉnh âm thanh) */}
+      {showMixerDrawer && (
       <div
         style={{
           display: 'grid',
@@ -776,6 +799,7 @@ export function SleepMeditationPlayer({
           </div>
         </div>
       </div>
+      )}
 
       {/* Footer Utilities: Switch to 27-Cue Mode & Full Script */}
       <div

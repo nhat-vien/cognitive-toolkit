@@ -1,8 +1,10 @@
 // lib/presentation/screens/sleep_meditation_screen.dart
-// Haven Night Sanctuary — 3 Studio Guided Sleep Body-Scan Meditations
-// Plays the 3 studio recordings (DgNguyen Nam Trầm Ấm, Vita Nữ Dịu Ấm, DgNguyen Nam Trầm Sâu)
-// layered over a pure seamless Forest Brook ambient loop via `just_audio`,
-// with seek bar, speed control, independent mixer, and 15/30/45-min sleep timer.
+// Haven Calm Audio Sanctuary — Inspired by minimalist meditation apps:
+// 1. Clean Categorized Audio List ("Thiền Buông Thư" + "Bài thở thư giãn")
+// 2. Full-Screen Uncluttered Dark Now Playing Screen with centered artwork,
+//    minimalist 15s-back / Play / 15s-forward transport, Loop toggle,
+//    and a 1-tap "Tùy chỉnh âm thanh" bottom sheet for Speed, Brook, 432Hz (30%),
+//    Sleep Timer (15/30/45m), and Script.
 
 import 'dart:async';
 
@@ -11,449 +13,692 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../domain/models/sleep_meditation_script.dart';
 
-enum _MeditationPhase {
-  idle,
-  playing,
-  outroAmbient,
-  completed,
-}
+const List<List<Color>> _kTrackArtGradients = [
+  [Color(0xFF2F5E62), Color(0xFF172C33)],
+  [Color(0xFF9F7A9F), Color(0xFF4D2E54)],
+  [Color(0xFF3E5678), Color(0xFF1A2538)],
+];
 
-class SleepMeditationScreen extends StatefulWidget {
-  final SleepMeditationScript script;
+class SleepMeditationScreen extends StatelessWidget {
+  final VoidCallback? onOpenBreathing;
 
   const SleepMeditationScreen({
     super.key,
-    this.script = kScript1Brook432Hz,
+    this.onOpenBreathing,
+  });
+
+  void _openPlayer(BuildContext context, int trackIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MeditationNowPlayingScreen(initialTrackIndex: trackIndex),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+      children: [
+        const Text(
+          'Thiền / Thở',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1D292F),
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Chọn một bài thiền hoặc nhịp thở nhẹ nhàng để buông lỏng tâm trí.',
+          style: TextStyle(
+            fontSize: 13.5,
+            color: Color(0xFF64737B),
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 22),
+
+        // Section 1: Thiền Buông Thư (3 Studio Recordings)
+        const Text(
+          'Thiền Buông Thư Phòng Thu',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1F2C33),
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (int i = 0; i < kStudioMeditationTracks.length; i++)
+          _buildAudioRow(
+            context: context,
+            title: kStudioMeditationTracks[i].titleVi.replaceFirst(
+                  RegExp(r'^Bài \d+:\s*'),
+                  '',
+                ),
+            subtitle:
+                '${kStudioMeditationTracks[i].voiceNameVi} · ${formatMeditationClock(kStudioMeditationTracks[i].durationSeconds)}',
+            gradient: _kTrackArtGradients[i % _kTrackArtGradients.length],
+            icon: i == 1 ? Icons.spa_outlined : Icons.water_drop_outlined,
+            badge: i == 1 ? 'Nữ dịu ấm' : null,
+            onTap: () => _openPlayer(context, i),
+          ),
+
+        const SizedBox(height: 24),
+
+        // Section 2: Bài thở thư giãn
+        const Text(
+          'Bài thở thư giãn',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1F2C33),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildAudioRow(
+          context: context,
+          title: 'Thở dễ ngủ 4-7-8',
+          subtitle: 'Làm dịu hệ thần kinh · 3 phút',
+          gradient: const [Color(0xFF283A5E), Color(0xFF10182B)],
+          icon: Icons.nights_stay_outlined,
+          onTap: onOpenBreathing ?? () => _openPlayer(context, 0),
+        ),
+        _buildAudioRow(
+          context: context,
+          title: 'Thở cân bằng 4-6',
+          subtitle: 'Hạ nhịp tim, giảm lo âu nhanh · 2 phút',
+          gradient: const [Color(0xFF6B8E7A), Color(0xFF2F4A3B)],
+          icon: Icons.air_rounded,
+          onTap: onOpenBreathing ?? () => _openPlayer(context, 0),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioRow({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required List<Color> gradient,
+    required IconData icon,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradient,
+                  ),
+                ),
+                child: Icon(icon, color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F2B31),
+                            ),
+                          ),
+                        ),
+                        if (badge != null)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFCEAE6),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              badge,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFC05A47),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF6B7982),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.play_circle_outline_rounded,
+                color: Color(0xFF6E9883),
+                size: 26,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-Screen Minimalist Dark Audio Player (inspired by calm bedtime player UI).
+class MeditationNowPlayingScreen extends StatefulWidget {
+  final int initialTrackIndex;
+
+  const MeditationNowPlayingScreen({
+    super.key,
+    required this.initialTrackIndex,
   });
 
   @override
-  State<SleepMeditationScreen> createState() => _SleepMeditationScreenState();
+  State<MeditationNowPlayingScreen> createState() =>
+      _MeditationNowPlayingScreenState();
 }
 
-class _SleepMeditationScreenState extends State<SleepMeditationScreen>
+class _MeditationNowPlayingScreenState extends State<MeditationNowPlayingScreen>
     with SingleTickerProviderStateMixin {
+  final AudioPlayer _voicePlayer = AudioPlayer();
   final AudioPlayer _ambientPlayer = AudioPlayer();
   final AudioPlayer _freq432Player = AudioPlayer();
-  final AudioPlayer _voicePlayer = AudioPlayer();
 
-  late final AnimationController _rippleCtrl;
+  late final AnimationController _glowCtrl;
   StreamSubscription<Duration>? _posSub;
   StreamSubscription<Duration?>? _durSub;
   StreamSubscription<PlayerState>? _stateSub;
 
-  int _selectedTrackIndex = 0;
-  _MeditationPhase _phase = _MeditationPhase.idle;
-  bool _isPaused = false;
-
-  int _trackPositionSec = 0;
-  int _trackDurationSec = kStudioMeditationTracks.first.durationSeconds;
-  int _elapsedSessionSec = 0;
+  late int _trackIndex;
+  bool _isPlaying = false;
+  bool _loopTrack = false;
+  int _positionSec = 0;
+  int _durationSec = 300;
   int _sleepTimerMinutes = 30;
-  int _runGeneration = 0;
+  int _elapsedSessionSec = 0;
 
-  bool _voiceEnabled = true;
   double _voiceVolume = 0.90;
   double _voiceSpeed = 0.95;
-  double _ambientVolume = 0.45;
-  double _freq432Volume = 0.30;
-  bool _loopTrack = false;
-  bool _showFullScript = false;
+  double _brookVolume = 0.45;
+  double _freq432Volume = 0.30; // Default 30% warm 432Hz
 
   Timer? _sessionTimer;
 
-  StudioMeditationTrack get _selectedTrack =>
-      kStudioMeditationTracks[_selectedTrackIndex];
+  StudioMeditationTrack get _track => kStudioMeditationTracks[_trackIndex];
 
   @override
   void initState() {
     super.initState();
-    _sleepTimerMinutes = widget.script.defaultTotalDurationMinutes;
-    _rippleCtrl = AnimationController(
+    _trackIndex =
+        widget.initialTrackIndex.clamp(0, kStudioMeditationTracks.length - 1);
+    _durationSec = _track.durationSeconds;
+    _glowCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 5),
     );
 
     _posSub = _voicePlayer.positionStream.listen((pos) {
       if (!mounted) return;
-      setState(() => _trackPositionSec = pos.inSeconds);
+      setState(() => _positionSec = pos.inSeconds);
     });
     _durSub = _voicePlayer.durationStream.listen((dur) {
       if (!mounted || dur == null || dur.inSeconds <= 0) return;
-      setState(() => _trackDurationSec = dur.inSeconds);
+      setState(() => _durationSec = dur.inSeconds);
     });
-    _stateSub = _voicePlayer.playerStateStream.listen((state) {
+    _stateSub = _voicePlayer.playerStateStream.listen((st) {
       if (!mounted) return;
-      if (state.processingState == ProcessingState.completed &&
-          _phase == _MeditationPhase.playing) {
-        setState(() => _phase = _MeditationPhase.outroAmbient);
+      if (st.processingState == ProcessingState.completed && !_loopTrack) {
+        setState(() => _isPlaying = false);
       }
     });
+
+    unawaited(_startTrack());
   }
 
   @override
   void dispose() {
-    _runGeneration++;
     _sessionTimer?.cancel();
     unawaited(_posSub?.cancel());
     unawaited(_durSub?.cancel());
     unawaited(_stateSub?.cancel());
-    _rippleCtrl.dispose();
+    _glowCtrl.dispose();
     unawaited(_voicePlayer.dispose());
-    unawaited(_freq432Player.dispose());
     unawaited(_ambientPlayer.dispose());
+    unawaited(_freq432Player.dispose());
     super.dispose();
   }
 
-  Future<void> _startAmbientBrook() async {
+  Future<void> _startTrack() async {
+    _sessionTimer?.cancel();
+    setState(() {
+      _positionSec = 0;
+      _durationSec = _track.durationSeconds;
+      _elapsedSessionSec = 0;
+      _isPlaying = true;
+    });
+
     try {
-      await _ambientPlayer.setAsset(widget.script.ambientAudioAsset);
+      await _ambientPlayer.setAsset('assets/audio/brook_432hz_loop.wav');
       await _ambientPlayer.setLoopMode(LoopMode.one);
-      await _ambientPlayer.setVolume(_ambientVolume);
+      await _ambientPlayer.setVolume(_brookVolume);
       unawaited(_ambientPlayer.play());
     } catch (_) {}
+
     try {
       await _freq432Player.setAsset('assets/audio/freq_432hz_loop.wav');
       await _freq432Player.setLoopMode(LoopMode.one);
       await _freq432Player.setVolume(_freq432Volume * 0.45);
       unawaited(_freq432Player.play());
     } catch (_) {}
-  }
 
-  void _startSessionClock(int gen) {
-    _sessionTimer?.cancel();
-    final targetSec = _sleepTimerMinutes * 60;
-    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _runGeneration != gen) return;
-      setState(() => _elapsedSessionSec++);
-      if (_elapsedSessionSec >= targetSec) {
-        unawaited(_finishSessionGracefully());
-      }
-    });
-  }
-
-  Future<void> _finishSessionGracefully() async {
-    _runGeneration++;
-    _sessionTimer?.cancel();
-    _rippleCtrl.stop();
     try {
       await _voicePlayer.stop();
-      for (int step = 4; step >= 0; step--) {
-        await _ambientPlayer.setVolume(_ambientVolume * (step / 4.0));
-        await _freq432Player.setVolume(_freq432Volume * 0.45 * (step / 4.0));
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-      }
-      await _ambientPlayer.stop();
-      await _freq432Player.stop();
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {
-      _phase = _MeditationPhase.completed;
-      _isPaused = false;
-    });
-  }
-
-  void _stopSession() {
-    _runGeneration++;
-    _sessionTimer?.cancel();
-    _rippleCtrl.stop();
-    unawaited(_voicePlayer.stop());
-    unawaited(_freq432Player.stop());
-    unawaited(_ambientPlayer.stop());
-    setState(() {
-      _phase = _MeditationPhase.idle;
-      _isPaused = false;
-      _trackPositionSec = 0;
-      _elapsedSessionSec = 0;
-    });
-  }
-
-  Future<void> _playTrackAtIndex(int idx) async {
-    _runGeneration++;
-    final gen = _runGeneration;
-    _sessionTimer?.cancel();
-
-    final track = kStudioMeditationTracks[idx];
-    setState(() {
-      _selectedTrackIndex = idx;
-      _trackPositionSec = 0;
-      _trackDurationSec = track.durationSeconds;
-      _elapsedSessionSec = 0;
-      _isPaused = false;
-      _phase = _MeditationPhase.playing;
-    });
-
-    await _startAmbientBrook();
-    try {
-      await _voicePlayer.stop();
-      await _voicePlayer.setAsset(track.audioAssetPath);
+      await _voicePlayer.setAsset(_track.audioAssetPath);
       await _voicePlayer.setLoopMode(_loopTrack ? LoopMode.one : LoopMode.off);
       await _voicePlayer.setSpeed(_voiceSpeed);
-      await _voicePlayer.setVolume(_voiceEnabled ? _voiceVolume : 0.0);
+      await _voicePlayer.setVolume(_voiceVolume);
       unawaited(_voicePlayer.play());
     } catch (_) {}
 
-    if (!mounted || _runGeneration != gen) return;
-    unawaited(_rippleCtrl.repeat(reverse: true));
-    _startSessionClock(gen);
+    unawaited(_glowCtrl.repeat(reverse: true));
+    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      _elapsedSessionSec++;
+      if (_elapsedSessionSec >= _sleepTimerMinutes * 60) {
+        unawaited(_fadeOutAndStop());
+      }
+    });
   }
 
-  Future<void> _togglePause() async {
-    if (_phase == _MeditationPhase.idle ||
-        _phase == _MeditationPhase.completed) {
-      await _playTrackAtIndex(_selectedTrackIndex);
-      return;
-    }
+  Future<void> _fadeOutAndStop() async {
+    _sessionTimer?.cancel();
+    _glowCtrl.stop();
+    try {
+      await _voicePlayer.stop();
+      await _ambientPlayer.stop();
+      await _freq432Player.stop();
+    } catch (_) {}
+    if (mounted) setState(() => _isPlaying = false);
+  }
 
-    if (!_isPaused) {
-      _sessionTimer?.cancel();
-      _rippleCtrl.stop();
+  Future<void> _togglePlayPause() async {
+    if (_isPlaying) {
+      _glowCtrl.stop();
       await _voicePlayer.pause();
-      await _freq432Player.pause();
       await _ambientPlayer.pause();
-      if (!mounted) return;
-      setState(() => _isPaused = true);
+      await _freq432Player.pause();
+      if (mounted) setState(() => _isPlaying = false);
     } else {
-      _runGeneration++;
-      final gen = _runGeneration;
+      unawaited(_glowCtrl.repeat(reverse: true));
       unawaited(_ambientPlayer.play());
       unawaited(_freq432Player.play());
-      if (_phase == _MeditationPhase.playing) {
-        unawaited(_voicePlayer.play());
-      }
-      unawaited(_rippleCtrl.repeat(reverse: true));
-      setState(() => _isPaused = false);
-      _startSessionClock(gen);
+      unawaited(_voicePlayer.play());
+      if (mounted) setState(() => _isPlaying = true);
     }
+  }
+
+  Future<void> _seekBy(int deltaSec) async {
+    final target = (_positionSec + deltaSec).clamp(0, _durationSec);
+    setState(() => _positionSec = target);
+    await _voicePlayer.seek(Duration(seconds: target));
+  }
+
+  void _openAudioSettingsSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF151F1C),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tùy chỉnh Âm thanh & Hẹn giờ',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _sheetSliderRow(
+                    label: 'Tốc độ (${_voiceSpeed.toStringAsFixed(2)}x)',
+                    value: _voiceSpeed.clamp(0.70, 1.15),
+                    min: 0.70,
+                    max: 1.15,
+                    divisions: 9,
+                    onChanged: (v) {
+                      setSheetState(() => _voiceSpeed = v);
+                      setState(() => _voiceSpeed = v);
+                      unawaited(_voicePlayer.setSpeed(v));
+                    },
+                  ),
+                  _sheetSliderRow(
+                    label: 'Giọng đọc (${(_voiceVolume * 100).round()}%)',
+                    value: _voiceVolume,
+                    min: 0.1,
+                    max: 1.0,
+                    onChanged: (v) {
+                      setSheetState(() => _voiceVolume = v);
+                      setState(() => _voiceVolume = v);
+                      unawaited(_voicePlayer.setVolume(v));
+                    },
+                  ),
+                  _sheetSliderRow(
+                    label: 'Suối chảy (${(_brookVolume * 100).round()}%)',
+                    value: _brookVolume,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (v) {
+                      setSheetState(() => _brookVolume = v);
+                      setState(() => _brookVolume = v);
+                      unawaited(_ambientPlayer.setVolume(v));
+                    },
+                  ),
+                  _sheetSliderRow(
+                    label: '432Hz (${(_freq432Volume * 100).round()}%)',
+                    value: _freq432Volume,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (v) {
+                      setSheetState(() => _freq432Volume = v);
+                      setState(() => _freq432Volume = v);
+                      unawaited(_freq432Player.setVolume(v * 0.45));
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Text(
+                        'Hẹn giờ ngủ:',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                      for (final m in [15, 30, 45])
+                        ChoiceChip(
+                          label: Text('$m phút'),
+                          selected: _sleepTimerMinutes == m,
+                          onSelected: (_) {
+                            setSheetState(() => _sleepTimerMinutes = m);
+                            setState(() => _sleepTimerMinutes = m);
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _sheetSliderRow({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    int? divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 122,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            activeColor: const Color(0xFF7EC8B8),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final track = _selectedTrack;
-    final totalTargetSec = _sleepTimerMinutes * 60;
-    final remainingSessionSec =
-        (totalTargetSec - _elapsedSessionSec).clamp(0, totalTargetSec);
-    final maxDur = _trackDurationSec > 0 ? _trackDurationSec : 1;
+    final gradient =
+        _kTrackArtGradients[_trackIndex % _kTrackArtGradients.length];
+    final maxDur = _durationSec > 0 ? _durationSec : 1;
+    final remainingSec = (_durationSec - _positionSec).clamp(0, _durationSec);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF131B26), Color(0xFF1A2834), Color(0xFF132528)],
-            ),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFF7EC8B8).withValues(alpha: 0.28),
-            ),
-          ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E1513),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7EC8B8).withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  '🌙 Bộ 3 Bài Thiền Buông Thư Phòng Thu',
-                  style: TextStyle(
-                    color: Color(0xFF9EE2D4),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
+              // Top Bar: Đóng · Đang phát · Tùy chỉnh âm thanh
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'Đóng',
+                      style: TextStyle(color: Colors.white70, fontSize: 15),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ Sâu',
-                style: TextStyle(
-                  color: Color(0xFFF5FAF9),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Chọn 1 trong 3 giọng đọc trầm ấm kết hợp tiếng suối chảy róc rách tự nhiên.',
-                style: TextStyle(
-                  color: Color(0xFFB3C8C5),
-                  fontSize: 12.5,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // 3 Studio Track Selection Cards
-              for (int i = 0; i < kStudioMeditationTracks.length; i++)
-                _buildTrackCard(i, kStudioMeditationTracks[i]),
-
-              const SizedBox(height: 12),
-
-              // Active Player Stage with Ripple & Seek Bar
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0A1118).withValues(alpha: 0.58),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF7EC8B8).withValues(alpha: 0.2),
+                  const Text(
+                    'Đang phát',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    AnimatedBuilder(
-                      animation: _rippleCtrl,
-                      builder: (_, __) {
-                        final scale = 0.88 + (_rippleCtrl.value * 0.22);
-                        return Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            width: 62,
-                            height: 62,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  const Color(0xFF7EC8B8)
-                                      .withValues(alpha: 0.55),
-                                  const Color(0xFF3E7C71)
-                                      .withValues(alpha: 0.15),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: const Color(0xFF9EE2D4)
-                                    .withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Icon(
-                              _phase == _MeditationPhase.playing
-                                  ? Icons.headphones_rounded
-                                  : Icons.water_drop_outlined,
-                              color: const Color(0xFFE5F9F4),
-                              size: 26,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _statusLabel(track),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF9EE2D4),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  IconButton(
+                    tooltip: 'Tùy chỉnh âm thanh & tốc độ',
+                    icon: const Icon(Icons.tune_rounded, color: Colors.white70),
+                    onPressed: _openAudioSettingsSheet,
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              // Centered Serene Rounded Artwork
+              AnimatedBuilder(
+                animation: _glowCtrl,
+                builder: (_, __) {
+                  return Container(
+                    width: 230,
+                    height: 230,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(32),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: gradient,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _phase == _MeditationPhase.outroAmbient
-                          ? 'Hãy thả lỏng toàn thân và lắng nghe tiếng suối chảy êm dịu để chìm vào giấc ngủ sâu…'
-                          : track.descriptionVi,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFFF1F7F6),
-                        fontSize: 13.5,
-                        height: 1.55,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: _trackPositionSec.clamp(0, maxDur).toDouble(),
-                      min: 0,
-                      max: maxDur.toDouble(),
-                      onChanged: (v) {
-                        setState(() => _trackPositionSec = v.round());
-                        unawaited(_voicePlayer.seek(Duration(seconds: v.round())));
-                      },
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          formatMeditationClock(_trackPositionSec),
-                          style: const TextStyle(
-                            color: Color(0xFF9EB6B3),
-                            fontSize: 11.5,
+                      boxShadow: [
+                        BoxShadow(
+                          color: gradient.first.withValues(
+                            alpha: 0.28 + (_glowCtrl.value * 0.16),
                           ),
-                        ),
-                        Text(
-                          'Hẹn giờ: ${formatMeditationClock(remainingSessionSec)}',
-                          style: const TextStyle(
-                            color: Color(0xFF9EB6B3),
-                            fontSize: 11.5,
-                          ),
-                        ),
-                        Text(
-                          formatMeditationClock(_trackDurationSec),
-                          style: const TextStyle(
-                            color: Color(0xFF9EB6B3),
-                            fontSize: 11.5,
-                          ),
+                          blurRadius: 40,
+                          spreadRadius: 4,
                         ),
                       ],
                     ),
-                  ],
-                ),
+                    child: const Icon(
+                      Icons.spa_outlined,
+                      size: 86,
+                      color: Colors.white70,
+                    ),
+                  );
+                },
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 32),
 
-              // Primary Playback Controls
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
+              // Title & Narrator
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _track.titleVi.replaceFirst(RegExp(r'^Bài \d+:\s*'), ''),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
                 children: [
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF63B3A1),
-                      foregroundColor: const Color(0xFF0B1816),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 11,
+                  const CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Color(0xFF283A35),
+                    child: Icon(Icons.record_voice_over,
+                        size: 15, color: Color(0xFF9EE2D4)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Thiền dẫn · ${_track.voiceNameVi}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
-                    ),
-                    onPressed: () => unawaited(_togglePause()),
-                    icon: Icon(
-                      _phase == _MeditationPhase.idle ||
-                              _phase == _MeditationPhase.completed ||
-                              _isPaused
-                          ? Icons.play_arrow_rounded
-                          : Icons.pause_rounded,
-                    ),
-                    label: Text(
-                      _phase == _MeditationPhase.idle ||
-                              _phase == _MeditationPhase.completed
-                          ? 'Phát Bài ${track.trackNumber}'
-                          : _isPaused
-                              ? 'Tiếp tục'
-                              : 'Tạm dừng',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: _loopTrack
-                          ? const Color(0xFF7EC8B8).withValues(alpha: 0.22)
-                          : Colors.transparent,
-                      foregroundColor: _loopTrack
-                          ? const Color(0xFFE9FBF7)
-                          : const Color(0xFFCBD9D7),
-                      side: BorderSide(
-                        color: _loopTrack
-                            ? const Color(0xFF7EC8B8)
-                            : Colors.white24,
+                ],
+              ),
+
+              const Spacer(),
+
+              // Minimalist Seek Slider
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  activeTrackColor: Colors.white,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: Colors.white,
+                ),
+                child: Slider(
+                  value: _positionSec.clamp(0, maxDur).toDouble(),
+                  min: 0,
+                  max: maxDur.toDouble(),
+                  onChanged: (v) {
+                    setState(() => _positionSec = v.round());
+                    unawaited(_voicePlayer.seek(Duration(seconds: v.round())));
+                  },
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formatMeditationClock(_positionSec),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  Text(
+                    '-${formatMeditationClock(remainingSec)}',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 22),
+
+              // Minimalist Circular Transport Row: -15s | Play/Pause | +15s
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _circleSeekButton('-15', () => unawaited(_seekBy(-15))),
+                  const SizedBox(width: 28),
+                  GestureDetector(
+                    onTap: () => unawaited(_togglePlayPause()),
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 36,
+                        color: const Color(0xFF0E1513),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 28),
+                  _circleSeekButton('+15', () => unawaited(_seekBy(15))),
+                ],
+              ),
+
+              const SizedBox(height: 18),
+
+              // Subtle Bottom Action Row: Loop & Sound Mixer
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton.icon(
                     onPressed: () {
                       final next = !_loopTrack;
                       setState(() => _loopTrack = next);
@@ -468,290 +713,36 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
                           ? Icons.repeat_one_rounded
                           : Icons.repeat_rounded,
                       size: 18,
+                      color: _loopTrack
+                          ? const Color(0xFF8FD4C4)
+                          : Colors.white54,
                     ),
-                    label: Text(_loopTrack ? 'Lặp bài: Bật' : 'Lặp bài: Tắt'),
-                  ),
-                  if (_phase != _MeditationPhase.idle)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFCBD9D7),
-                        side: const BorderSide(color: Colors.white24),
+                    label: Text(
+                      _loopTrack ? 'Lặp bài: Bật' : 'Lặp bài',
+                      style: TextStyle(
+                        color: _loopTrack
+                            ? const Color(0xFF8FD4C4)
+                            : Colors.white54,
+                        fontSize: 12.5,
                       ),
-                      onPressed: _stopSession,
-                      icon: const Icon(Icons.stop_rounded, size: 18),
-                      label: const Text('Dừng'),
                     ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              // Continuous Speed Slider (0.70x - 1.15x)
-              Row(
-                children: [
-                  SizedBox(
-                    width: 112,
-                    child: Text(
-                      'Tốc độ (${_voiceSpeed.toStringAsFixed(2)}x)',
+                  ),
+                  TextButton.icon(
+                    onPressed: _openAudioSettingsSheet,
+                    icon: const Icon(
+                      Icons.graphic_eq_rounded,
+                      size: 18,
+                      color: Colors.white54,
+                    ),
+                    label: Text(
+                      '${_voiceSpeed.toStringAsFixed(2)}x · 432Hz ${( _freq432Volume * 100).round()}%',
                       style: const TextStyle(
-                        color: Color(0xFFB3C8C5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white54,
+                        fontSize: 12.5,
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: Slider(
-                      value: _voiceSpeed.clamp(0.70, 1.15),
-                      min: 0.70,
-                      max: 1.15,
-                      divisions: 9,
-                      label: '${_voiceSpeed.toStringAsFixed(2)}x',
-                      onChanged: (v) {
-                        setState(() => _voiceSpeed = v);
-                        unawaited(_voicePlayer.setSpeed(v));
-                      },
-                    ),
-                  ),
                 ],
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  const Text(
-                    'Hẹn giờ ngủ:',
-                    style: TextStyle(color: Color(0xFF9EB6B3), fontSize: 12),
-                  ),
-                  for (final mins in [15, 30, 45])
-                    ChoiceChip(
-                      label: Text('$mins phút'),
-                      selected: _sleepTimerMinutes == mins,
-                      onSelected: (_) =>
-                          setState(() => _sleepTimerMinutes = mins),
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // 3-Channel Volume Sliders (Voice + Brook + 432Hz @ 30% default)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  '🎙️ Giọng đọc dẫn thiền phòng thu',
-                  style: TextStyle(color: Color(0xFFE7F2F0), fontSize: 13.5),
-                ),
-                value: _voiceEnabled,
-                onChanged: (v) {
-                  setState(() => _voiceEnabled = v);
-                  unawaited(_voicePlayer.setVolume(v ? _voiceVolume : 0.0));
-                },
-              ),
-              Row(
-                children: [
-                  SizedBox(
-                    width: 112,
-                    child: Text(
-                      'Giọng (${(_voiceVolume * 100).round()}%)',
-                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _voiceVolume,
-                      min: 0.1,
-                      max: 1.0,
-                      onChanged: _voiceEnabled
-                          ? (v) {
-                              setState(() => _voiceVolume = v);
-                              unawaited(_voicePlayer.setVolume(v));
-                            }
-                          : null,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  SizedBox(
-                    width: 112,
-                    child: Text(
-                      'Suối (${(_ambientVolume * 100).round()}%)',
-                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _ambientVolume,
-                      min: 0.0,
-                      max: 1.0,
-                      onChanged: (v) {
-                        setState(() => _ambientVolume = v);
-                        unawaited(_ambientPlayer.setVolume(v));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  SizedBox(
-                    width: 112,
-                    child: Text(
-                      '432Hz (${(_freq432Volume * 100).round()}%)',
-                      style: const TextStyle(color: Color(0xFFB3C8C5), fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _freq432Volume,
-                      min: 0.0,
-                      max: 1.0,
-                      onChanged: (v) {
-                        setState(() => _freq432Volume = v);
-                        unawaited(_freq432Player.setVolume(v * 0.45));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () =>
-                      setState(() => _showFullScript = !_showFullScript),
-                  icon: Icon(
-                    _showFullScript
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: const Color(0xFF9EE2D4),
-                  ),
-                  label: Text(
-                    _showFullScript
-                        ? 'Ẩn kịch bản chữ'
-                        : 'Xem kịch bản chữ 6 phần',
-                    style: const TextStyle(
-                      color: Color(0xFF9EE2D4),
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ),
-              ),
-
-              if (_showFullScript) ...[
-                const Divider(color: Colors.white12),
-                for (final part in widget.script.parts) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 4),
-                    child: Text(
-                      part.titleVi,
-                      style: const TextStyle(
-                        color: Color(0xFF9EE2D4),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  for (final cue in part.cues)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        cue.textVi,
-                        style: const TextStyle(
-                          color: Color(0xFFD5E3E1),
-                          fontSize: 12.5,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                ],
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrackCard(int idx, StudioMeditationTrack track) {
-    final isSelected = _selectedTrackIndex == idx;
-    final isPlayingThis =
-        isSelected && _phase == _MeditationPhase.playing && !_isPaused;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => unawaited(_playTrackAtIndex(idx)),
-        child: Container(
-          padding: const EdgeInsets.all(13),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF7EC8B8).withValues(alpha: 0.16)
-                : Colors.white.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF7EC8B8)
-                  : Colors.white.withValues(alpha: 0.14),
-              width: isSelected ? 1.5 : 1.0,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7EC8B8).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      track.voiceStyleBadgeVi,
-                      style: const TextStyle(
-                        color: Color(0xFFA3E8D9),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    isPlayingThis
-                        ? '🔊 Đang phát'
-                        : '⏱ ${formatMeditationClock(track.durationSeconds)}',
-                    style: const TextStyle(
-                      color: Color(0xFF9EB6B3),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                track.titleVi,
-                style: const TextStyle(
-                  color: Color(0xFFF7FBFA),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                track.voiceNameVi,
-                style: const TextStyle(
-                  color: Color(0xFF9EE2D4),
-                  fontSize: 12,
-                ),
               ),
             ],
           ),
@@ -760,16 +751,27 @@ class _SleepMeditationScreenState extends State<SleepMeditationScreen>
     );
   }
 
-  String _statusLabel(StudioMeditationTrack track) {
-    switch (_phase) {
-      case _MeditationPhase.idle:
-        return '✨ Sẵn sàng: ${track.titleVi}';
-      case _MeditationPhase.playing:
-        return '🎙️ ${track.voiceNameVi}';
-      case _MeditationPhase.outroAmbient:
-        return '🌌 Giọng đọc đã kết thúc — Giữ tiếng suối chảy ru ngủ';
-      case _MeditationPhase.completed:
-        return '🌙 Đã hoàn tất phiên thiền — Chúc bạn ngủ ngon';
-    }
+  Widget _circleSeekButton(String label, VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 }

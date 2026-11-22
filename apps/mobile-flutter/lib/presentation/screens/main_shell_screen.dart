@@ -1,12 +1,14 @@
 // lib/presentation/screens/main_shell_screen.dart
-// Haven (Equilibria) Mobile Sanctuary Navigation Shell:
-// - Compact "Bình tĩnh" (1-Tap SOS) AppBar button + persistent SOS FAB (< 300ms access)
-// - Clean 5-Destination Material 3 NavigationBar:
-//     1. Trang chủ: Personalized greeting, quick mood switcher pills, adaptive Low-Energy / Dark Rest cards, 4-axis check-in
-//     2. Thực hành: Tâm sự & 7 Bài tập (SessionPlayer) | Góc Lo âu (Worry Box & Exposure) | Kho 36 Công cụ
-//     3. Khí sắc: Bipolar & IPSRT Hub (Dual-Pole Chart, 5 Anchors, 48h Impulse Vault, Ulysses Contract)
-//     4. Trợ lý AI: Grounded AI Companion (0.46), 2-Tier Memory, Voice Burst Studio & Health Connect / HealthKit
-//     5. Tự kiểm tra: 6 Interactive Scales (BMS, PHQ-9, GAD-7, ISI, ASRM, MDQ) | Báo cáo Bác sĩ PDF & #key= | Hồ sơ & Sinh trắc học.
+// Haven Calm Sanctuary Mobile Shell — Redesigned for airy, uncluttered serenity:
+// - Floating Frosted-Pill 4-Tab Bottom Navigation:
+//     0. Cảm xúc  : Soft sky-mist Home with 1 primary check-in card (opens clean MoodCheckInModal),
+//                   2 compact quick-action tiles (Thở 2 phút / Thiền Buông Thư),
+//                   1 Featured Recommendation card, and soft pastel "Bình tâm ngay" SOS pill.
+//     1. Thiền/Thở: Clean categorized audio list opening full-screen minimalist dark player.
+//     2. Công cụ  : Clean visual launcher cards for 7 Bài tập CBT/DBT, Trợ lý AI,
+//                   Tự kiểm tra 6 thang đo, Khí sắc & IPSRT, Kho 36 công cụ & Báo cáo PDF.
+//     3. Lịch sử  : Weekly 7-day mood calendar strip, gentle Haven reminder card,
+//                   summary stats, Biometrics lock & OTA Update.
 
 import 'dart:async';
 
@@ -18,6 +20,7 @@ import 'package:printing/printing.dart';
 import '../../domain/engine/clinical_assessments.dart';
 import '../../domain/models/clinical_models.dart';
 import '../../domain/models/haven_account_model.dart';
+import '../../domain/models/sleep_meditation_script.dart';
 import '../../domain/services/ota_update_service.dart';
 import '../dialogs/ota_update_dialog.dart';
 import '../theme/adaptive_clinical_theme.dart';
@@ -25,6 +28,7 @@ import 'ai_companion_biometrics_screen.dart';
 import 'assessment_runner_screen.dart';
 import 'bipolar_hub_screen.dart';
 import 'e2ee_clinician_qa_screen.dart';
+import 'mood_checkin_modal.dart';
 import 'session_player_screen.dart';
 import 'sleep_meditation_screen.dart';
 import 'sos_portal_screen.dart';
@@ -92,49 +96,23 @@ class MainShellScreen extends StatefulWidget {
 }
 
 class _MainShellScreenState extends State<MainShellScreen> {
-  int _navIndex = 0;
-  int _practiceSubIndex = 0; // 0: SessionPlayer, 1: Anxiety Hub, 2: 36 Tools
-  int _moodSubIndex = 0; // 0: Bipolar & Rhythm Hub, 1: Sleep Meditation (432Hz)
-  int _checkSubIndex = 0; // 0: 6 Questionnaires, 1: Doctor Report & E2EE, 2: Profile
-  bool _showAdvancedBipolarScales = false;
-
-  late int _draftMood;
-  late int _draftEnergy;
-  late double _draftSleep;
-  late FeltNeedForSleep _draftNeedForSleep;
-
-  final TextEditingController _worryCtrl = TextEditingController();
-  bool _isProductiveWorry = true;
-  final TextEditingController _exposureSituationCtrl = TextEditingController();
-  int _exposureSuds = 60;
-  String? _biometricStatusVi;
+  int _navIndex = 0; // 0: Cảm xúc, 1: Thiền/Thở, 2: Công cụ, 3: Lịch sử & Bạn
   bool _isCheckingOta = false;
+  String? _lastEmotionLabel;
+  String? _biometricStatusVi;
   final OtaUpdateService _otaService = const OtaUpdateService();
 
   @override
   void initState() {
     super.initState();
-    _draftMood = widget.moodPolarity;
-    _draftEnergy = widget.energyLevel;
-    _draftSleep = widget.sleepDurationHours;
-    _draftNeedForSleep = widget.feltNeedForSleep;
-    if (widget.accountProfile.disorderFocus == DisorderFocus.bipolar1 ||
-        widget.accountProfile.disorderFocus == DisorderFocus.bipolar2 ||
-        widget.accountProfile.disorderFocus == DisorderFocus.cyclothymia) {
-      _showAdvancedBipolarScales = true;
-    }
-
-    // Check for OTA updates quietly in background after frame render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _handleCheckOtaUpdate(manual: false);
+        unawaited(_handleCheckOtaUpdate(manual: false));
       }
     });
   }
 
-  Future<void> _handleCheckOtaUpdate({
-    required bool manual,
-  }) async {
+  Future<void> _handleCheckOtaUpdate({required bool manual}) async {
     if (_isCheckingOta) return;
     setState(() => _isCheckingOta = true);
 
@@ -163,69 +141,81 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
-  @override
-  void didUpdateWidget(covariant MainShellScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.moodPolarity != widget.moodPolarity ||
-        oldWidget.energyLevel != widget.energyLevel) {
-      _draftMood = widget.moodPolarity;
-      _draftEnergy = widget.energyLevel;
-    }
-  }
-
-  @override
-  void dispose() {
-    _worryCtrl.dispose();
-    _exposureSituationCtrl.dispose();
-    super.dispose();
-  }
-
   void _openSosPortal({int intensity = 9}) {
-    unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SosPortalScreen(initialIntensity: intensity),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SosPortalScreen(
+          initialDistressIntensity: intensity,
+          emergencyContactName: widget.accountProfile.emergencyContactName,
+          emergencyContactPhone: widget.accountProfile.emergencyContactPhone,
+          onCalmedDownReturn: () => Navigator.of(context).pop(),
         ),
       ),
     );
   }
 
-  Future<void> _launchQuestionnaire(String scaleCode) async {
-    final result = await Navigator.of(context).push<AssessmentRecord>(
-      MaterialPageRoute<AssessmentRecord>(
-        builder: (_) => AssessmentRunnerScreen(
-          scaleCode: scaleCode,
-          feltNeedForSleep: widget.feltNeedForSleep,
-        ),
+  Future<void> _openMoodCheckInModal() async {
+    final selection = await MoodCheckInModal.show(
+      context,
+      initialSleepHours: widget.sleepDurationHours,
+    );
+    if (selection == null || !mounted) return;
+
+    setState(() => _lastEmotionLabel = selection.emotionLabel);
+    widget.onQuickCheckInSubmit(
+      moodPolarity: selection.moodPolarity,
+      energyLevel: selection.energyLevel,
+      sleepHours: selection.sleepHours,
+      feltNeedForSleep: inferFeltNeedForSleep(
+        selection.sleepHours,
+        selection.moodPolarity,
       ),
     );
 
-    if (result == null || !mounted) return;
-    widget.onAddAssessment(result);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '✓ Đã ghi nhận cảm xúc "${selection.emotionLabel}" (${selection.intensity}/10).',
+        ),
+        backgroundColor: const Color(0xFF4F7A65),
+      ),
+    );
+  }
 
-    if (result.triggersSafetyStop) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Color(0xFFB3261E),
-          content: Text(
-            'Đã phát hiện tín hiệu cần bảo vệ an toàn. Đang mở Cổng An Toàn Khẩn Cấp (SOS)...',
+  void _pushToolScreen(String title, Widget body) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: const Color(0xFFF6F8F9),
+          appBar: AppBar(
+            title: Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            backgroundColor: const Color(0xFFF6F8F9),
+            elevation: 0,
+            scrolledUnderElevation: 0,
           ),
+          body: body,
         ),
-      );
+      ),
+    );
+  }
+
+  Future<void> _openAssessmentRunner(ClinicalScaleDefinition def) async {
+    final record = await Navigator.of(context).push<AssessmentRecord>(
+      MaterialPageRoute(
+        builder: (_) => AssessmentRunnerScreen(definition: def),
+      ),
+    );
+    if (record == null || !mounted) return;
+    widget.onAddAssessment(record);
+    if (record.triggersSafetyStop) {
       _openSosPortal(intensity: 10);
-    } else if (result.triggersHypomaniaGuard) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Color(0xFFD97706),
-          content: Text(
-            'Đã bật Lá chắn Hạ nhiệt Hưng cảm & Khoang Chờ 48 Giờ để bảo vệ giấc ngủ.',
-          ),
-        ),
-      );
     }
   }
 
-  Future<void> _generateAndShareClinicianPdfReport() async {
+  Future<void> _exportPrintableA4ClinicianPdf() async {
     final doc = pw.Document();
     doc.addPage(
       pw.MultiPage(
@@ -234,69 +224,35 @@ class _MainShellScreenState extends State<MainShellScreen> {
           pw.Header(
             level: 0,
             child: pw.Text(
-              'HAVEN (EQUILIBRIA) — CLINICAL SUMMARY REPORT (CBT / DBT / IPSRT)',
-              style: pw.TextStyle(
-                fontSize: 15,
-                fontWeight: pw.FontWeight.bold,
-              ),
+              'Haven (Equilibria) — Clinician Summary Report',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
             ),
           ),
           pw.Paragraph(
             text:
-                'Disclaimer: Self-monitoring between-session summary for psychiatric & psychotherapy review. '
-                'Generated locally on-device with Zero-Knowledge E2EE protection.',
+                'Patient: ${widget.accountProfile.displayName} | Focus: ${widget.accountProfile.disorderFocus.labelVi}\n'
+                'Generated locally on-device (AES-256 Encrypted).',
           ),
-          pw.Header(level: 1, text: '1. Bipolar Dual-Pole Mood, Energy & Sleep Logs'),
+          pw.SizedBox(height: 10),
+          pw.Header(level: 1, text: '1. Mood, Energy & Sleep Logs'),
           pw.TableHelper.fromTextArray(
-            headers: const [
-              'Date',
-              'Mood (-5..+5)',
-              'Energy (-5..+5)',
-              'Sleep (h)',
-              'Felt Need',
-              'Mixed Alert',
-            ],
+            headers: const ['Date', 'Mood (-5..+5)', 'Energy', 'Sleep (h)'],
             data: widget.moodLogs
                 .take(14)
                 .map(
                   (l) => [
-                    l.loggedAt.toIso8601String().substring(0, 10),
+                    l.date,
                     '${l.moodPolarity}',
                     '${l.energyLevel}',
                     l.sleepDurationHours.toStringAsFixed(1),
-                    l.feltNeedForSleep.code,
-                    l.mixedStateAlertTriggered ? 'YES (MIXED)' : 'No',
                   ],
                 )
                 .toList(),
           ),
           pw.SizedBox(height: 12),
-          pw.Header(level: 1, text: '2. Structured CBT / TEAM-CBT / DBT Sessions'),
+          pw.Header(level: 1, text: '2. Clinical Self-Assessments'),
           pw.TableHelper.fromTextArray(
-            headers: const [
-              'Date',
-              'Technique',
-              'Pre -> Post',
-              'Outcome',
-              'Steps Done',
-            ],
-            data: widget.sessions
-                .take(10)
-                .map(
-                  (s) => [
-                    '${s.date} ${s.time}',
-                    s.technique.slug,
-                    '${s.preIntensity} -> ${s.postIntensity ?? s.preIntensity}',
-                    s.outcome.code,
-                    '${s.stepsCompleted}',
-                  ],
-                )
-                .toList(),
-          ),
-          pw.SizedBox(height: 12),
-          pw.Header(level: 1, text: '3. Standardized Clinical Self-Assessments'),
-          pw.TableHelper.fromTextArray(
-            headers: const ['Scale', 'Score', 'Severity', 'Safety / Mania Flag'],
+            headers: const ['Scale', 'Score', 'Severity', 'Safety Flag'],
             data: widget.assessments
                 .take(10)
                 .map(
@@ -304,11 +260,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     a.scaleCode,
                     '${a.totalScore}',
                     a.severityCode,
-                    a.triggersSafetyStop
-                        ? 'SAFETY STOP'
-                        : a.triggersHypomaniaGuard
-                            ? 'HYPOMANIA GUARD'
-                            : 'Normal',
+                    a.triggersSafetyStop ? 'SAFETY STOP' : 'Normal',
                   ],
                 )
                 .toList(),
@@ -325,36 +277,498 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final isHome = _navIndex == 0;
+    final isManiaDark =
+        widget.activeThemeMode == ClinicalThemeMode.lowStimulusManiaDarkRest;
+
+    final bgGradient = isManiaDark
+        ? const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A1714), Color(0xFF12100E)],
+          )
+        : isHome
+            ? const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFD5E6F0),
+                  Color(0xFFE7F0F5),
+                  Color(0xFFF3F6F8),
+                ],
+              )
+            : const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF3F6F8), Color(0xFFF6F8FA)],
+              );
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/icon/haven_icon.png',
-                width: 30,
-                height: 30,
+      body: Container(
+        decoration: BoxDecoration(gradient: bgGradient),
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              // Main Tab Content
+              Positioned.fill(child: _buildTabContent()),
+
+              // Soft Pastel "Bình tâm ngay" SOS Pill (Home & Tools)
+              if (_navIndex == 0 || _navIndex == 2)
+                Positioned(
+                  right: 20,
+                  bottom: 92,
+                  child: Material(
+                    color: const Color(0xFFF4BACB),
+                    borderRadius: BorderRadius.circular(999),
+                    elevation: 3,
+                    shadowColor: const Color(0xFFD68AA2).withValues(alpha: 0.35),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () => _openSosPortal(intensity: 9),
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Text(
+                          'Bình tâm ngay',
+                          style: TextStyle(
+                            color: Color(0xFF5D2637),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Floating Pill Bottom Navigation Bar (4 Clean Tabs)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  top: false,
+                  child: _buildFloatingPillNavBar(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingPillNavBar() {
+    const items = [
+      (Icons.cloud_rounded, 'Cảm xúc'),
+      (Icons.self_improvement_rounded, 'Thiền/Thở'),
+      (Icons.psychology_alt_rounded, 'Công cụ'),
+      (Icons.history_rounded, 'Lịch sử'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1F3847).withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          for (int i = 0; i < items.length; i++)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _navIndex = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _navIndex == i
+                        ? const Color(0xFFEDF4F0)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        items[i].$1,
+                        size: 22,
+                        color: _navIndex == i
+                            ? const Color(0xFF5A8A73)
+                            : const Color(0xFF7B8A92),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        items[i].$2,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: _navIndex == i
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: _navIndex == i
+                              ? const Color(0xFF4F7A65)
+                              : const Color(0xFF7B8A92),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 10),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabContent() {
+    switch (_navIndex) {
+      case 0:
+        return _buildSereneHomeTab();
+      case 1:
+        return SleepMeditationScreen(
+          onOpenBreathing: () => _openSosPortal(intensity: 6),
+        );
+      case 2:
+        return _buildCleanToolsHubTab();
+      default:
+        return _buildHistoryAndProfileTab();
+    }
+  }
+
+  // ===========================================================================
+  // TAB 0: SERENE HOME SANCTUARY (Inspired by calm cloud home UI)
+  // ===========================================================================
+  Widget _buildSereneHomeTab() {
+    final featuredTrack = kStudioMeditationTracks[1]; // Vita — Nữ dịu ấm
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 150),
+      children: [
+        // Subtle top brand row (zero clutter)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Chào ${widget.accountProfile.displayName}',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4E6775),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Kiểm tra Cập nhật OTA',
+              icon: _isCheckingOta
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(
+                      Icons.system_update_outlined,
+                      size: 20,
+                      color: Color(0xFF4E6775),
+                    ),
+              onPressed: () => unawaited(_handleCheckOtaUpdate(manual: true)),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // Floating Soft Cloud Emblem
+        Center(
+          child: Container(
+            width: 102,
+            height: 70,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFDF8),
+              borderRadius: BorderRadius.circular(48),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFEBC1).withValues(alpha: 0.65),
+                  blurRadius: 34,
+                  spreadRadius: 8,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.cloud_rounded,
+              size: 52,
+              color: Color(0xFF8BB8A3),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 26),
+
+        // Primary Hero Check-In Card
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3E6173).withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bạn thấy trong người\nthế nào?',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                  color: Color(0xFF1D282E),
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _lastEmotionLabel != null
+                    ? 'Hôm nay bạn đang thấy "$_lastEmotionLabel". Một khoảnh khắc dừng lại, cũng là chăm sóc bản thân.'
+                    : 'Một khoảnh khắc dừng lại, cũng là chăm sóc bản thân.',
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.45,
+                  color: Color(0xFF667680),
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF6E9883),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    elevation: 0,
+                  ),
+                  onPressed: _openMoodCheckInModal,
+                  child: Text(
+                    _lastEmotionLabel != null
+                        ? 'Cập nhật cảm xúc hôm nay'
+                        : 'Ghi cảm xúc hôm nay',
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // 2-Column Quick-Action Tiles (Thở 2 phút | Thiền Buông Thư)
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionTile(
+                orbColor: const Color(0xFF7CB2DE),
+                title: 'Thở 2 phút',
+                subtitle: 'Thư giãn nhanh',
+                onTap: () => _openSosPortal(intensity: 6),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickActionTile(
+                orbColor: const Color(0xFFA78ED4),
+                title: 'Thiền 5 phút',
+                subtitle: 'Dễ ngủ, bình an',
+                onTap: () => setState(() => _navIndex = 1),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 14),
+
+        // Featured Meditation Recommendation Card ("HAVEN GỢI Ý CHO BẠN")
+        InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    const MeditationNowPlayingScreen(initialTrackIndex: 1),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3E6173).withValues(alpha: 0.06),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFE7C8D4), Color(0xFF6A4573)],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.spa_outlined,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'HAVEN GỢI Ý CHO BẠN',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.6,
+                              color: Color(0xFF7D8C94),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFCEAE6),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Mới',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFC45B47),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Thiền Buông Thư Cùng Haven',
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F2B31),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${featuredTrack.voiceNameVi} · ${formatMeditationClock(featuredTrack.durationSeconds)}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Color(0xFF6D7B83),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionTile({
+    required Color orbColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF3E6173).withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: orbColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: orbColor.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 11),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Haven',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-                  ),
                   Text(
-                    widget.activeThemeMode.titleVi,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onSurface.withValues(alpha: 0.7),
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F2B31),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF718088),
                     ),
                   ),
                 ],
@@ -362,1018 +776,575 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Kiểm tra Cập nhật OTA',
-            icon: _isCheckingOta
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.system_update_outlined, size: 21),
-            onPressed: () => _handleCheckOtaUpdate(manual: true),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFC56548),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                visualDensity: VisualDensity.compact,
-              ),
-              onPressed: () => _openSosPortal(intensity: 9),
-              icon: const Icon(Icons.shield_moon_outlined, size: 16),
-              label: const Text(
-                'Bình tĩnh',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildAdaptiveThemeStatusStrip(),
-          Expanded(child: _buildSelectedTabBody()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.small(
-        tooltip: 'Mở Cổng Bình tĩnh SOS Tức thì',
-        backgroundColor: const Color(0xFFC56548),
-        foregroundColor: Colors.white,
-        onPressed: () => _openSosPortal(intensity: 9),
-        child: const Icon(Icons.sos),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (i) => setState(() => _navIndex = i),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.spa_outlined),
-            selectedIcon: Icon(Icons.spa),
-            label: 'Trang chủ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.psychology_outlined),
-            selectedIcon: Icon(Icons.psychology),
-            label: 'Thực hành',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.nights_stay_outlined),
-            selectedIcon: Icon(Icons.nights_stay),
-            label: 'Khí sắc',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Trợ lý AI',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Tự kiểm tra',
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildAdaptiveThemeStatusStrip() {
-    final mode = widget.activeThemeMode;
-    Color bg;
-    Color fg;
-    if (mode == ClinicalThemeMode.lowStimulusManiaDarkRest) {
-      bg = const Color(0xFF281F17);
-      fg = const Color(0xFFF59E0B);
-    } else if (mode == ClinicalThemeMode.lowEnergyDepression) {
-      bg = const Color(0xFFEBE7DC);
-      fg = const Color(0xFF2F2F2B);
-    } else {
-      bg = const Color(0xFFEFF3EE);
-      fg = const Color(0xFF2F4A3B);
-    }
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-      color: bg,
-      child: Text(
-        mode.subtitleVi,
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  Widget _buildSelectedTabBody() {
-    switch (_navIndex) {
-      case 0:
-        return _buildCheckInAndAdaptiveHomeTab();
-      case 1:
-        return _buildPracticeHubTab();
-      case 2:
-        return _buildMoodAndSleepHubTab();
-      case 3:
-        return AiCompanionBiometricsScreen(
-          currentMoodPolarity: widget.moodPolarity,
-          currentEnergyLevel: widget.energyLevel,
-          currentSleepHours: widget.sleepDurationHours,
-          currentFeltNeedForSleep: widget.feltNeedForSleep,
-        );
-      default:
-        return _buildAssessmentsAndProfileHubTab();
-    }
-  }
-
-  Widget _buildMoodAndSleepHubTab() {
-    return Column(
+  // ===========================================================================
+  // TAB 2: CLEAN TOOLS HUB (Inspired by uncluttered visual card launcher)
+  // ===========================================================================
+  Widget _buildCleanToolsHubTab() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 150),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(
-                  value: 0,
-                  icon: Icon(Icons.nights_stay_outlined, size: 17),
-                  label: Text('Khí sắc & Nhịp'),
-                ),
-                ButtonSegment(
-                  value: 1,
-                  icon: Icon(Icons.water_drop_outlined, size: 17),
-                  label: Text('Thiền Ngủ'),
-                ),
-              ],
-              selected: {_moodSubIndex},
-              onSelectionChanged: (s) =>
-                  setState(() => _moodSubIndex = s.first),
+        const Text(
+          'Công cụ Tâm trí',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1D292F),
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Mỗi công cụ mở trong một không gian riêng tư, gọn gàng và không làm bạn choáng ngợp.',
+          style: TextStyle(fontSize: 13.5, color: Color(0xFF64737B)),
+        ),
+        const SizedBox(height: 20),
+
+        _buildVisualToolBanner(
+          icon: Icons.psychology_outlined,
+          title: 'Thực hành 7 Bài tập CBT & DBT',
+          subtitle: 'Gỡ rối suy nghĩ, kích hoạt hành vi & Wise Mind',
+          colors: const [Color(0xFF3E6359), Color(0xFF213A34)],
+          onTap: () => _pushToolScreen(
+            'Thực hành 7 Bài tập CBT / DBT',
+            SessionPlayerScreen(
+              currentMoodPolarity: widget.moodPolarity,
+              currentEnergyLevel: widget.energyLevel,
+              onSessionSaved: widget.onSessionSaved,
             ),
           ),
         ),
-        Expanded(
-          child: _moodSubIndex == 0
-              ? BipolarHubScreen(
-                  moodLogs: widget.moodLogs,
-                  impulseVaultItems: widget.impulseVaultItems,
-                  ulyssesContract: widget.ulyssesContract,
-                  latestAsrmScore: widget.latestAsrmScore,
-                  onAddMoodLog: (_) {},
-                  onAddImpulseVaultItem: widget.onAddImpulseVaultItem,
-                  onUpdateUlyssesContract: widget.onUpdateUlyssesContract,
-                )
-              : const SleepMeditationScreen(),
+
+        _buildVisualToolBanner(
+          icon: Icons.forum_outlined,
+          title: 'Trợ lý AI & Nhịp tim HRV',
+          subtitle: 'Lắng nghe thấu cảm, bộ nhớ 2 tầng & Health Connect',
+          colors: const [Color(0xFF475B78), Color(0xFF243144)],
+          onTap: () => _pushToolScreen(
+            'Trợ lý AI & Dữ liệu Sinh học',
+            AiCompanionBiometricsScreen(
+              currentMoodPolarity: widget.moodPolarity,
+              currentEnergyLevel: widget.energyLevel,
+              currentSleepHours: widget.sleepDurationHours,
+              currentFeltNeedForSleep: widget.feltNeedForSleep,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+        const Text(
+          'Theo dõi & Đánh giá',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1F2C33),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        _buildVisualToolBanner(
+          icon: Icons.assignment_outlined,
+          title: 'Tự kiểm tra Sức khỏe Tâm trí',
+          subtitle: '6 thang đo chuẩn y khoa (BMS, PHQ-9, GAD-7, ISI, ASRM, MDQ)',
+          colors: const [Color(0xFF6B5B84), Color(0xFF392E4D)],
+          onTap: () => _pushToolScreen(
+            'Tự kiểm tra Sức khỏe Tâm trí',
+            _buildCleanScalesListScreen(),
+          ),
+        ),
+
+        _buildVisualToolBanner(
+          icon: Icons.nights_stay_outlined,
+          title: 'Khí sắc, Nhịp sinh học & Khoang 48h',
+          subtitle: 'Biểu đồ 2 cực (-5..+5), 5 mốc IPSRT & Bản Giao ước Ulysses',
+          colors: const [Color(0xFF36535E), Color(0xFF1A2C34)],
+          onTap: () => _pushToolScreen(
+            'Khí sắc & Nhịp sinh học',
+            BipolarHubScreen(
+              moodLogs: widget.moodLogs,
+              impulseVaultItems: widget.impulseVaultItems,
+              ulyssesContract: widget.ulyssesContract,
+              latestAsrmScore: widget.latestAsrmScore,
+              onAddMoodLog: (_) {},
+              onAddImpulseVaultItem: widget.onAddImpulseVaultItem,
+              onUpdateUlyssesContract: widget.onUpdateUlyssesContract,
+            ),
+          ),
+        ),
+
+        _buildVisualToolBanner(
+          icon: Icons.auto_awesome_outlined,
+          title: 'Kho 36 Công cụ TEAM-CBT & DBT',
+          subtitle: 'Mũi tên đi xuống, 23 niềm tin tự hại & ABC PLEASE',
+          colors: const [Color(0xFF7B6352), Color(0xFF423228)],
+          onTap: () => _pushToolScreen(
+            'Kho 36 Công cụ CBT / DBT',
+            Tools36AndTeamCbtScreen(
+              currentMoodPolarity: widget.moodPolarity,
+              currentFeltNeedForSleep: widget.feltNeedForSleep,
+            ),
+          ),
+        ),
+
+        _buildVisualToolBanner(
+          icon: Icons.medical_information_outlined,
+          title: 'Báo cáo Bác sĩ PDF & Mã hóa E2EE',
+          subtitle: 'Xuất tóm tắt chuẩn A4 & liên kết Zero-Knowledge',
+          colors: const [Color(0xFF3A5C57), Color(0xFF1C302D)],
+          onTap: () => _pushToolScreen(
+            'Báo cáo Bác sĩ & Bảo mật E2EE',
+            ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                FilledButton.icon(
+                  onPressed: _exportPrintableA4ClinicianPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Xuất & In Báo Cáo Bác Sĩ PDF (A4)'),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 620,
+                  child: E2eeClinicianQaScreen(
+                    moodLogs: widget.moodLogs,
+                    sessions: widget.sessions,
+                    assessments: widget.assessments,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildCheckInAndAdaptiveHomeTab() {
-    final scheme = Theme.of(context).colorScheme;
-    final isLowEnergy =
-        widget.activeThemeMode == ClinicalThemeMode.lowEnergyDepression;
-    final isManiaDarkRest =
-        widget.activeThemeMode == ClinicalThemeMode.lowStimulusManiaDarkRest;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 84),
-      children: [
-        // Personalized Warm Greeting + Quick Mood Switcher Pills
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Xin chào ${widget.accountProfile.displayName}, hôm nay tâm trí bạn thế nào?',
-                  style: const TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Chọn nhanh trạng thái hiện tại để Haven điều chỉnh ánh sáng và nhịp độ dịu mắt nhất cho bạn:',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: scheme.onSurface.withValues(alpha: 0.72),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('🌿 Trầm mệt'),
-                      selected: isLowEnergy,
-                      onSelected: (_) {
-                        setState(() {
-                          _draftMood = -3;
-                          _draftEnergy = -2;
-                        });
-                        widget.onQuickCheckInSubmit(
-                          moodPolarity: -3,
-                          energyLevel: -2,
-                          sleepHours: _draftSleep,
-                          feltNeedForSleep: FeltNeedForSleep.exhausted,
-                        );
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('⚖️ Cân bằng'),
-                      selected: !isLowEnergy && !isManiaDarkRest,
-                      onSelected: (_) {
-                        setState(() {
-                          _draftMood = 0;
-                          _draftEnergy = 0;
-                        });
-                        widget.onQuickCheckInSubmit(
-                          moodPolarity: 0,
-                          energyLevel: 0,
-                          sleepHours: _draftSleep,
-                          feltNeedForSleep: FeltNeedForSleep.normal,
-                        );
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('🌙 Hạ nhiệt'),
-                      selected: isManiaDarkRest,
-                      onSelected: (_) {
-                        setState(() {
-                          _draftMood = 3;
-                          _draftEnergy = 3;
-                        });
-                        widget.onQuickCheckInSubmit(
-                          moodPolarity: 3,
-                          energyLevel: 3,
-                          sleepHours: 4.5,
-                          feltNeedForSleep: FeltNeedForSleep.reducedNeed,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+  Widget _buildVisualToolBanner({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: colors,
             ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        if (isLowEnergy)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Không gian Dịu dàng — Hôm nay một bước nhỏ thôi là đủ',
-                    style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Khi cơ thể và tâm trí đang mệt (<= -3), Haven ẩn toàn bộ bảng biểu gây áp lực và không bao giờ đếm chuỗi ngày đứt.\n'
-                    'Bạn chỉ cần chọn một việc thật nhỏ dưới đây:',
-                    style: TextStyle(fontSize: 13, height: 1.45),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: () => setState(() => _navIndex = 1),
-                        child: const Text('🎙️ Nói ra nhẹ lòng 30 giây'),
-                      ),
-                      FilledButton.tonal(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Tuyệt vời — một cốc nước ấm & 2 phút mở rèm cửa là đủ cho lúc này.',
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text('💧 Uống 1 cốc nước ấm'),
-                      ),
-                      FilledButton.tonal(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Bạn được phép nghỉ ngơi chủ động mà không cần áy náy.',
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text('🛋️ Nghỉ ngơi không áy náy'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-        if (isManiaDarkRest)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Không gian Trầm ấm Hạ nhiệt & Khoang Chờ 48 Giờ',
-                    style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Màu sắc đã chuyển sang hổ phách trầm dịu mắt, tắt toàn bộ hiệu ứng chuyển động để bảo vệ giấc ngủ và hệ thần kinh.',
-                    style: TextStyle(fontSize: 13, height: 1.45),
-                  ),
-                  const SizedBox(height: 10),
-                  FilledButton.icon(
-                    onPressed: () => setState(() => _navIndex = 2),
-                    icon: const Icon(Icons.lock_clock),
-                    label: const Text('Mở Khoang Chờ Quyết Định 48 Giờ'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-        const SizedBox(height: 12),
-
-        // Quick-Launch Night Sanctuary: Thiền Buông Thư Giấc Ngủ (432Hz + Tiếng Suối)
-        Card(
-          color: const Color(0xFF15222C),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(
-              color: const Color(0xFF7EC8B8).withValues(alpha: 0.35),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '🌊 Thiền Buông Thư Hỗ Trợ Giấc Ngủ',
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFF3FAF8),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Bộ 3 bài Thiền Buông Thư phòng thu (Nam Trầm Ấm, Nữ Dịu Ấm & Nam Trầm Sâu) kết hợp tiếng suối chảy êm dịu.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.45,
-                    color: Color(0xFFB7CECA),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF63B3A1),
-                    foregroundColor: const Color(0xFF0A1715),
-                  ),
-                  onPressed: () => setState(() {
-                    _navIndex = 2;
-                    _moodSubIndex = 1;
-                  }),
-                  icon: const Icon(Icons.headphones_outlined, size: 18),
-                  label: const Text(
-                    'Nghe Thiền Buông Thư Ngay',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 4-Axis Daily Check-in
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Check-in Hôm nay (Khí sắc • Năng lượng • Giấc ngủ)',
-                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text('1. Tâm trạng / Khí sắc (-5 .. +5): $_draftMood'),
-                Slider(
-                  value: _draftMood.toDouble(),
-                  min: -5,
-                  max: 5,
-                  divisions: 10,
-                  label: '$_draftMood',
-                  onChanged: (v) => setState(() => _draftMood = v.round()),
-                ),
-                Text('2. Mức Năng lượng cơ thể (-5 .. +5): $_draftEnergy'),
-                Slider(
-                  value: _draftEnergy.toDouble(),
-                  min: -5,
-                  max: 5,
-                  divisions: 10,
-                  label: '$_draftEnergy',
-                  onChanged: (v) => setState(() => _draftEnergy = v.round()),
-                ),
-                Text(
-                  '3. Thời lượng ngủ đêm qua: ${_draftSleep.toStringAsFixed(1)} giờ',
-                ),
-                Slider(
-                  value: _draftSleep,
-                  min: 0,
-                  max: 14,
-                  divisions: 28,
-                  label: '${_draftSleep.toStringAsFixed(1)}h',
-                  onChanged: (v) => setState(() => _draftSleep = v),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<FeltNeedForSleep>(
-                  value: _draftNeedForSleep,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: '4. Cảm giác sau khi thức dậy',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: FeltNeedForSleep.values
-                      .map(
-                        (f) => DropdownMenuItem(
-                          value: f,
-                          child: Text(f.labelVi),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) setState(() => _draftNeedForSleep = v);
-                  },
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      widget.onQuickCheckInSubmit(
-                        moodPolarity: _draftMood,
-                        energyLevel: _draftEnergy,
-                        sleepHours: _draftSleep,
-                        feltNeedForSleep: _draftNeedForSleep,
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã lưu Check-in hôm nay an toàn.'),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Lưu Check-in Hôm nay'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Quick Shortcuts to Practice & Self-Check
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.psychology_outlined),
-                title: const Text(
-                  'Tâm sự & Thực hành 7 Bài tập Hướng dẫn',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Nhật ký Suy nghĩ, Kích hoạt Hành vi, Tâm Trí Tuệ Wise Mind & Giao tiếp DEAR MAN',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => setState(() => _navIndex = 1),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.assignment_outlined),
-                title: const Text(
-                  'Làm Bài Tự Kiểm Tra Định Kỳ (PHQ-9, GAD-7, Giấc ngủ)',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Trả lời bảng câu hỏi chi tiết và nhận định hướng lâm sàng tức thì',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => setState(() {
-                  _navIndex = 4;
-                  _checkSubIndex = 0;
-                }),
+            boxShadow: [
+              BoxShadow(
+                color: colors.last.withValues(alpha: 0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPracticeHubTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('7 Bài tập')),
-                ButtonSegment(value: 1, label: Text('Góc Lo âu')),
-                ButtonSegment(value: 2, label: Text('36 Công cụ')),
-              ],
-              selected: {_practiceSubIndex},
-              onSelectionChanged: (s) =>
-                  setState(() => _practiceSubIndex = s.first),
-            ),
-          ),
-        ),
-        Expanded(
-          child: _practiceSubIndex == 0
-              ? SessionPlayerScreen(
-                  currentMoodPolarity: widget.moodPolarity,
-                  currentEnergyLevel: widget.energyLevel,
-                  onSessionSaved: widget.onSessionSaved,
-                )
-              : _practiceSubIndex == 1
-                  ? _buildAnxietyHubView()
-                  : Tools36AndTeamCbtScreen(
-                      currentMoodPolarity: widget.moodPolarity,
-                      currentFeltNeedForSleep: widget.feltNeedForSleep,
-                    ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAnxietyHubView() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 84),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Chiếc hộp Gác lại Âu lo (Worry Box • Hẹn 17:30)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Tạm gửi suy nghĩ lo âu vào hộp để tâm trí được nghỉ ngơi và xử lý đúng khung giờ hẹn 17:30.',
-                  style: TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _worryCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nỗi lo đang xuất hiện trong đầu...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: _isProductiveWorry,
-                  onChanged: (v) => setState(() => _isProductiveWorry = v),
-                  title: Text(
-                    _isProductiveWorry
-                        ? 'Lo âu thực tế có thể hành động giải quyết'
-                        : 'Lo âu giả định "Nhỡ đâu..." ngoài tầm kiểm soát',
-                    style: const TextStyle(fontSize: 13.5),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () {
-                    final text = _worryCtrl.text.trim();
-                    if (text.isEmpty) return;
-                    widget.onAddWorryBoxItem(
-                      WorryBoxItem(
-                        id: 'worry-${DateTime.now().millisecondsSinceEpoch}',
-                        worryText: text,
-                        capturedAt: DateTime.now(),
-                        isProductiveActionableWorry: _isProductiveWorry,
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
                       ),
-                    );
-                    _worryCtrl.clear();
-                  },
-                  icon: const Icon(Icons.archive_outlined),
-                  label: const Text('Cất vào Chiếc hộp Âu lo'),
-                ),
-                for (final w in widget.worryBoxItems)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.inbox_outlined),
-                    title: Text(w.worryText),
-                    subtitle: Text(
-                      w.isProductiveActionableWorry
-                          ? 'Gỡ rối thực tế lúc ${w.scheduledReviewTime}'
-                          : 'Quan sát trôi qua lúc ${w.scheduledReviewTime}',
                     ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Thang Bước Nhỏ Đối Diện Nỗi Sợ (Exposure Hierarchy)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _exposureSituationCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Tình huống bạn muốn tập đối diện từng bước',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text('Mức độ lo lắng dự đoán (0–100): $_exposureSuds/100'),
-                Slider(
-                  value: _exposureSuds.toDouble(),
-                  min: 0,
-                  max: 100,
-                  divisions: 20,
-                  label: '$_exposureSuds',
-                  onChanged: (v) => setState(() => _exposureSuds = v.round()),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final s = _exposureSituationCtrl.text.trim();
-                    if (s.isEmpty) return;
-                    widget.onAddExposureStep(
-                      ExposureStep(
-                        id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
-                        fearSituation: s,
-                        baselineSuds: _exposureSuds,
-                        safetyBehaviorsToDrop: const [
-                          'Không kiểm tra mạch liên tục',
-                          'Giữ hơi thở chậm 4-6',
-                        ],
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 12.5,
+                        height: 1.35,
                       ),
-                    );
-                    _exposureSituationCtrl.clear();
-                  },
-                  child: const Text('Thêm vào Thang Tiếp xúc'),
-                ),
-                for (final step in widget.exposureSteps)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(step.fearSituation),
-                    subtitle: Text(
-                      'Mức sợ ban đầu: ${step.baselineSuds}/100 • Ghi chú: ${step.safetyBehaviorsToDrop.join(", ")}',
                     ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildAssessmentsAndProfileHubTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('Bài kiểm tra')),
-                ButtonSegment(value: 1, label: Text('Bác sĩ & PDF')),
-                ButtonSegment(value: 2, label: Text('Hồ sơ')),
-              ],
-              selected: {_checkSubIndex},
-              onSelectionChanged: (s) =>
-                  setState(() => _checkSubIndex = s.first),
-            ),
-          ),
-        ),
-        Expanded(
-          child: _checkSubIndex == 0
-              ? _buildInteractiveScalesView()
-              : _checkSubIndex == 1
-                  ? _buildDoctorReportView()
-                  : _buildProfileAndSecurityView(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInteractiveScalesView() {
-    final scheme = Theme.of(context).colorScheme;
+  Widget _buildCleanScalesListScreen() {
     final latestByScale = <String, AssessmentRecord>{};
     for (final rec in widget.assessments) {
       latestByScale.putIfAbsent(rec.scaleCode, () => rec);
     }
-
-    final isBipolarUser =
-        widget.accountProfile.disorderFocus == DisorderFocus.bipolar1 ||
-            widget.accountProfile.disorderFocus == DisorderFocus.bipolar2 ||
-            widget.accountProfile.disorderFocus == DisorderFocus.cyclothymia;
-
-    final scaleCodes = <String>[
-      'BMS',
-      'PHQ-9',
-      'GAD-7',
-      'ISI',
-      if (_showAdvancedBipolarScales || isBipolarUser) ...['ASRM', 'MDQ'],
-    ];
+    const codes = ['BMS', 'PHQ-9', 'GAD-7', 'ISI', 'ASRM', 'MDQ'];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 84),
+      padding: const EdgeInsets.all(16),
       children: [
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            const Text(
-              'Các Bài Tự Kiểm Tra Sức Khỏe Định Kỳ',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            TextButton(
-              onPressed: () => setState(
-                () => _showAdvancedBipolarScales = !_showAdvancedBipolarScales,
-              ),
-              child: Text(
-                _showAdvancedBipolarScales
-                    ? 'Ẩn thang đo chuyên sâu'
-                    : '+ Hiện thêm ASRM/MDQ',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Chạm vào bài kiểm tra để trả lời từng câu hỏi thực tế và nhận kết quả thẩm định tức thì.',
-          style: TextStyle(
-            fontSize: 12.5,
-            color: scheme.onSurface.withValues(alpha: 0.72),
-          ),
-        ),
-        const SizedBox(height: 12),
-        for (final code in scaleCodes)
-          _buildScaleCard(
-            definition: kClinicalScalesRegistry[code]!,
-            latestResult: latestByScale[code],
-            scheme: scheme,
+        for (final code in codes)
+          Builder(
+            builder: (_) {
+              final def = kClinicalScalesRegistry[code]!;
+              final latest = latestByScale[code];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: const BorderSide(color: Color(0xFFE5ECE9)),
+                ),
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  title: Text(
+                    def.titleVi,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      latest != null
+                          ? 'Kết quả gần nhất: ${latest.totalScore}/${def.maxScore}đ — ${latest.interpretationVi}'
+                          : def.introVi,
+                      style: const TextStyle(fontSize: 12.5, height: 1.4),
+                    ),
+                  ),
+                  trailing: FilledButton.tonal(
+                    onPressed: () => unawaited(_openAssessmentRunner(def)),
+                    child: Text(latest != null ? 'Làm lại' : 'Bắt đầu'),
+                  ),
+                ),
+              );
+            },
           ),
       ],
     );
   }
 
-  Widget _buildScaleCard({
-    required ClinicalScaleDefinition definition,
-    required AssessmentRecord? latestResult,
-    required ColorScheme scheme,
-  }) {
-    final isDone = latestResult != null;
+  // ===========================================================================
+  // TAB 3: WEEKLY HISTORY & PROFILE (Inspired by calm weekly calendar UI)
+  // ===========================================================================
+  Widget _buildHistoryAndProfileTab() {
+    final p = widget.accountProfile;
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDone ? scheme.primary : const Color(0xFFE6E4DC),
-          width: isDone ? 1.6 : 1.0,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+      children: [
+        const Text(
+          'Lịch sử',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1D292F),
+            letterSpacing: -0.4,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    definition.titleVi,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? scheme.secondary.withValues(alpha: 0.18)
-                        : scheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isDone
-                        ? '✓ ${latestResult.totalScore}/${definition.maxScore}đ'
-                        : 'Chưa làm',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: isDone ? scheme.secondary : scheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isDone ? latestResult.interpretationVi : definition.introVi,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.45,
-                color: scheme.onSurface.withValues(alpha: 0.8),
-              ),
-            ),
-            if (isDone && latestResult.triggersSafetyStop) ...[
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFB3261E),
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => _openSosPortal(intensity: 10),
-                icon: const Icon(Icons.sos),
-                label: const Text('Mở Cổng An Toàn Khẩn Cấp SOS'),
+        const SizedBox(height: 16),
+
+        // Weekly 7-Day Mood Calendar Card
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
             ],
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: isDone
-                  ? OutlinedButton(
-                      onPressed: () =>
-                          _launchQuestionnaire(definition.scaleCode),
-                      child: const Text('Làm lại bài kiểm tra ↺'),
-                    )
-                  : FilledButton(
-                      onPressed: () =>
-                          _launchQuestionnaire(definition.scaleCode),
-                      child: const Text('Bắt đầu kiểm tra (2 phút) →'),
+          ),
+          child: Column(
+            children: [
+              Text(
+                'Tuần ${monday.day} – ${monday.add(const Duration(days: 6)).day} thg ${now.month}',
+                style: const TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2B31),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${widget.moodLogs.length.clamp(0, 7)} / 7 ngày đã ghi nhận',
+                style: const TextStyle(fontSize: 12.5, color: Color(0xFF74838B)),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (int i = 0; i < 7; i++)
+                    Builder(
+                      builder: (_) {
+                        final day = monday.add(Duration(days: i));
+                        final isToday = day.day == now.day &&
+                            day.month == now.month;
+                        return Column(
+                          children: [
+                            Text(
+                              dayLabels[i],
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7A8890),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isToday
+                                    ? const Color(0xFFE7F2EC)
+                                    : const Color(0xFFF2F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                                border: isToday
+                                    ? Border.all(
+                                        color: const Color(0xFF4F7A65),
+                                        width: 1.5,
+                                      )
+                                    : null,
+                              ),
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: isToday
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: const Color(0xFF28343A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Warm Gentle Haven Reminder Card
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDFBFA),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFECEAE6)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'HAVEN NHẮN NHỦ',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.7,
+                  color: Color(0xFF849198),
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Không phải ngày nào cũng thuận lợi. Điều quan trọng là bạn vẫn có thể bắt đầu lại nhẹ nhàng bất cứ lúc nào.',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: Color(0xFF253137),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // 2 Summary Stat Cards
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                label: 'Cảm xúc gần nhất',
+                value: _lastEmotionLabel ?? 'Bình ổn',
+                caption: 'Ngủ ${widget.sleepDurationHours.toStringAsFixed(1)} giờ',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                label: 'Phiên thực hành',
+                value: '${widget.sessions.length} phiên',
+                caption: '${widget.assessments.length} bài tự kiểm tra',
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
 
-  Widget _buildDoctorReportView() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 84),
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _generateAndShareClinicianPdfReport,
-            icon: const Icon(Icons.picture_as_pdf),
-            label: const Text('Xuất Báo cáo Lâm sàng PDF Chuẩn A4 Cho Bác Sĩ'),
+        const SizedBox(height: 18),
+
+        // Compact Profile, Biometrics & OTA Update Card
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
           ),
-        ),
-        const SizedBox(height: 12),
-        E2eeClinicianQaScreen(
-          moodLogs: widget.moodLogs,
-          sessions: widget.sessions,
-          assessments: widget.assessments,
-          onExportClinicianPdf: _generateAndShareClinicianPdfReport,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Color(0xFFE7F2EC),
+                    child: Icon(Icons.person_outline, color: Color(0xFF4F7A65)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          p.displayName,
+                          style: const TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          p.disorderFocus.labelVi,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7982),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.fingerprint, color: Color(0xFF4F7A65)),
+                title: const Text(
+                  'Khóa sinh trắc học (Face ID / Vân tay)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  _biometricStatusVi ?? 'Mã hóa AES-256 riêng tư trên máy',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: TextButton(
+                  onPressed: () async {
+                    final ok = await widget.onAuthenticateBiometrics();
+                    if (!mounted) return;
+                    setState(() {
+                      _biometricStatusVi = ok
+                          ? '✓ Xác thực thành công'
+                          : 'Chưa xác thực trên máy này';
+                    });
+                  },
+                  child: const Text('Kiểm tra'),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(
+                  Icons.system_update_outlined,
+                  color: Color(0xFF4F7A65),
+                ),
+                title: const Text(
+                  'Cập nhật ứng dụng (OTA)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Phiên bản v$kCurrentHavenAppVersion (Build #$kCurrentHavenBuildNumber)',
+                  style: TextStyle(fontSize: 12),
+                ),
+                trailing: TextButton(
+                  onPressed: () =>
+                      unawaited(_handleCheckOtaUpdate(manual: true)),
+                  child: const Text('Kiểm tra'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: widget.onSignOut,
+                  child: const Text('Đổi Không gian / Đăng xuất'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildProfileAndSecurityView() {
-    final p = widget.accountProfile;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 84),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hồ sơ & Bảo mật Dữ liệu Đầu-Cuối',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text(
-                    p.displayName,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text('${p.email}\nTrọng tâm: ${p.disorderFocus.labelVi}'),
-                ),
-                const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.contact_phone_outlined),
-                  title: const Text('Liên hệ khẩn cấp đã cài đặt'),
-                  subtitle: Text(
-                    p.emergencyContactName.isEmpty &&
-                            p.emergencyContactPhone.isEmpty
-                        ? 'Chưa cài đặt người thân hỗ trợ'
-                        : '${p.emergencyContactName} — ${p.emergencyContactPhone}',
-                  ),
-                ),
-                const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.fingerprint),
-                  title: const Text('Kiểm tra Mở khóa Sinh trắc học (Face ID / Vân tay)'),
-                  subtitle: Text(
-                    _biometricStatusVi ??
-                        'Bảo vệ nhật ký AES-256 trên thiết bị (Cổng SOS luôn mở không cần khóa)',
-                  ),
-                  trailing: FilledButton.tonal(
-                    onPressed: () async {
-                      final ok = await widget.onAuthenticateBiometrics();
-                      if (!mounted) return;
-                      setState(() {
-                        _biometricStatusVi = ok
-                            ? '✓ Xác thực sinh trắc học thành công'
-                            : 'Chưa xác thực được sinh trắc học trên thiết bị này';
-                      });
-                    },
-                    child: const Text('Kiểm tra'),
-                  ),
-                ),
-                const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.system_update_outlined),
-                  title: const Text('Cập nhật Ứng dụng (OTA Update)'),
-                  subtitle: const Text(
-                    'Phiên bản hiện tại: v$kCurrentHavenAppVersion (Bản dựng #$kCurrentHavenBuildNumber)\n'
-                    'Tự động kiểm tra bản cập nhật mới từ GitHub Releases',
-                  ),
-                  isThreeLine: true,
-                  trailing: FilledButton.tonal(
-                    onPressed: () => _handleCheckOtaUpdate(manual: true),
-                    child: _isCheckingOta
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Kiểm tra'),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onSignOut,
-                    icon: const Icon(Icons.swap_horiz),
-                    label: const Text('Đổi Không gian / Đăng xuất khỏi Phiên Hiện tại'),
-                  ),
-                ),
-              ],
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required String caption,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F9F5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE7EFE6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF6B7B75)),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2C27),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            caption,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF7B8A84)),
+          ),
+        ],
+      ),
     );
   }
 }
