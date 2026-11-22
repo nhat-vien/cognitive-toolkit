@@ -197,11 +197,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
-  Future<void> _openAssessmentRunner(ClinicalScaleDefinition def) async {
+  Future<void> _openAssessmentRunner(String scaleCode) async {
     final record = await Navigator.of(context).push<AssessmentRecord>(
       MaterialPageRoute<AssessmentRecord>(
         builder: (_) => AssessmentRunnerScreen(
-          scaleCode: def.code,
+          scaleCode: scaleCode,
           feltNeedForSleep: widget.feltNeedForSleep,
         ),
       ),
@@ -1028,7 +1028,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     ),
                   ),
                   trailing: FilledButton.tonal(
-                    onPressed: () => unawaited(_openAssessmentRunner(def)),
+                    onPressed: () => unawaited(_openAssessmentRunner(code)),
                     child: Text(latest != null ? 'Làm lại' : 'Bắt đầu'),
                   ),
                 ),
