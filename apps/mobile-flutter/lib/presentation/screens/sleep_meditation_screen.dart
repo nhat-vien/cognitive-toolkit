@@ -29,7 +29,7 @@ class SleepMeditationScreen extends StatelessWidget {
 
   void _openPlayer(BuildContext context, int trackIndex) {
     Navigator.of(context).push(
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => MeditationNowPlayingScreen(initialTrackIndex: trackIndex),
       ),
     );

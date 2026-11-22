@@ -143,13 +143,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _openSosPortal({int intensity = 9}) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SosPortalScreen(
-          initialDistressIntensity: intensity,
-          emergencyContactName: widget.accountProfile.emergencyContactName,
-          emergencyContactPhone: widget.accountProfile.emergencyContactPhone,
-          onCalmedDownReturn: () => Navigator.of(context).pop(),
-        ),
+      MaterialPageRoute<void>(
+        builder: (_) => SosPortalScreen(initialIntensity: intensity),
       ),
     );
   }
@@ -184,7 +179,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _pushToolScreen(String title, Widget body) {
     Navigator.of(context).push(
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => Scaffold(
           backgroundColor: const Color(0xFFF6F8F9),
           appBar: AppBar(
@@ -204,8 +199,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   Future<void> _openAssessmentRunner(ClinicalScaleDefinition def) async {
     final record = await Navigator.of(context).push<AssessmentRecord>(
-      MaterialPageRoute(
-        builder: (_) => AssessmentRunnerScreen(definition: def),
+      MaterialPageRoute<AssessmentRecord>(
+        builder: (_) => AssessmentRunnerScreen(
+          scaleCode: def.code,
+          feltNeedForSleep: widget.feltNeedForSleep,
+        ),
       ),
     );
     if (record == null || !mounted) return;
@@ -241,7 +239,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 .take(14)
                 .map(
                   (l) => [
-                    l.date,
+                    l.loggedAt.toIso8601String().substring(0, 10),
                     '${l.moodPolarity}',
                     '${l.energyLevel}',
                     l.sleepDurationHours.toStringAsFixed(1),
@@ -609,7 +607,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           borderRadius: BorderRadius.circular(24),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
+              MaterialPageRoute<void>(
                 builder: (_) =>
                     const MeditationNowPlayingScreen(initialTrackIndex: 1),
               ),
@@ -911,6 +909,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     moodLogs: widget.moodLogs,
                     sessions: widget.sessions,
                     assessments: widget.assessments,
+                    onExportClinicianPdf: _exportPrintableA4ClinicianPdf,
                   ),
                 ),
               ],
