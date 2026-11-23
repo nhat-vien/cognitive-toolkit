@@ -1,8 +1,8 @@
 {
-  "version": "1.1.2",
-  "buildNumber": 12,
-  "releaseName": "Haven v1.1.2 — Sửa Lỗi Lặp Thông Báo OTA & Mặc Định Tải Bản arm64-v8a",
-  "releaseNotesVi": "• Đồng bộ tự động mã phiên bản khi build APK/IPA: Sau khi cài bản mới, ứng dụng không còn báo cập nhật lặp lại.\n• Đặt mặc định nút tải chính trên Android là bản arm64-v8a.apk gọn nhẹ (~20MB), bản universal.apk làm tùy chọn phụ cho máy đời cũ.",
+  "version": "1.1.3",
+  "buildNumber": 13,
+  "releaseName": "Haven v1.1.3 — Giới Thiệu Ngắn CBT/DBT/IPSRT & Phân Biệt Rõ 7 Lộ Trình vs 36 Kỹ Thuật",
+  "releaseNotesVi": "• Bổ sung mục giới thiệu ngắn gọn, dễ hiểu bằng tiếng Việt về các phương pháp CBT, DBT, TEAM-CBT và IPSRT.\n• Đặt lại tên rõ ràng, hết gây nhầm lẫn giữa '7 Lộ trình Gỡ rối Từng bước' và 'Thư viện 36 Kỹ thuật Nhanh'.",
   "publishedAt": "2026-11-22T00:30:00Z",
   "minAppVersion": "1.0.0",
   "apkUniversalUrl": "https://github.com/nhat-vien/cognitive-toolkit/releases/download/mobile-latest/haven-android-universal.apk",

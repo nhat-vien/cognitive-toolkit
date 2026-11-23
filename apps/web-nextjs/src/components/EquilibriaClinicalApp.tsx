@@ -2411,7 +2411,7 @@ export function EquilibriaClinicalApp() {
                 ['session-player', '🌿', lang === 'vi' ? 'Tâm sự & Nhật ký' : 'Journal & Practice'],
                 ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
                 ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Tâm trạng & Giấc ngủ' : 'Mood & Sleep'],
-                ['tools-36-team-cbt', '✨', lang === 'vi' ? 'Bài tập Tự lực' : 'Self-Care Tools'],
+                ['tools-36-team-cbt', '🧰', lang === 'vi' ? 'Thư viện 36 Công cụ' : '36 Quick Tools Library'],
                 ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý Đồng hành' : 'AI Companion'],
                 ['assessments-report', '📋', lang === 'vi' ? 'Tự đánh giá' : 'Self-Checks'],
                 ['account-privacy-vault', '👤', lang === 'vi' ? 'Hồ sơ' : 'Profile'],
@@ -2473,7 +2473,7 @@ export function EquilibriaClinicalApp() {
                 {(
                   [
                     ['companion', '💬', lang === 'vi' ? 'Tâm sự & Giải tỏa Cảm xúc' : 'Share & Emotional Relief'],
-                    ['practice-7', '🌱', lang === 'vi' ? 'Thực hành Bài tập Hướng dẫn' : 'Guided Step-by-Step Practice'],
+                    ['practice-7', '🧭', lang === 'vi' ? '7 Lộ trình Gỡ rối Từng bước' : '7 Step-by-Step Protocols'],
                     ['emotions', '🎨', lang === 'vi' ? 'Gọi tên 5 Nhóm Cảm xúc' : '5-Family Emotion Cards'],
                   ] as const
                 ).map(([viewId, icon, label]) => (
@@ -2641,7 +2641,7 @@ export function EquilibriaClinicalApp() {
                           {lang === 'vi'
                             ? distressIntensity >= 7
                               ? 'Cảm xúc lúc này đang khá mạnh. Trước khi suy nghĩ tiếp, bạn hãy mở "Bình Tĩnh Ngay" ở góc trên hoặc tập thở chậm 1 phút để làm dịu cơ thể nhé.'
-                              : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang mục "Thực hành Bài tập Hướng dẫn" bên trên để viết lại suy nghĩ cân bằng hơn.'
+                              : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang mục "7 Lộ trình Gỡ rối Từng bước" bên trên để viết lại suy nghĩ cân bằng hơn.'
                             : dbtFirstRouter.rationaleEn}
                         </p>
                       )}
@@ -2733,6 +2733,42 @@ export function EquilibriaClinicalApp() {
               {/* VIEW 2: 7 Guided Protocols (Only visible when tab1SubView === 'practice-7') */}
               {tab1SubView === 'practice-7' && (
                 <>
+                  {/* Short Friendly Introduction to CBT, DBT, TEAM-CBT */}
+                  <div
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      backgroundColor: theme.palette.surface,
+                      border: `1px solid ${theme.palette.border}`,
+                      marginBottom: '14px',
+                      fontSize: '0.86rem',
+                      lineHeight: 1.55,
+                      color: theme.palette.textSecondary,
+                    }}
+                  >
+                    <strong style={{ color: theme.palette.textPrimary, display: 'block', marginBottom: '6px' }}>
+                      {lang === 'vi'
+                        ? '📖 Giới thiệu nhanh các phương pháp thực hành (giúp bạn chọn đúng bài):'
+                        : '📖 Quick Guide to the Therapy Methods:'}
+                    </strong>
+                    {lang === 'vi' ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+                        <div>• <strong>CBT (Nhận thức – Hành vi):</strong> Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan, nhẹ nhàng hơn (Bài 1, 2).</div>
+                        <div>• <strong>TEAM-CBT (Gỡ rào cản dịu dàng):</strong> Thấu cảm trước khi thay đổi, giảm áp lực phải hoàn hảo (Bài 3).</div>
+                        <div>• <strong>DBT (Điều hòa Cảm xúc):</strong> Làm dịu cơn sóng cảm xúc mạnh, kết nối trí tuệ bình an & giao tiếp rõ ràng (Bài 4, 5, 6, 7).</div>
+                      </div>
+                    ) : (
+                      <div>
+                        • <strong>CBT:</strong> Spot unhelpful automatic thoughts and build balanced perspectives. • <strong>TEAM-CBT:</strong> Empathy before change. • <strong>DBT:</strong> Regulate intense emotions and communicate clearly.
+                      </div>
+                    )}
+                    <div style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.9 }}>
+                      {lang === 'vi'
+                        ? '💡 Mục này gồm 7 lộ trình đi sâu từng bước. Nếu bạn chỉ cần tra cứu nhanh mẹo 3–5 phút (trì hoãn, mất ngủ...), hãy mở tab "🧰 Thư viện 36 Công cụ" trên thanh menu.'
+                        : '💡 This view offers 7 step-by-step guided protocols. For quick 3–5 minute tools, open "36 Quick Tools Library".'}
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                     {(
                       [
@@ -4446,11 +4482,11 @@ export function EquilibriaClinicalApp() {
               <SanctuaryHeroBanner
                 scene="botanical-garden"
                 isDark={theme.mode === 'low-stimulus-mania'}
-                title={lang === 'vi' ? 'Khu Vườn 36 Bài Tập Tự Lực Tâm Lý' : 'Self-Care Garden & 36 Interactive Exercises'}
+                title={lang === 'vi' ? 'Thư Viện 36 Công Cụ Tâm Lý Nhanh' : '36 Quick Psychological Tools Library'}
                 subtitle={
                   lang === 'vi'
-                    ? 'Chọn một công cụ nhỏ để thực hành trong 3–5 phút. Mỗi bước nhỏ đều nuôi dưỡng sự bình an của bạn.'
-                    : 'Choose one gentle exercise to practice in 3–5 minutes. Every small step nurtures your inner calm.'
+                    ? 'Tra cứu nhanh các kỹ thuật ngắn gọn (3–5 phút) theo từng tình huống cụ thể như trì hoãn, mất ngủ hay tự trách — khác với 7 Lộ trình gỡ rối chuyên sâu ở trang Tâm sự.'
+                    : 'Browse quick 3–5 minute exercises for procrastination, sleep, or self-criticism — distinct from the 7 deep step-by-step protocols.'
                 }
               />
 

@@ -799,15 +799,51 @@ class _MainShellScreenState extends State<MainShellScreen> {
           'Mỗi công cụ mở trong một không gian riêng tư, gọn gàng và không làm bạn choáng ngợp.',
           style: TextStyle(fontSize: 13.5, color: Color(0xFF64737B)),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+
+        // Concise, friendly intro to CBT, DBT, TEAM-CBT, IPSRT
+        Card(
+          color: Colors.white,
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE3ECE8)),
+          ),
+          child: const ExpansionTile(
+            leading: Icon(Icons.menu_book_outlined, color: Color(0xFF4F7A65)),
+            title: Text(
+              'Tìm hiểu nhanh: CBT, DBT, IPSRT là gì?',
+              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              'Chạm để xem giải thích ngắn gọn bằng tiếng Việt dễ hiểu',
+              style: TextStyle(fontSize: 12, color: Color(0xFF6B7982)),
+            ),
+            childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 14),
+            children: [
+              Text(
+                '• CBT (Nhận thức – Hành vi): Giúp bạn nhận ra những suy nghĩ tiêu cực hay tự trách đang làm mình mệt mỏi, từ đó nhìn sự việc khách quan và nhẹ lòng hơn.\n\n'
+                '• DBT (Điều hòa Cảm xúc): Giúp giữ bình tĩnh nhanh khi cảm xúc dâng trào mạnh, chấp nhận thực tại và giao tiếp rõ ràng hơn.\n\n'
+                '• TEAM-CBT (Gỡ rào cản nhẹ nhàng): Lắng nghe thấu cảm trước khi thay đổi, giúp vượt qua trì hoãn mà không tự gây áp lực.\n\n'
+                '• IPSRT (Nhịp sinh học): Giữ đều giờ thức – ngủ và sinh hoạt hằng ngày để bảo vệ khí sắc ổn định.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: Color(0xFF2B383F),
+                ),
+              ),
+            ],
+          ),
+        ),
 
         _buildVisualToolBanner(
-          icon: Icons.psychology_outlined,
-          title: 'Thực hành 7 Bài tập CBT & DBT',
-          subtitle: 'Gỡ rối suy nghĩ, kích hoạt hành vi & Wise Mind',
+          icon: Icons.route_outlined,
+          title: '7 Lộ trình Gỡ rối Từng bước (CBT & DBT)',
+          subtitle: 'Đi sâu từng bước hướng dẫn cụ thể để gỡ rối suy nghĩ & cảm xúc',
           colors: const [Color(0xFF3E6359), Color(0xFF213A34)],
           onTap: () => _pushToolScreen(
-            'Thực hành 7 Bài tập CBT / DBT',
+            '7 Lộ trình Gỡ rối Từng bước',
             SessionPlayerScreen(
               currentMoodPolarity: widget.moodPolarity,
               currentEnergyLevel: widget.energyLevel,
@@ -875,11 +911,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
         _buildVisualToolBanner(
           icon: Icons.auto_awesome_outlined,
-          title: 'Kho 36 Công cụ TEAM-CBT & DBT',
-          subtitle: 'Mũi tên đi xuống, 23 niềm tin tự hại & ABC PLEASE',
+          title: 'Thư viện 36 Kỹ thuật Nhanh',
+          subtitle: 'Tra cứu nhanh mẹo 3–5 phút khi trì hoãn, mất ngủ, tự trách',
           colors: const [Color(0xFF7B6352), Color(0xFF423228)],
           onTap: () => _pushToolScreen(
-            'Kho 36 Công cụ CBT / DBT',
+            'Thư viện 36 Kỹ thuật Nhanh',
             Tools36AndTeamCbtScreen(
               currentMoodPolarity: widget.moodPolarity,
               currentFeltNeedForSleep: widget.feltNeedForSleep,
