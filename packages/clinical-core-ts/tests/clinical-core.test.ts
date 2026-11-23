@@ -81,6 +81,7 @@ import {
   createGranularCaregiverAccessGrant,
   revokeCaregiverAccessGrant,
   buildUserControlledReportWithRedaction,
+  evaluateThreeTierOnboardingAndPathway,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -1377,6 +1378,58 @@ describe('11. CLINICAL_PROTOCOL_MASTER_PLAN.md Full Governance, 68-Protocol Cata
     assert.equal(report.valid, true);
     assert.equal(report.data?.containsAutomatedDiagnosisOrRiskLabels, false);
     assert.ok(report.data?.privateJournalsDisplayed[0]?.includes('REDACTED'));
+
+    // 12. 3-Tier Architecture & 4-Screen Onboarding Routing Engine
+    // Case A: Caregiver role routes straight to Track 4 (FFT Family)
+    const caregiverRoute = evaluateThreeTierOnboardingAndPathway({
+      userRole: 'caregiver',
+      acuteRedFlag48h: false,
+      phq9TotalScore: 2,
+      phq9Item9Score: 0,
+      gad7TotalScore: 3,
+      bipolarMdqBriefPositive: false,
+      reportedBipolarDiagnosisOrHistory: false,
+      emotionalStyleChoice: 'A_cognitive_rumination',
+      resistanceAndProcrastinationScore: 2,
+    });
+    assert.equal(caregiverRoute.tier1SafetyAndTriage.suggestedTrackId, 'track_4_fft_family');
+
+    // Case B: 48h Acute Red Flag blocks normal flow until confirmed safe, pins Safety Plan, and starts at Stage 1
+    const redFlagBlocked = evaluateThreeTierOnboardingAndPathway({
+      userRole: 'self',
+      acuteRedFlag48h: true,
+      userConfirmedSafeAfterSos: false,
+      phq9TotalScore: 18,
+      phq9Item9Score: 2,
+      gad7TotalScore: 16,
+      bipolarMdqBriefPositive: false,
+      reportedBipolarDiagnosisOrHistory: false,
+      emotionalStyleChoice: 'B_emotional_surge',
+      resistanceAndProcrastinationScore: 5,
+    });
+    assert.equal(redFlagBlocked.tier1SafetyAndTriage.acuteSosGateBlockedNormalFlow, true);
+    assert.equal(redFlagBlocked.tier1SafetyAndTriage.canEnterMainApp, false);
+    assert.equal(redFlagBlocked.tier1SafetyAndTriage.pinSafetyPlanToHomeTop, true);
+    assert.equal(redFlagBlocked.tier1SafetyAndTriage.suggestedTrackId, 'track_2_dbt_core');
+    assert.equal(redFlagBlocked.tier2PhasedCarePathway.recommendedStartingStage, 'stage_1_acute_stabilization');
+
+    // Case C: PHQ-9 Item 9 >= 1 auto-pins Safety Plan; Choice A + high resistance unlocks Stage 2 (TEAM-CBT Gỡ rào cản)
+    const resistanceRoute = evaluateThreeTierOnboardingAndPathway({
+      userRole: 'self',
+      acuteRedFlag48h: false,
+      phq9TotalScore: 11,
+      phq9Item9Score: 1,
+      gad7TotalScore: 12,
+      bipolarMdqBriefPositive: false,
+      reportedBipolarDiagnosisOrHistory: false,
+      emotionalStyleChoice: 'A_cognitive_rumination',
+      resistanceAndProcrastinationScore: 7,
+    });
+    assert.equal(resistanceRoute.tier1SafetyAndTriage.pinSafetyPlanToHomeTop, true);
+    assert.equal(resistanceRoute.tier1SafetyAndTriage.suggestedTrackId, 'track_3_cbt_team');
+    assert.equal(resistanceRoute.tier2PhasedCarePathway.stage2ResistanceModuleUnlocked, true);
+    assert.equal(resistanceRoute.tier2PhasedCarePathway.recommendedStartingStage, 'stage_2_unblock_resistance');
+    assert.equal(resistanceRoute.tier3OnDemandToolkit.length, 4);
   });
 });
 

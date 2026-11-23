@@ -13,10 +13,13 @@ import {
   createGranularCaregiverAccessGrant,
   revokeCaregiverAccessGrant,
   buildUserControlledReportWithRedaction,
+  evaluateThreeTierOnboardingAndPathway,
   type ProtocolManifest,
   type TherapyModel,
   type PathwayWorkflowState,
   type CaregiverAccessGrantRecord,
+  type ThreeTierUserRole,
+  type EmotionalStylePreference,
 } from '../clinical/index';
 
 interface ClinicalMasterPlanHubProps {
@@ -145,8 +148,54 @@ export function ClinicalMasterPlanHub({
   onOpenEmergencySos,
 }: ClinicalMasterPlanHubProps) {
   const [subTab, setSubTab] = useState<
-    'protocols-68' | 'safety-plan-directory' | 'meds-and-bipolar' | 'fft-caregiver' | 'who5-and-redaction'
-  >('protocols-68');
+    | 'three-tier-journey'
+    | 'protocols-68'
+    | 'safety-plan-directory'
+    | 'meds-and-bipolar'
+    | 'fft-caregiver'
+    | 'who5-and-redaction'
+  >('three-tier-journey');
+
+  // 0. 3-Tier Architecture & 4-Screen Onboarding Routing State
+  const [onboardingScreenStep, setOnboardingScreenStep] = useState<1 | 2 | 3 | 4>(1);
+  const [ttUserRole, setTtUserRole] = useState<ThreeTierUserRole>('self');
+  const [ttAcuteRedFlag48h, setTtAcuteRedFlag48h] = useState<boolean>(false);
+  const [ttConfirmedSafeAfterSos, setTtConfirmedSafeAfterSos] = useState<boolean>(false);
+  const [ttPhq9Total, setTtPhq9Total] = useState<number>(8);
+  const [ttPhq9Item9, setTtPhq9Item9] = useState<number>(0);
+  const [ttGad7Total, setTtGad7Total] = useState<number>(9);
+  const [ttBipolarMdqPositive, setTtBipolarMdqPositive] = useState<boolean>(moodPolarity >= 2 || moodPolarity <= -3);
+  const [ttReportedBipolarHistory, setTtReportedBipolarHistory] = useState<boolean>(false);
+  const [ttEmotionalStyle, setTtEmotionalStyle] = useState<EmotionalStylePreference>('A_cognitive_rumination');
+  const [ttResistanceScore, setTtResistanceScore] = useState<number>(5);
+
+  const threeTierEval = useMemo(
+    () =>
+      evaluateThreeTierOnboardingAndPathway({
+        userRole: ttUserRole,
+        acuteRedFlag48h: ttAcuteRedFlag48h,
+        userConfirmedSafeAfterSos: ttConfirmedSafeAfterSos,
+        phq9TotalScore: ttPhq9Total,
+        phq9Item9Score: ttPhq9Item9,
+        gad7TotalScore: ttGad7Total,
+        bipolarMdqBriefPositive: ttBipolarMdqPositive,
+        reportedBipolarDiagnosisOrHistory: ttReportedBipolarHistory,
+        emotionalStyleChoice: ttEmotionalStyle,
+        resistanceAndProcrastinationScore: ttResistanceScore,
+      }),
+    [
+      ttUserRole,
+      ttAcuteRedFlag48h,
+      ttConfirmedSafeAfterSos,
+      ttPhq9Total,
+      ttPhq9Item9,
+      ttGad7Total,
+      ttBipolarMdqPositive,
+      ttReportedBipolarHistory,
+      ttEmotionalStyle,
+      ttResistanceScore,
+    ],
+  );
 
   // 1. 68-Protocol Explorer & Interactive 7-Step Session Runner State
   const [selectedModel, setSelectedModel] = useState<TherapyModel>('CBT');
@@ -345,11 +394,12 @@ export function ClinicalMasterPlanHub({
         </div>
       </div>
 
-      {/* 5-Pillar Master Plan Sub-Navigation (§10.1 Primary Navigation & Clinical Modules) */}
+      {/* 6-Pillar Master Plan Sub-Navigation (Default: 3-Tier Architecture & 4-Stage Phased Care Pathway) */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
         {(
           [
-            ['protocols-68', '🧭', lang === 'vi' ? '68 Phác đồ Chuẩn (7 Liệu pháp)' : '68 Clinical Protocols (7 Models)'],
+            ['three-tier-journey', '🎯', lang === 'vi' ? 'Lộ trình 3 Tầng (Onboarding 4 Bước & 4 Chặng)' : '3-Tier Journey (4-Step Onboarding & 4 Stages)'],
+            ['protocols-68', '🧭', lang === 'vi' ? 'Thư viện 68 Phác đồ (7 Liệu pháp)' : '68 Clinical Protocols (7 Models)'],
             ['safety-plan-directory', '🛡️', lang === 'vi' ? 'Kế hoạch An toàn 6 Mục & Danh bạ 115' : '6-Step Safety Plan & Emergency Directory'],
             ['meds-and-bipolar', '💊', lang === 'vi' ? 'Hỗ trợ Thuốc & Đa tín hiệu Lưỡng cực' : 'Medication Boundary & Multi-Signal Bipolar'],
             ['fft-caregiver', '🤝', lang === 'vi' ? 'Gia đình (FFT) & Phân quyền Người thân' : 'Family (FFT) & Caregiver Consent'],
@@ -378,6 +428,646 @@ export function ClinicalMasterPlanHub({
           );
         })}
       </div>
+
+      {/* =====================================================================
+          AUTO-PINNED SAFETY PLAN CARD ON HOME TOP WHEN PHQ-9 Q9 >= 1 OR RED FLAG 48H
+         ===================================================================== */}
+      {threeTierEval.tier1SafetyAndTriage.pinSafetyPlanToHomeTop && (
+        <div
+          style={{
+            padding: '14px 18px',
+            borderRadius: '16px',
+            backgroundColor: '#FFF1F2',
+            border: '2px solid #F43F5E',
+            color: '#881337',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.94rem' }}>
+              📌 ĐÃ GHIM LÊN ĐẦU TRANG CHỦ: Kế hoạch An toàn Cá nhân 6 Mục (Do Câu số 9 PHQ-9 ≥ 1 hoặc Cờ đỏ 48h)
+            </div>
+            <div style={{ fontSize: '0.83rem', marginTop: '3px' }}>
+              • Chiến lược tự làm dịu: <strong>{spInternalCoping}</strong> • Người tin cậy: <strong>{spTrustedContactName} ({spTrustedContactPhone})</strong> • Cấp cứu: <strong>115 / 1900 1267</strong>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setSubTab('safety-plan-directory')}
+              style={{
+                padding: '7px 13px',
+                borderRadius: '9px',
+                border: '1px solid #881337',
+                backgroundColor: '#FFFFFF',
+                color: '#881337',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              🛡️ Xem / Sửa Kế hoạch An toàn
+            </button>
+            <button
+              type="button"
+              onClick={onOpenEmergencySos}
+              style={{
+                padding: '7px 13px',
+                borderRadius: '9px',
+                border: 'none',
+                backgroundColor: '#E11D48',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              🚨 Mở Cổng SOS & DBT TIPP
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          SUB-TAB 0 (DEFAULT): KIẾN TRÚC 3 TẦNG, ONBOARDING 4 MÀN HÌNH & LỘ TRÌNH 4 CHẶNG
+         ===================================================================== */}
+      {subTab === 'three-tier-journey' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* TIER 1: SAFETY & TRIAGE — 4-SCREEN ONBOARDING & ROUTING ENGINE */}
+          <section
+            style={{
+              padding: '20px',
+              borderRadius: '18px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D8E3DF',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3E6359', textTransform: 'uppercase' }}>
+                  TẦNG 1: SÀNG LỌC & PHÂN LUỒNG AN TOÀN (SAFETY & TRIAGE)
+                </div>
+                <h3 style={{ margin: '3px 0 0', fontSize: '1.1rem', color: '#1A272D' }}>
+                  Quy trình Phân luồng 4 Màn hình Ngắn (3–4 phút • Tự động định tuyến lộ trình phù hợp)
+                </h3>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {([1, 2, 3, 4] as const).map((stepNum) => (
+                  <button
+                    key={stepNum}
+                    type="button"
+                    onClick={() => setOnboardingScreenStep(stepNum)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '9px',
+                      border: onboardingScreenStep === stepNum ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                      backgroundColor: onboardingScreenStep === stepNum ? '#3E6359' : '#F8FAF9',
+                      color: onboardingScreenStep === stepNum ? '#FFFFFF' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Màn hình {stepNum}/4
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* MÀN HÌNH 1: KIỂM TRA AN TOÀN & VAI TRÒ */}
+            {onboardingScreenStep === 1 && (
+              <div style={{ padding: '14px 16px', borderRadius: '14px', backgroundColor: '#F8FAF9', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontWeight: 800, color: '#1E293B', marginBottom: '10px' }}>
+                  Bước 1 (Màn hình 1/4): Kiểm tra An toàn & Vai trò
+                </div>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px' }}>
+                    Câu hỏi 1 (Vai trò): Bạn sử dụng ứng dụng cho chính mình hay để hỗ trợ người thân?
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setTtUserRole('self')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        border: ttUserRole === 'self' ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                        backgroundColor: ttUserRole === 'self' ? '#E6F2ED' : '#FFFFFF',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🙋 Cho chính mình
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTtUserRole('caregiver')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        border: ttUserRole === 'caregiver' ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                        backgroundColor: ttUserRole === 'caregiver' ? '#E6F2ED' : '#FFFFFF',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🤝 Để hỗ trợ người thân (→ Định tuyến thẳng sang Track 4: Gia đình FFT)
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px' }}>
+                    Câu hỏi 2 (Cờ đỏ cấp tính 48h): Trong 48 giờ qua, bạn có đang có ý định làm hại bản thân, hoặc trải qua tình trạng không ngủ nhiều ngày liên tục kèm kích động/hưng phấn mất kiểm soát không?
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTtAcuteRedFlag48h(false);
+                        setTtConfirmedSafeAfterSos(false);
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        border: !ttAcuteRedFlag48h ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                        backgroundColor: !ttAcuteRedFlag48h ? '#E6F2ED' : '#FFFFFF',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Không có — Tiếp tục sang Màn hình 2
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTtAcuteRedFlag48h(true);
+                        setTtConfirmedSafeAfterSos(false);
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        border: ttAcuteRedFlag48h ? '2px solid #DC2626' : '1px solid #FCA5A5',
+                        backgroundColor: ttAcuteRedFlag48h ? '#FEF2F2' : '#FFFFFF',
+                        color: '#991B1B',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🚨 Có dấu hiệu cờ đỏ cấp tính (Chặn luồng thường & Mở SOS Khẩn cấp)
+                    </button>
+                  </div>
+                </div>
+
+                {threeTierEval.tier1SafetyAndTriage.acuteSosGateBlockedNormalFlow && (
+                  <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FEF2F2', border: '2px solid #DC2626', color: '#7F1D1D', marginTop: '10px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.94rem', marginBottom: '6px' }}>
+                      🚨 LUỒNG THÔNG THƯỜNG ĐÃ TẠM KHÓA ĐỂ BẢO VỆ AN TOÀN TỨC THÌ CỦA BẠN
+                    </div>
+                    <div style={{ fontSize: '0.84rem', marginBottom: '10px', lineHeight: 1.5 }}>
+                      • Tổng đài Cấp cứu Y tế: <strong>115</strong> • Viện Sức khỏe Tâm thần (BV Bạch Mai): <strong>1900 1267</strong> • BV Tâm thần TP.HCM: <strong>028 3923 4675</strong><br />
+                      • Người thân tin cậy: <strong>{spTrustedContactName} ({spTrustedContactPhone})</strong><br />
+                      • Bài tập hạ nhiệt sinh lý tức thì: <strong>DBT TIPP (Thở chậm vào 4 giây – thở ra 6 giây, thả lỏng cơ vai)</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={onOpenEmergencySos}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '9px',
+                          border: 'none',
+                          backgroundColor: '#DC2626',
+                          color: '#FFFFFF',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🚨 Mở Toàn màn hình Cổng SOS & Thở Hạ nhiệt TIPP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTtConfirmedSafeAfterSos(true)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '9px',
+                          border: '1px solid #065F46',
+                          backgroundColor: '#ECFDF5',
+                          color: '#065F46',
+                          fontWeight: 700,
+                          fontSize: '0.83rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✓ Tôi xác nhận đã ở trạng thái an toàn để vào ứng dụng (Ghim Kế hoạch An toàn ở đầu trang)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {threeTierEval.tier1SafetyAndTriage.canEnterMainApp && (
+                  <div style={{ marginTop: '10px', textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      onClick={() => setOnboardingScreenStep(2)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        backgroundColor: '#3E6359',
+                        color: '#FFFFFF',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Tiếp tục sang Màn hình 2 (Sàng lọc PHQ-9 & GAD-7) →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MÀN HÌNH 2: THANG ĐO SÀNG LỌC TRẦM CẢM (PHQ-9) & LO ÂU (GAD-7) */}
+            {onboardingScreenStep === 2 && (
+              <div style={{ padding: '14px 16px', borderRadius: '14px', backgroundColor: '#F8FAF9', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontWeight: 800, color: '#1E293B', marginBottom: '10px' }}>
+                  Bước 2a (Màn hình 2/4): Sàng lọc Trầm cảm (PHQ-9) & Lo âu (GAD-7)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
+                      1. Tổng điểm PHQ-9 ({ttPhq9Total}/27) — Mức độ: <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.phq9SeverityBandVi}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={27}
+                      value={ttPhq9Total}
+                      onChange={(e) => setTtPhq9Total(Number(e.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                      0–4: Bình thường | 5–9: Nhẹ | 10–14: Trung bình | ≥ 15: Nặng
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
+                      2. Lưu ý Câu số 9 PHQ-9 (Ý nghĩ tự hại: {ttPhq9Item9}/3):
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={3}
+                      value={ttPhq9Item9}
+                      onChange={(e) => setTtPhq9Item9(Number(e.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                    <div style={{ fontSize: '0.78rem', color: ttPhq9Item9 >= 1 ? '#BE123C' : '#64748B', fontWeight: ttPhq9Item9 >= 1 ? 700 : 400 }}>
+                      {ttPhq9Item9 >= 1
+                        ? '📌 Điểm ≥ 1: Đã tự động ghim thẻ Kế hoạch An toàn lên đầu trang chủ!'
+                        : 'Nếu điểm ≥ 1, hệ thống sẽ tự động ghim thẻ Kế hoạch An toàn lên đầu trang chủ.'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
+                      3. Tổng điểm GAD-7 ({ttGad7Total}/21) — Mức độ: <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.gad7SeverityBandVi}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={21}
+                      value={ttGad7Total}
+                      onChange={(e) => setTtGad7Total(Number(e.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                      0–4: Bình thường | 5–9: Nhẹ | 10–14: Trung bình | ≥ 15: Nặng
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingScreenStep(1)}
+                    style={{ padding: '7px 14px', borderRadius: '9px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    ← Quay lại Màn hình 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingScreenStep(3)}
+                    style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', backgroundColor: '#3E6359', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Tiếp tục sang Màn hình 3 (Sàng lọc Lưỡng cực MDQ) →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* MÀN HÌNH 3: SÀNG LỌC KHÍ SẮC LƯỠNG CỰC (MDQ RÚT GỌN + TIỀN SỬ Y TẾ) */}
+            {onboardingScreenStep === 3 && (
+              <div style={{ padding: '14px 16px', borderRadius: '14px', backgroundColor: '#F8FAF9', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontWeight: 800, color: '#1E293B', marginBottom: '10px' }}>
+                  Bước 2b (Màn hình 3/4): Sàng lọc Khí sắc Lưỡng cực (MDQ Rút gọn + Tiền sử Y tế)
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.86rem', marginBottom: '10px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={ttReportedBipolarHistory}
+                    onChange={(e) => setTtReportedBipolarHistory(e.target.checked)}
+                  />
+                  <span>
+                    <strong>Tiền sử y tế:</strong> Tôi từng được bác sĩ chẩn đoán hoặc theo dõi Rối loạn Lưỡng cực (Bipolar I, II, Cyclothymia).
+                  </span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.86rem', marginBottom: '10px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={ttBipolarMdqPositive}
+                    onChange={(e) => setTtBipolarMdqPositive(e.target.checked)}
+                  />
+                  <span>
+                    <strong>MDQ rút gọn:</strong> Tôi từng có những giai đoạn nhiều ngày liền tăng năng lượng bất thường, ngủ rất ít (3–4 tiếng) mà không thấy mệt, suy nghĩ/nói rất nhanh kèm hành vi bốc đồng (tiêu tiền, làm nhiều dự án cùng lúc).
+                  </span>
+                </label>
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingScreenStep(2)}
+                    style={{ padding: '7px 14px', borderRadius: '9px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    ← Quay lại Màn hình 2
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingScreenStep(4)}
+                    style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', backgroundColor: '#3E6359', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Tiếp tục sang Màn hình 4 (Phong cách Tâm lý & Rào cản) →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* MÀN HÌNH 4: PHONG CÁCH TÂM LÝ (CBT VS DBT) & ĐO KHÁNG CỰ (TEAM-CBT) */}
+            {onboardingScreenStep === 4 && (
+              <div style={{ padding: '14px 16px', borderRadius: '14px', backgroundColor: '#F8FAF9', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontWeight: 800, color: '#1E293B', marginBottom: '10px' }}>
+                  Bước 3 (Màn hình 4/4): Khảo sát Phong cách Tâm lý & Mức độ Trì hoãn / Rào cản (TEAM-CBT)
+                </div>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 700, marginBottom: '6px' }}>
+                    1. Khi căng thẳng hoặc buồn phiền, trải nghiệm nào giống với bạn hơn?
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setTtEmotionalStyle('A_cognitive_rumination')}
+                      style={{
+                        textAlign: 'left',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: ttEmotionalStyle === 'A_cognitive_rumination' ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                        backgroundColor: ttEmotionalStyle === 'A_cognitive_rumination' ? '#E6F2ED' : '#FFFFFF',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1E293B' }}>
+                        🅰️ Lựa chọn A (Thiên về Nhận thức → Ưu tiên CBT / TEAM-CBT)
+                      </div>
+                      <div style={{ fontSize: '0.81rem', color: '#475569', marginTop: '4px' }}>
+                        Suy nghĩ luẩn quẩn, tự trách móc bản thân, hay lo xa các kịch bản xấu chưa xảy ra.
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTtEmotionalStyle('B_emotional_surge')}
+                      style={{
+                        textAlign: 'left',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: ttEmotionalStyle === 'B_emotional_surge' ? '2px solid #3E6359' : '1px solid #CBD5E1',
+                        backgroundColor: ttEmotionalStyle === 'B_emotional_surge' ? '#E6F2ED' : '#FFFFFF',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1E293B' }}>
+                        🅱️ Lựa chọn B (Thiên về Điều tiết Cảm xúc → Ưu tiên DBT)
+                      </div>
+                      <div style={{ fontSize: '0.81rem', color: '#475569', marginTop: '4px' }}>
+                        Cảm xúc bùng nổ dữ dội, hoảng loạn cơ thể, tức giận hoặc cảm giác trống rỗng sâu sắc.
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, marginBottom: '4px' }}>
+                    2. Đo lường Rào cản / Tâm lý "Biết nhưng mệt, trì hoãn chưa làm được" ({ttResistanceScore}/10):
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={10}
+                    value={ttResistanceScore}
+                    onChange={(e) => setTtResistanceScore(Number(e.target.value))}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ fontSize: '0.8rem', color: '#3E6359', fontWeight: 600 }}>
+                    {ttResistanceScore >= 4
+                      ? '🔓 Điểm ≥ 4: Hệ thống tự động mở khóa Chặng 2 (Module Gỡ rào cản TEAM-CBT) để bạn không bị áp lực khi bắt đầu!'
+                      : 'Điểm < 4: Bạn sẵn sàng đi thẳng vào bài tập can thiệp lõi (vẫn có thể mở Chặng 2 bất cứ lúc nào).'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* KẾT QUẢ ĐỊNH TUYẾN TẦNG 1 */}
+            <div
+              style={{
+                marginTop: '14px',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                color: '#166534',
+              }}
+            >
+              <div style={{ fontWeight: 800, fontSize: '0.94rem' }}>
+                🎯 Kết quả Phân luồng Lộ trình Gợi ý (Không phải chẩn đoán y khoa — §1.3 & §2.2):
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px', color: '#065F46' }}>
+                {threeTierEval.tier1SafetyAndTriage.suggestedTrackTitleVi}
+              </div>
+              <div style={{ fontSize: '0.83rem', marginTop: '4px' }}>
+                {threeTierEval.tier1SafetyAndTriage.suggestedTrackRationaleVi}
+              </div>
+            </div>
+          </section>
+
+          {/* TIER 2: PHASED CARE PATHWAY — 4 PROGRESSIVE STAGES */}
+          <section
+            style={{
+              padding: '20px',
+              borderRadius: '18px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D8E3DF',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3E6359', textTransform: 'uppercase' }}>
+              TẦNG 2: LỘ TRÌNH TRỊ LIỆU THEO 4 CHẶNG (PHASED CARE PATHWAY)
+            </div>
+            <h3 style={{ margin: '3px 0 12px', fontSize: '1.1rem', color: '#1A272D' }}>
+              1. Ổn định cấp tính → 2. Gỡ rào cản → 3. Can thiệp lõi → 4. Duy trì & Phòng tái phát
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              {threeTierEval.tier2PhasedCarePathway.stages.map((st) => (
+                <div
+                  key={st.stageId}
+                  style={{
+                    padding: '14px',
+                    borderRadius: '14px',
+                    backgroundColor: st.isRecommendedCurrentStage ? '#F2F8F5' : '#F8FAF9',
+                    border: st.isRecommendedCurrentStage ? '2px solid #3E6359' : '1px solid #E2E8F0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '7px',
+                          backgroundColor: st.isRecommendedCurrentStage ? '#3E6359' : '#E2E8F0',
+                          color: st.isRecommendedCurrentStage ? '#FFFFFF' : '#334155',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {st.isRecommendedCurrentStage ? '⭐ Chặng Đề xuất Hiện tại' : `Chặng ${st.stageNumber}/4`}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: st.unlocked ? '#065F46' : '#64748B' }}>
+                        {st.unlocked ? '🔓 Đã mở' : 'Tùy chọn'}
+                      </span>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1E293B', marginBottom: '4px' }}>
+                      {st.titleVi}
+                    </div>
+                    <div style={{ fontSize: '0.79rem', color: '#475569', marginBottom: '8px', lineHeight: 1.4 }}>
+                      {st.subtitleVi}
+                    </div>
+                    <ul style={{ margin: '0 0 10px', paddingLeft: '16px', fontSize: '0.8rem', color: '#334155', lineHeight: 1.45 }}>
+                      {st.activitiesVi.map((act) => (
+                        <li key={act} style={{ marginBottom: '4px' }}>{act}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstPid = st.protocolIds[0];
+                      const found = MASTER_PROTOCOL_CATALOG.find((p) => p.protocol_id === firstPid);
+                      if (found) {
+                        setSelectedModel(found.therapy_model);
+                        setActiveProtocolId(found.protocol_id);
+                      }
+                      setSubTab('protocols-68');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      backgroundColor: st.isRecommendedCurrentStage ? '#3E6359' : '#26353D',
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      fontSize: '0.81rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Bắt đầu Chặng {st.stageNumber} →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* TIER 3: ON-DEMAND 1-TAP TOOLKIT & SOS */}
+          <section
+            style={{
+              padding: '20px',
+              borderRadius: '18px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D8E3DF',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#BE123C', textTransform: 'uppercase' }}>
+              TẦNG 3: KHO CÔNG CỤ TỨC THỜI 1 CHẠM (ON-DEMAND TOOLKIT & SOS)
+            </div>
+            <h3 style={{ margin: '3px 0 12px', fontSize: '1.08rem', color: '#1A272D' }}>
+              Truy cập ngay lập tức khi đang lên cơn hoảng loạn, mất ngủ đêm hoặc suy nghĩ tiêu cực dữ dội
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(215px, 1fr))', gap: '10px' }}>
+              {threeTierEval.tier3OnDemandToolkit.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => {
+                    if (tool.id === 'ondemand-panic-sos') {
+                      onOpenEmergencySos();
+                    } else if (tool.id === 'ondemand-safety-plan') {
+                      setSubTab('safety-plan-directory');
+                    } else {
+                      const found = MASTER_PROTOCOL_CATALOG.find((p) => p.protocol_id === tool.targetProtocolId);
+                      if (found) {
+                        setSelectedModel(found.therapy_model);
+                        setActiveProtocolId(found.protocol_id);
+                      }
+                      setSubTab('protocols-68');
+                    }
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    padding: '13px',
+                    borderRadius: '13px',
+                    border: tool.id === 'ondemand-panic-sos' ? '2px solid #F43F5E' : '1px solid #D5E0DC',
+                    backgroundColor: tool.id === 'ondemand-panic-sos' ? '#FFF1F2' : '#F8FAF9',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '0.89rem', color: '#1E293B', marginBottom: '4px' }}>
+                    {tool.icon} {tool.titleVi}
+                  </div>
+                  <div style={{ fontSize: '0.79rem', color: '#475569', lineHeight: 1.4 }}>
+                    {tool.whenToTapVi}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* =====================================================================
           SUB-TAB 1: 68 PROTOCOLS ACROSS ALL 7 THERAPY MODELS (§4.1-4.7 & §5.1)

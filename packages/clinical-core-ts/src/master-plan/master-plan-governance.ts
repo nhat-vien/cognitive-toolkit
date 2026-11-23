@@ -2374,3 +2374,306 @@ export function buildUserControlledReportWithRedaction(input: {
     },
   };
 }
+
+
+// =============================================================================
+// 8. 3-TIER ARCHITECTURE, 4-SCREEN ONBOARDING & 4-STAGE PHASED CARE PATHWAY
+// =============================================================================
+// Tier 1: Safety & Triage (4-Screen Onboarding: Role & 48h Red Flag -> PHQ-9/GAD-7/MDQ -> CBT vs DBT Style & TEAM-CBT Resistance)
+// Tier 2: 4-Stage Phased Care Pathway (1. Acute Stabilization -> 2. Unblock Resistance -> 3. Core Intervention -> 4. Maintenance & Relapse Prevention)
+// Tier 3: On-Demand Toolkit & 1-Tap SOS (Panic SOS/TIPP, Insomnia 432Hz Meditation, Intrusive Thought Relief, Offline Safety Plan)
+
+export type ThreeTierUserRole = 'self' | 'caregiver';
+export type EmotionalStylePreference = 'A_cognitive_rumination' | 'B_emotional_surge';
+
+export type SuggestedCareTrackId =
+  | 'track_1_bipolar_ipsrt'
+  | 'track_2_dbt_core'
+  | 'track_3_cbt_team'
+  | 'track_4_fft_family';
+
+export type PhasedCareStageId =
+  | 'stage_1_acute_stabilization'
+  | 'stage_2_unblock_resistance'
+  | 'stage_3_core_intervention'
+  | 'stage_4_maintenance_relapse';
+
+export interface ThreeTierOnboardingInput {
+  // Screen 1: Safety & Role
+  userRole: ThreeTierUserRole;
+  acuteRedFlag48h: boolean; // Self-harm intent OR multi-day sleeplessness with uncontrolled agitation/mania in past 48h
+  userConfirmedSafeAfterSos?: boolean;
+  // Screen 2 & 3: Standardized Screening Scales
+  phq9TotalScore: number; // 0..27
+  phq9Item9Score: number; // 0..3 (If >= 1 -> auto-pin Safety Plan to top of Home!)
+  gad7TotalScore: number; // 0..21
+  bipolarMdqBriefPositive: boolean;
+  reportedBipolarDiagnosisOrHistory: boolean;
+  // Screen 4: Psychological Style & Resistance (TEAM-CBT)
+  emotionalStyleChoice: EmotionalStylePreference;
+  resistanceAndProcrastinationScore: number; // 0..10 ("Biết nhưng mệt/ngại không làm được")
+}
+
+export interface PhasedCareStageSpec {
+  stageId: PhasedCareStageId;
+  stageNumber: 1 | 2 | 3 | 4;
+  titleVi: string;
+  titleEn: string;
+  subtitleVi: string;
+  unlocked: boolean;
+  isRecommendedCurrentStage: boolean;
+  protocolIds: string[];
+  activitiesVi: string[];
+}
+
+export interface ThreeTierEvaluationResult {
+  // Tier 1: Safety & Triage
+  tier1SafetyAndTriage: {
+    userRole: ThreeTierUserRole;
+    acuteSosGateBlockedNormalFlow: boolean;
+    canEnterMainApp: boolean;
+    pinSafetyPlanToHomeTop: boolean;
+    phq9SeverityBandVi: 'Bình thường (0-4)' | 'Nhẹ (5-9)' | 'Trung bình (10-14)' | 'Nặng (>=15)';
+    gad7SeverityBandVi: 'Bình thường (0-4)' | 'Nhẹ (5-9)' | 'Trung bình (10-14)' | 'Nặng (>=15)';
+    bipolarScreenFlagged: boolean;
+    suggestedTrackId: SuggestedCareTrackId;
+    suggestedTrackTitleVi: string;
+    suggestedTrackRationaleVi: string;
+    isClinicalDiagnosis: false;
+  };
+  // Tier 2: 4-Stage Phased Care Pathway
+  tier2PhasedCarePathway: {
+    recommendedStartingStage: PhasedCareStageId;
+    stage2ResistanceModuleUnlocked: boolean;
+    stages: PhasedCareStageSpec[];
+  };
+  // Tier 3: On-Demand 1-Tap Toolkit & SOS
+  tier3OnDemandToolkit: Array<{
+    id: string;
+    icon: string;
+    titleVi: string;
+    whenToTapVi: string;
+    targetProtocolId: string;
+  }>;
+}
+
+export function evaluateThreeTierOnboardingAndPathway(
+  input: ThreeTierOnboardingInput,
+): ThreeTierEvaluationResult {
+  // 1. Severity bands (Screen 2 & 3)
+  const phq9BandVi: ThreeTierEvaluationResult['tier1SafetyAndTriage']['phq9SeverityBandVi'] =
+    input.phq9TotalScore >= 15
+      ? 'Nặng (>=15)'
+      : input.phq9TotalScore >= 10
+        ? 'Trung bình (10-14)'
+        : input.phq9TotalScore >= 5
+          ? 'Nhẹ (5-9)'
+          : 'Bình thường (0-4)';
+
+  const gad7BandVi: ThreeTierEvaluationResult['tier1SafetyAndTriage']['gad7SeverityBandVi'] =
+    input.gad7TotalScore >= 15
+      ? 'Nặng (>=15)'
+      : input.gad7TotalScore >= 10
+        ? 'Trung bình (10-14)'
+        : input.gad7TotalScore >= 5
+          ? 'Nhẹ (5-9)'
+          : 'Bình thường (0-4)';
+
+  // 2. Safety & Pinning Rules (Screen 1 & PHQ-9 Q9)
+  const acuteSosGateBlockedNormalFlow = input.acuteRedFlag48h && !input.userConfirmedSafeAfterSos;
+  const canEnterMainApp = !input.acuteRedFlag48h || Boolean(input.userConfirmedSafeAfterSos);
+  const pinSafetyPlanToHomeTop = input.phq9Item9Score >= 1 || input.acuteRedFlag48h;
+  const bipolarScreenFlagged =
+    input.bipolarMdqBriefPositive || input.reportedBipolarDiagnosisOrHistory;
+
+  // 3. Track Routing (Screen 1 -> Screen 3 -> Screen 4)
+  let suggestedTrackId: SuggestedCareTrackId = 'track_3_cbt_team';
+  let suggestedTrackTitleVi = 'Track 3: Lộ trình Gỡ rối Suy nghĩ & Kích hoạt Hành vi (CBT / TEAM-CBT)';
+  let suggestedTrackRationaleVi =
+    'Phù hợp với phong cách suy nghĩ luẩn quẩn, tự trách hoặc lo xa kịch bản xấu (Lựa chọn A) — giúp tháo gỡ suy nghĩ tiêu cực và lấy lại động lực từng bước nhỏ.';
+
+  if (input.userRole === 'caregiver') {
+    suggestedTrackId = 'track_4_fft_family';
+    suggestedTrackTitleVi = 'Track 4: Lộ trình Đồng hành Gia đình & Người thân (FFT)';
+    suggestedTrackRationaleVi =
+      'Bạn chọn vai trò Hỗ trợ người thân ở Màn hình 1 — hệ thống định tuyến thẳng sang lộ trình Giao tiếp Gia đình, Thống nhất Dấu hiệu Sớm và Chăm sóc Người đồng hành (FFT).';
+  } else if (bipolarScreenFlagged) {
+    suggestedTrackId = 'track_1_bipolar_ipsrt';
+    suggestedTrackTitleVi = 'Track 1: Lộ trình Cân bằng Nhịp Sinh học & Bảo vệ Hai Cực (IPSRT + DBT/CBT)';
+    suggestedTrackRationaleVi =
+      'Dựa trên thông tin sàng lọc khí sắc lưỡng cực / giai đoạn ngủ ít dư năng lượng — ưu tiên giữ đều 5 mốc nhịp sinh học IPSRT, lá chắn chống bốc đồng 48h và kích hoạt hành vi an toàn.';
+  } else if (input.emotionalStyleChoice === 'B_emotional_surge') {
+    suggestedTrackId = 'track_2_dbt_core';
+    suggestedTrackTitleVi = 'Track 2: Lộ trình Điều tiết Cảm xúc Mạnh & Chịu đựng Căng thẳng (DBT Core)';
+    suggestedTrackRationaleVi =
+      'Phù hợp với trạng thái cảm xúc bùng nổ dữ dội, hoảng loạn cơ thể, tức giận hoặc trống rỗng sâu sắc (Lựa chọn B) — ưu tiên kỹ năng hạ nhiệt sinh lý và điều hòa cảm xúc DBT.';
+  }
+
+  // 4. Stage 2 Resistance Unlock & Recommended Starting Stage (Tier 2: 4 Stages)
+  const stage2ResistanceModuleUnlocked = input.resistanceAndProcrastinationScore >= 4;
+  const highAcuteSeverity =
+    input.acuteRedFlag48h || input.phq9TotalScore >= 15 || input.gad7TotalScore >= 15;
+
+  let recommendedStartingStage: PhasedCareStageId = 'stage_3_core_intervention';
+  if (highAcuteSeverity) {
+    recommendedStartingStage = 'stage_1_acute_stabilization';
+  } else if (stage2ResistanceModuleUnlocked) {
+    recommendedStartingStage = 'stage_2_unblock_resistance';
+  } else if (
+    input.userRole === 'self' &&
+    !bipolarScreenFlagged &&
+    input.phq9TotalScore <= 3 &&
+    input.gad7TotalScore <= 3
+  ) {
+    recommendedStartingStage = 'stage_4_maintenance_relapse';
+  }
+
+  const coreActivitiesByTrack: Record<SuggestedCareTrackId, { protocols: string[]; labels: string[] }> = {
+    track_1_bipolar_ipsrt: {
+      protocols: ['IPSRT_DAILY_RHYTHM_LOG', 'DBT_PROS_CONS', 'CBT_BEHAVIORAL_ACTIVATION', 'IPSRT_EARLY_WARNING_PLAN'],
+      labels: [
+        'Theo dõi 5 mốc nhịp sinh học IPSRT & tách biệt cảm giác cần ngủ',
+        'Khoang Trì hoãn Quyết định 48 Giờ & Bảng Lợi/Hại Khủng hoảng (DBT)',
+        'Kích hoạt Hành vi Vi mô (có giới hạn chống chuyển pha hưng cảm)',
+      ],
+    },
+    track_2_dbt_core: {
+      protocols: ['DBT_WISE_MIND', 'DBT_CHECK_THE_FACTS', 'DBT_OPPOSITE_ACTION', 'DBT_DEAR_MAN'],
+      labels: [
+        'Tâm Trí Tuệ (Wise Mind) & Gọi tên 5 Nhóm Cảm xúc',
+        'Kiểm tra Sự thật (Check the Facts) & Hành động Đối lập (Opposite Action)',
+        'Kỹ năng Giao tiếp Lành mạnh DEAR MAN / GIVE / FAST',
+      ],
+    },
+    track_3_cbt_team: {
+      protocols: ['CBT_THOUGHT_RECORD', 'CBT_BEHAVIORAL_ACTIVATION', 'CBT_WORRY_MONITORING', 'CBT_EXPOSURE_PLANNING'],
+      labels: [
+        'Nhật ký Suy nghĩ 7 Bước (kèm Cổng kiểm tra sự thật Accuracy Check)',
+        'Kích hoạt Hành vi 6 Bước (kèm Cổng nghỉ ngơi không áy náy Rest Check)',
+        'Hộp Trì hoãn Lo âu (Worry Box) & Thang Tiếp xúc Bậc thang',
+      ],
+    },
+    track_4_fft_family: {
+      protocols: ['FFT_PSYCHOEDUCATION', 'FFT_COMMUNICATION_LISTENING', 'FFT_PROBLEM_SOLVING', 'FFT_CAREGIVER_SELF_CARE'],
+      labels: [
+        'Cùng hiểu đúng về triệu chứng & điều trị không đổ lỗi (FFT Psychoeducation)',
+        'Thực hành Lắng nghe Chủ động & Đề nghị Tích cực trong Gia đình',
+        'Giải quyết Vấn đề Chung & Chăm sóc Sức khỏe Người thân Đồng hành',
+      ],
+    },
+  };
+
+  const trackCore = coreActivitiesByTrack[suggestedTrackId];
+
+  const stages: PhasedCareStageSpec[] = [
+    {
+      stageId: 'stage_1_acute_stabilization',
+      stageNumber: 1,
+      titleVi: 'Chặng 1: Ổn định Cấp tính',
+      titleEn: 'Stage 1: Acute Stabilization',
+      subtitleVi: 'Hạ nhiệt cơ thể, ổn định giấc ngủ và thiết lập Kế hoạch An toàn trước khi phân tích sâu.',
+      unlocked: true,
+      isRecommendedCurrentStage: recommendedStartingStage === 'stage_1_acute_stabilization',
+      protocolIds: ['DBT_TIPP_SAFE_OPTIONS', 'DBT_STOP', 'DBT_SELF_SOOTHE', 'IPSRT_RHYTHM_BASELINE'],
+      activitiesVi: [
+        'Hạ nhiệt sinh lý an toàn DBT TIPP (Thở dẫn nhịp 4-6, Giãn cơ PMR)',
+        'Kỹ năng STOP dừng xung động & Tự xoa dịu qua 5 giác quan',
+        'Hoàn thiện Kế hoạch An toàn Cá nhân 6 mục & cố định giờ thức – ngủ',
+      ],
+    },
+    {
+      stageId: 'stage_2_unblock_resistance',
+      stageNumber: 2,
+      titleVi: 'Chặng 2: Gỡ Rào cản & Khơi thông Động lực (TEAM-CBT)',
+      titleEn: 'Stage 2: Unblocking Ambivalence & Barriers',
+      subtitleVi: stage2ResistanceModuleUnlocked
+        ? 'Đã mở khóa tự động: Dành cho trạng thái mệt mỏi, trì hoãn hoặc "biết nhưng chưa làm được".'
+        : 'Tùy chọn mở bất cứ khi nào bạn thấy ngại bắt đầu, trì hoãn hoặc tự gây áp lực hoàn hảo.',
+      unlocked: stage2ResistanceModuleUnlocked,
+      isRecommendedCurrentStage: recommendedStartingStage === 'stage_2_unblock_resistance',
+      protocolIds: ['TEAM_EMPATHY_EXPLORATION', 'TEAM_PARADOXICAL_AGENDA', 'TEAM_POSITIVE_REFRAMING', 'TEAM_COST_BENEFIT_ANALYSIS'],
+      activitiesVi: [
+        'Lắng nghe Thấu cảm (EAR) — được giãi bày mà không bị thúc ép sửa đổi ngay',
+        'Mục tiêu Nghịch lý (Paradoxical Agenda) & Nhận diện ý nghĩa bảo vệ đằng sau triệu chứng',
+        'Bảng Khởi động 5 Phút vượt trì hoãn & Dự đoán Niềm vui (Pleasure-Predicting)',
+      ],
+    },
+    {
+      stageId: 'stage_3_core_intervention',
+      stageNumber: 3,
+      titleVi: 'Chặng 3: Can thiệp Lõi (Theo Lộ trình Đã Phân luồng)',
+      titleEn: 'Stage 3: Core Intervention',
+      subtitleVi: `Thực hành chuyên sâu theo ${suggestedTrackTitleVi}.`,
+      unlocked: true,
+      isRecommendedCurrentStage: recommendedStartingStage === 'stage_3_core_intervention',
+      protocolIds: trackCore.protocols,
+      activitiesVi: trackCore.labels,
+    },
+    {
+      stageId: 'stage_4_maintenance_relapse',
+      stageNumber: 4,
+      titleVi: 'Chặng 4: Duy trì & Phòng ngừa Tái phát (MBCT & Ulysses)',
+      titleEn: 'Stage 4: Maintenance & Relapse Prevention',
+      subtitleVi: 'Thực hành Chánh niệm Nhận thức MBCT 8 bước và bản đồ dấu hiệu cảnh báo sớm.',
+      unlocked: true,
+      isRecommendedCurrentStage: recommendedStartingStage === 'stage_4_maintenance_relapse',
+      protocolIds: ['MBCT_AUTOMATIC_PILOT', 'MBCT_THOUGHTS_ARE_NOT_FACTS', 'CBT_RELAPSE_PREVENTION', 'IPSRT_EARLY_WARNING_PLAN'],
+      activitiesVi: [
+        'Chuỗi 8 bài Chánh niệm MBCT (Suy nghĩ không phải là sự thật tuyệt đối — có chế độ Mở mắt tiếp đất)',
+        'Bản đồ Dấu hiệu Cảnh báo Sớm Cá nhân & Bản Giao ước Bình ổn (Ulysses Plan)',
+        '10 Chuyên đề Giáo dục Tâm lý & Xuất Báo cáo (có bước ẩn thông tin nhạy cảm) cho bác sĩ',
+      ],
+    },
+  ];
+
+  return {
+    tier1SafetyAndTriage: {
+      userRole: input.userRole,
+      acuteSosGateBlockedNormalFlow,
+      canEnterMainApp,
+      pinSafetyPlanToHomeTop,
+      phq9SeverityBandVi: phq9BandVi,
+      gad7SeverityBandVi: gad7BandVi,
+      bipolarScreenFlagged,
+      suggestedTrackId,
+      suggestedTrackTitleVi,
+      suggestedTrackRationaleVi,
+      isClinicalDiagnosis: false,
+    },
+    tier2PhasedCarePathway: {
+      recommendedStartingStage,
+      stage2ResistanceModuleUnlocked,
+      stages,
+    },
+    tier3OnDemandToolkit: [
+      {
+        id: 'ondemand-panic-sos',
+        icon: '🚨',
+        titleVi: 'Cắt cơn Hoảng loạn & Hạ nhiệt Cấp (SOS / DBT TIPP)',
+        whenToTapVi: 'Bấm 1 chạm khi tim đập nhanh, hoảng loạn, tức giận bùng phát hoặc căng thẳng >= 8/10',
+        targetProtocolId: 'DBT_TIPP_SAFE_OPTIONS',
+      },
+      {
+        id: 'ondemand-sleep-432hz',
+        icon: '🌙',
+        titleVi: 'Thiền Buông Thư 432Hz & Hỗ trợ Mất ngủ Đêm',
+        whenToTapVi: 'Bấm 1 chạm khi trằn trọc khó ngủ, cần giọng đọc dẫn thiền và tiếng suối rừng',
+        targetProtocolId: 'MBCT_BODY_SCAN',
+      },
+      {
+        id: 'ondemand-thought-worry',
+        icon: '🌊',
+        titleVi: 'Gửi vào Hộp Lo âu & Gỡ rối Suy nghĩ Tức thì',
+        whenToTapVi: 'Bấm 1 chạm khi suy nghĩ tiêu cực hoặc lo lắng ập đến giữa ngày',
+        targetProtocolId: 'CBT_WORRY_MONITORING',
+      },
+      {
+        id: 'ondemand-safety-plan',
+        icon: '🛡️',
+        titleVi: 'Kế hoạch An toàn 6 Mục & Danh bạ 115 (Offline)',
+        whenToTapVi: 'Luôn mở được ngay cả khi mất mạng để xem danh bạ người thân và đường dây nóng',
+        targetProtocolId: 'IPSRT_EARLY_WARNING_PLAN',
+      },
+    ],
+  };
+}
