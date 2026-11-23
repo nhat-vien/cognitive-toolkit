@@ -1,5 +1,5 @@
-/// CLINICAL_PROTOCOL_MASTER_PLAN.md — Dart Governance, Safety Engine & Protocol Contract
-/// Synchronized with `packages/clinical-core-ts/src/master-plan/master-plan-governance.ts`.
+// CLINICAL_PROTOCOL_MASTER_PLAN.md — Dart Governance, Safety Engine & Protocol Contract
+// Synchronized with `packages/clinical-core-ts/src/master-plan/master-plan-governance.ts`.
 
 enum DataProvenance {
   userSelfReport,
