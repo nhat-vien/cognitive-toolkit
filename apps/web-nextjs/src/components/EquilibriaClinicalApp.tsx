@@ -2548,6 +2548,36 @@ export function EquilibriaClinicalApp() {
                     </div>
                   </div>
 
+                  {/* Immediate Active Mode Indicator so clicking either button always gives instant, clear feedback */}
+                  <div
+                    style={{
+                      marginBottom: '12px',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: phase0Mode === 'expressive' ? calmAlertBg : resultSurfaceBg,
+                      border: `1px solid ${phase0Mode === 'expressive' ? theme.palette.border : resultSurfaceBorder}`,
+                      color: phase0Mode === 'expressive' ? calmAlertText : resultSurfaceText,
+                      fontSize: '0.86rem',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {phase0Mode === 'expressive' ? (
+                      <span>
+                        <strong>{lang === 'vi' ? '💛 Đang ở chế độ Lắng nghe Thấu cảm: ' : '💛 Empathy & Listening Mode Active: '}</strong>
+                        {lang === 'vi'
+                          ? 'Mình ở đây chỉ để lắng nghe và thấu hiểu bạn — không thúc ép làm bài tập hay khuyên vội. Bạn cứ thoải mái viết điều đang giữ trong lòng nhé.'
+                          : 'I am here simply to listen and validate your feelings without pushing exercises. Write freely whenever you are ready.'}
+                      </span>
+                    ) : (
+                      <span>
+                        <strong>{lang === 'vi' ? '🌱 Đang ở chế độ Gợi ý Bài tập Gỡ rối: ' : '🌱 Skill Suggestion Mode Active: '}</strong>
+                        {lang === 'vi'
+                          ? 'Viết vài dòng tâm sự ở khung dưới (hoặc chạm vào một gợi ý), Haven sẽ chọn đúng bài tập CBT/DBT phù hợp nhất để bạn mở ngay bằng 1 chạm.'
+                          : 'Write a few lines below (or tap a prompt), and Haven will match you with the best CBT/DBT exercise to open in 1 tap.'}
+                      </span>
+                    )}
+                  </div>
+
                   <textarea
                     rows={3}
                     value={voiceBurstText}
@@ -2555,7 +2585,9 @@ export function EquilibriaClinicalApp() {
                     className="sanctuary-input"
                     placeholder={
                       lang === 'vi'
-                        ? 'Hãy viết ra điều đang làm bạn mệt mỏi, buồn phiền hay lo lắng hôm nay...'
+                        ? phase0Mode === 'expressive'
+                          ? 'Hãy trút hết điều đang làm bạn nặng lòng hôm nay... Mình đang lắng nghe.'
+                          : 'Hãy viết ra điều đang làm bạn mệt mỏi, buồn phiền hay lo lắng để Haven gợi ý bài tập gỡ rối...'
                         : 'Write down what is making you feel tired, sad, or anxious today...'
                     }
                     style={{ width: '100%', boxSizing: 'border-box', fontSize: '0.96rem', lineHeight: 1.55 }}
@@ -2600,6 +2632,56 @@ export function EquilibriaClinicalApp() {
                           </button>
                         ))}
                       </div>
+
+                      {/* Quick-start exercise shortcuts when in 'Gợi ý bài tập gỡ rối' mode even before typing */}
+                      {phase0Mode === 'instrumental' && (
+                        <div
+                          style={{
+                            marginTop: '14px',
+                            padding: '12px 14px',
+                            borderRadius: '12px',
+                            backgroundColor: theme.palette.background,
+                            border: `1px dashed ${theme.palette.border}`,
+                          }}
+                        >
+                          <div style={{ fontSize: '0.84rem', fontWeight: 600, color: theme.palette.textPrimary, marginBottom: '8px' }}>
+                            {lang === 'vi'
+                              ? '🌱 Hoặc mở nhanh bài tập gỡ rối phổ biến nhất:'
+                              : '🌱 Or jump directly to a popular guided exercise:'}
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {(
+                              [
+                                [1, '📝', lang === 'vi' ? 'Gỡ rối lo âu (Nhật ký Suy nghĩ)' : 'Untangle Anxiety (Thought Record)'],
+                                [2, '🌱', lang === 'vi' ? 'Vượt mệt mỏi (Kích hoạt Hành vi)' : 'Overcome Fatigue (Behavioral Activation)'],
+                                [5, '🧘', lang === 'vi' ? 'Cân bằng cảm xúc (Wise Mind)' : 'Balance Emotions (Wise Mind)'],
+                              ] as const
+                            ).map(([stepNum, icon, label]) => (
+                              <button
+                                key={stepNum}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('tools-36-team-cbt');
+                                  setActiveToolkitSubTab('practice-7');
+                                  setActiveProtocolStep(stepNum);
+                                }}
+                                style={{
+                                  padding: '7px 12px',
+                                  borderRadius: '10px',
+                                  border: `1px solid ${theme.palette.primary}`,
+                                  backgroundColor: theme.palette.surface,
+                                  color: theme.palette.primary,
+                                  fontWeight: 600,
+                                  fontSize: '0.83rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {icon} {label} →
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -2629,20 +2711,174 @@ export function EquilibriaClinicalApp() {
                       </div>
 
                       {phase0Mode === 'expressive' ? (
-                        <p style={{ marginTop: '12px', padding: '14px 16px', borderLeft: `4px solid ${theme.palette.primary}`, backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', marginBottom: 0, fontSize: '0.93rem', lineHeight: 1.55 }}>
-                          {lang === 'vi'
-                            ? voiceBurstAnalysis.earEmpathyReplyVi
-                            : voiceBurstAnalysis.earEmpathyReplyEn}
-                        </p>
+                        <div
+                          style={{
+                            marginTop: '12px',
+                            padding: '14px 16px',
+                            borderLeft: `4px solid ${theme.palette.primary}`,
+                            backgroundColor: calmAlertBg,
+                            color: calmAlertText,
+                            borderRadius: '10px',
+                            fontSize: '0.93rem',
+                            lineHeight: 1.55,
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: '6px' }}>
+                            {lang === 'vi' ? '💛 Lời lắng nghe dành cho bạn:' : '💛 Empathetic Reflection:'}
+                          </div>
+                          <p style={{ margin: '0 0 12px' }}>
+                            {lang === 'vi'
+                              ? voiceBurstAnalysis.earEmpathyReplyVi
+                              : voiceBurstAnalysis.earEmpathyReplyEn}
+                          </p>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('ai-companion-biometrics')}
+                              style={{
+                                padding: '7px 13px',
+                                borderRadius: '10px',
+                                border: `1px solid ${theme.palette.primary}`,
+                                backgroundColor: theme.palette.surface,
+                                color: theme.palette.primary,
+                                fontWeight: 600,
+                                fontSize: '0.84rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '💬 Tâm sự sâu hơn với Trợ lý AI →' : '💬 Continue with AI Companion →'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPhase0Mode('instrumental')}
+                              style={{
+                                padding: '7px 13px',
+                                borderRadius: '10px',
+                                border: `1px solid ${theme.palette.border}`,
+                                backgroundColor: 'transparent',
+                                color: theme.palette.textSecondary,
+                                fontWeight: 600,
+                                fontSize: '0.84rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '🌱 Xem gợi ý bài tập gỡ rối' : '🌱 See Suggested Exercises'}
+                            </button>
+                          </div>
+                        </div>
                       ) : (
-                        <p style={{ marginTop: '12px', padding: '14px 16px', backgroundColor: calmAlertBg, color: calmAlertText, borderRadius: '10px', fontSize: '0.93rem', lineHeight: 1.55, marginBottom: 0 }}>
-                          <strong>{lang === 'vi' ? '🌱 Gợi ý nhẹ nhàng cho bạn: ' : '🌱 Gentle Next Step: '}</strong>
-                          {lang === 'vi'
-                            ? distressIntensity >= 7
-                              ? 'Cảm xúc lúc này đang khá mạnh. Trước khi suy nghĩ tiếp, bạn hãy mở "Bình Tĩnh Ngay" ở góc trên hoặc tập thở chậm 1 phút để làm dịu cơ thể nhé.'
-                              : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang tab "🌱 Thực hành" trên thanh menu để bắt đầu bài tập phù hợp.'
-                            : dbtFirstRouter.rationaleEn}
-                        </p>
+                        (() => {
+                          const dominant = voiceBurstAnalysis.moodPalette.dominantEmotion;
+                          const recommendedStep: 1 | 2 | 5 =
+                            distressIntensity >= 7
+                              ? 5
+                              : dominant === 'Sadness'
+                                ? 2
+                                : dominant === 'Anxiety'
+                                  ? 1
+                                  : 5;
+                          const recommendedTitleVi =
+                            recommendedStep === 2
+                              ? '2. Kích hoạt Hành vi (Gỡ kiệt sức & lấy lại động lực từng bước nhỏ)'
+                              : recommendedStep === 1
+                                ? '1. Nhật ký Suy nghĩ CBT (Gỡ rối vòng lặp lo âu)'
+                                : '5. Trí tuệ Wise Mind DBT (Làm dịu & cân bằng cảm xúc)';
+                          const recommendedTitleEn =
+                            recommendedStep === 2
+                              ? '2. Behavioral Activation (Gentle Small Steps)'
+                              : recommendedStep === 1
+                                ? '1. CBT Thought Record (Untangle Worry Loops)'
+                                : '5. DBT Wise Mind (Emotional Balance)';
+                          return (
+                            <div
+                              style={{
+                                marginTop: '12px',
+                                padding: '14px 16px',
+                                backgroundColor: calmAlertBg,
+                                color: calmAlertText,
+                                borderRadius: '12px',
+                                border: `1px solid ${theme.palette.border}`,
+                                fontSize: '0.93rem',
+                                lineHeight: 1.55,
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, marginBottom: '6px' }}>
+                                {lang === 'vi' ? '🌱 Bài tập gỡ rối phù hợp nhất lúc này:' : '🌱 Best Matched Skill for Right Now:'}
+                              </div>
+                              <p style={{ margin: '0 0 12px' }}>
+                                {lang === 'vi'
+                                  ? distressIntensity >= 7
+                                    ? 'Cảm xúc lúc này đang khá mạnh. Trước khi phân tích sâu, bạn nên làm dịu cơ thể 60 giây hoặc thực hành Trí tuệ Wise Mind nhé.'
+                                    : `Dựa trên chia sẻ của bạn, Haven gợi ý bài: ${recommendedTitleVi}.`
+                                  : dbtFirstRouter.rationaleEn}
+                              </p>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {distressIntensity >= 7 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSosOpen(true)}
+                                    style={{
+                                      padding: '8px 14px',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      backgroundColor: '#E11D48',
+                                      color: '#fff',
+                                      fontWeight: 700,
+                                      fontSize: '0.86rem',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {lang === 'vi' ? '🚨 Mở Bình Tĩnh Ngay (60 giây)' : '🚨 Open Calm Now (60s SOS)'}
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (recommendedStep === 1 && trSituation.trim().length === 0) {
+                                      setTrSituation(voiceBurstText.trim());
+                                    }
+                                    setActiveTab('tools-36-team-cbt');
+                                    setActiveToolkitSubTab('practice-7');
+                                    setActiveProtocolStep(recommendedStep);
+                                  }}
+                                  style={{
+                                    padding: '8px 14px',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    backgroundColor: theme.palette.primary,
+                                    color: '#fff',
+                                    fontWeight: 700,
+                                    fontSize: '0.86rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {lang === 'vi'
+                                    ? `🌱 Mở ngay: ${recommendedTitleVi.split(' (')[0]} →`
+                                    : `🌱 Open Now: ${recommendedTitleEn.split(' (')[0]} →`}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTab('tools-36-team-cbt');
+                                    setActiveToolkitSubTab('catalog-36');
+                                  }}
+                                  style={{
+                                    padding: '8px 14px',
+                                    borderRadius: '10px',
+                                    border: `1px solid ${theme.palette.border}`,
+                                    backgroundColor: theme.palette.surface,
+                                    color: theme.palette.textPrimary,
+                                    fontWeight: 600,
+                                    fontSize: '0.84rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {lang === 'vi' ? '🧰 Xem Thư viện 36 Công cụ' : '🧰 Browse 36 Quick Tools'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()
                       )}
                     </>
                   )}
