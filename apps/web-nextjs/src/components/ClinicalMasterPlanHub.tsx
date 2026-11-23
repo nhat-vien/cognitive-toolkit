@@ -586,7 +586,7 @@ export function ClinicalMasterPlanHub({
 
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px' }}>
-                    Câu hỏi 2 (Cờ đỏ cấp tính 48h): Trong 48 giờ qua, bạn có đang có ý định làm hại bản thân, hoặc trải qua tình trạng không ngủ nhiều ngày liên tục kèm kích động/hưng phấn mất kiểm soát không?
+                    Câu hỏi 2: Trong 48 giờ qua, bạn có đang có ý định làm hại bản thân, hoặc trải qua tình trạng không ngủ nhiều ngày liên tục kèm kích động mất kiểm soát không?
                   </div>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button
@@ -596,16 +596,20 @@ export function ClinicalMasterPlanHub({
                         setTtConfirmedSafeAfterSos(false);
                       }}
                       style={{
-                        padding: '8px 14px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
                         borderRadius: '10px',
-                        border: !ttAcuteRedFlag48h ? '2px solid #3E6359' : '1px solid #CBD5E1',
-                        backgroundColor: !ttAcuteRedFlag48h ? '#E6F2ED' : '#FFFFFF',
+                        border: !ttAcuteRedFlag48h ? '2px solid #16A34A' : '1px solid #CBD5E1',
+                        backgroundColor: !ttAcuteRedFlag48h ? '#DCFCE7' : '#FFFFFF',
+                        color: '#166534',
                         fontWeight: 700,
-                        fontSize: '0.85rem',
+                        fontSize: '0.86rem',
                         cursor: 'pointer',
                       }}
                     >
-                      ✓ Không có — Tiếp tục sang Màn hình 2
+                      <span style={{ color: '#16A34A', fontSize: '1rem' }}>✅</span> Không có
                     </button>
                     <button
                       type="button"
@@ -614,17 +618,20 @@ export function ClinicalMasterPlanHub({
                         setTtConfirmedSafeAfterSos(false);
                       }}
                       style={{
-                        padding: '8px 14px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
                         borderRadius: '10px',
                         border: ttAcuteRedFlag48h ? '2px solid #DC2626' : '1px solid #FCA5A5',
-                        backgroundColor: ttAcuteRedFlag48h ? '#FEF2F2' : '#FFFFFF',
+                        backgroundColor: ttAcuteRedFlag48h ? '#FEE2E2' : '#FFFFFF',
                         color: '#991B1B',
                         fontWeight: 700,
-                        fontSize: '0.85rem',
+                        fontSize: '0.86rem',
                         cursor: 'pointer',
                       }}
                     >
-                      🚨 Có dấu hiệu cờ đỏ cấp tính (Chặn luồng thường & Mở SOS Khẩn cấp)
+                      <span style={{ color: '#DC2626', fontSize: '1rem' }}>🚨</span> Có
                     </button>
                   </div>
                 </div>
@@ -708,7 +715,7 @@ export function ClinicalMasterPlanHub({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
-                      1. Tổng điểm PHQ-9 ({ttPhq9Total}/27) — Mức độ: <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.phq9SeverityBandVi}</span>
+                      Câu 1. Mức độ trầm buồn, mệt mỏi, mất hứng thú trong 2 tuần qua (Thang PHQ-9: {ttPhq9Total}/27 — <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.phq9SeverityBandVi}</span>)
                     </label>
                     <input
                       type="range"
@@ -725,7 +732,7 @@ export function ClinicalMasterPlanHub({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
-                      2. Lưu ý Câu số 9 PHQ-9 (Ý nghĩ tự hại: {ttPhq9Item9}/3):
+                      Câu 2. Tần suất xuất hiện ý nghĩ tự làm hại bản thân hoặc nghĩ rằng mình biến mất sẽ tốt hơn ({ttPhq9Item9}/3):
                     </label>
                     <input
                       type="range"
@@ -737,14 +744,14 @@ export function ClinicalMasterPlanHub({
                     />
                     <div style={{ fontSize: '0.78rem', color: ttPhq9Item9 >= 1 ? '#BE123C' : '#64748B', fontWeight: ttPhq9Item9 >= 1 ? 700 : 400 }}>
                       {ttPhq9Item9 >= 1
-                        ? '📌 Điểm ≥ 1: Đã tự động ghim thẻ Kế hoạch An toàn lên đầu trang chủ!'
-                        : 'Nếu điểm ≥ 1, hệ thống sẽ tự động ghim thẻ Kế hoạch An toàn lên đầu trang chủ.'}
+                        ? '📌 Điểm ≥ 1 (Vài ngày → Gần như mỗi ngày): Đã tự động ghim thẻ Kế hoạch An toàn lên đầu trang chủ!'
+                        : '0: Không lúc nào | 1: Vài ngày | 2: Hơn nửa số ngày | 3: Gần như mỗi ngày (Nếu ≥ 1 sẽ tự động ghim Kế hoạch An toàn).'}
                     </div>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
-                      3. Tổng điểm GAD-7 ({ttGad7Total}/21) — Mức độ: <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.gad7SeverityBandVi}</span>
+                      Câu 3. Mức độ lo âu, bồn chồn, căng thẳng khó kiểm soát trong 2 tuần qua (Thang GAD-7: {ttGad7Total}/21 — <span style={{ color: '#3E6359' }}>{threeTierEval.tier1SafetyAndTriage.gad7SeverityBandVi}</span>)
                     </label>
                     <input
                       type="range"
@@ -932,9 +939,12 @@ export function ClinicalMasterPlanHub({
             <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3E6359', textTransform: 'uppercase' }}>
               TẦNG 2: LỘ TRÌNH TRỊ LIỆU THEO 4 CHẶNG (PHASED CARE PATHWAY)
             </div>
-            <h3 style={{ margin: '3px 0 12px', fontSize: '1.1rem', color: '#1A272D' }}>
+            <h3 style={{ margin: '3px 0 6px', fontSize: '1.1rem', color: '#1A272D' }}>
               1. Ổn định cấp tính → 2. Gỡ rào cản → 3. Can thiệp lõi → 4. Duy trì & Phòng tái phát
             </h3>
+            <p style={{ margin: '0 0 12px', fontSize: '0.84rem', color: '#475569', lineHeight: 1.5 }}>
+              💡 <strong>Ý nghĩa của Tầng 2:</strong> Thay vì bắt bạn làm ngay bài tập phân tích sâu khi đang kiệt sức hay hoảng loạn, hệ thống chia hành trình hồi phục thành <strong>4 bước đi tuần tự vừa sức</strong>. Hãy bấm vào nút <strong>&ldquo;Bắt đầu Chặng...&rdquo;</strong> ở bất kỳ chặng nào để mở ngay bài tập thực hành của chặng đó.
+            </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               {threeTierEval.tier2PhasedCarePathway.stages.map((st) => (

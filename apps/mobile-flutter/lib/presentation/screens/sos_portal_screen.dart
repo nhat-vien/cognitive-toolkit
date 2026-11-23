@@ -282,25 +282,29 @@ class _SosPortalScreenState extends State<SosPortalScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  _buildNoseMouthPhaseIllustration(state.phase),
+                  const SizedBox(height: 4),
                   Text(
                     state.isRunning
                         ? '${state.secondsRemainingInPhase}s'
                         : state.pattern.code,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 38,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     'Chu kỳ: ${state.completedCycles}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            _buildNoseMouthVisualLegendCard(state.phase),
+            const SizedBox(height: 12),
             Text(
               state.phase.instructionVi,
               textAlign: TextAlign.center,
@@ -338,6 +342,120 @@ class _SosPortalScreenState extends State<SosPortalScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildNoseMouthPhaseIllustration(BreathingPhase phase) {
+    switch (phase) {
+      case BreathingPhase.inhale:
+        return const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('👃⬅️🌬️', style: TextStyle(fontSize: 28)),
+            Text(
+              'HÍT VÀO BẰNG MŨI',
+              style: TextStyle(
+                color: Color(0xFFBAE6FD),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        );
+      case BreathingPhase.hold:
+        return const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🫁✨', style: TextStyle(fontSize: 28)),
+            Text(
+              'GIỮ HƠI ÊM DỊU',
+              style: TextStyle(
+                color: Color(0xFFA7F3D0),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        );
+      case BreathingPhase.exhale:
+        return const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('👄💨➡️', style: TextStyle(fontSize: 28)),
+            Text(
+              'THỞ RA BẰNG MIỆNG',
+              style: TextStyle(
+                color: Color(0xFFFDE68A),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        );
+      case BreathingPhase.idle:
+        return const Text('👃 ⇄ 👄', style: TextStyle(fontSize: 24));
+    }
+  }
+
+  Widget _buildNoseMouthVisualLegendCard(BreathingPhase phase) {
+    final isInhale = phase == BreathingPhase.inhale;
+    final isExhale = phase == BreathingPhase.exhale;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF162C32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isInhale ? const Color(0xFF0369A1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isInhale ? const Color(0xFF38BDF8) : Colors.white12,
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('👃🌬️', style: TextStyle(fontSize: 18)),
+                SizedBox(width: 6),
+                Text(
+                  'Hít nhẹ bằng MŨI\n(Khép miệng, phình bụng)',
+                  style: TextStyle(color: Colors.white, fontSize: 11, height: 1.25),
+                ),
+              ],
+            ),
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isExhale ? const Color(0xFFB45309) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isExhale ? const Color(0xFFFBBF24) : Colors.white12,
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('👄💨', style: TextStyle(fontSize: 18)),
+                SizedBox(width: 6),
+                Text(
+                  'Thở chậm bằng MIỆNG\n(Chúm môi như thổi nến)',
+                  style: TextStyle(color: Colors.white, fontSize: 11, height: 1.25),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

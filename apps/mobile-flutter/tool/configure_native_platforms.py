@@ -33,6 +33,16 @@ def configure_android(root_dir: str) -> None:
         print("Warning: android/ directory not found, skipping Android config.")
         return
 
+    # 0. Install deterministic Haven APK signing keystore to ~/.android/debug.keystore
+    # so every CI build has the exact same certificate and OTA updates install in-place without package signature conflict!
+    permanent_ks = os.path.join(root_dir, "tool", "haven-release-debug.keystore")
+    if os.path.exists(permanent_ks):
+        user_android_dir = os.path.expanduser("~/.android")
+        os.makedirs(user_android_dir, exist_ok=True)
+        target_debug_ks = os.path.join(user_android_dir, "debug.keystore")
+        shutil.copyfile(permanent_ks, target_debug_ks)
+        print("Installed permanent deterministic signing key to", target_debug_ks)
+
     # 1. Patch gradle.properties
     gradle_props = os.path.join(android_dir, "gradle.properties")
     if os.path.exists(gradle_props):

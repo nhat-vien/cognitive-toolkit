@@ -701,7 +701,9 @@ class ClinicalMasterPlanScreen extends StatefulWidget {
 }
 
 class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
+  int _activeSectionIndex = 0; // 0: Lộ trình 3 Tầng, 1: 68 Phác đồ, 2: An toàn & 115, 3: Thuốc & FFT, 4: WHO-5 & Báo cáo
   String _selectedModel = 'CBT';
+  String _highlightedProtocolHint = '';
   bool _nonWritingTapMode = false;
   bool _mbctEyesOpenGrounding = true;
   String _selectedTapChip = 'Mình muốn đi từng bước thật nhỏ và chậm rãi';
@@ -717,6 +719,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
   bool _mdqBipolarPositive = false;
   String _emotionalStyle = 'A'; // 'A' -> CBT/TEAM-CBT, 'B' -> DBT Core
   int _resistanceScore = 5; // >= 4 unlocks Stage 2 Gỡ rào cản
+  final List<String> _worryBoxItems = <String>[];
 
   // Safety Plan 6 Sections (§3.4)
   final TextEditingController _sp1Ctrl = TextEditingController(
@@ -783,6 +786,66 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
     super.dispose();
   }
 
+  void _jumpToProtocolSection(String model, String hintMessage) {
+    setState(() {
+      _selectedModel = model;
+      _highlightedProtocolHint = hintMessage;
+      _activeSectionIndex = 1;
+    });
+  }
+
+  void _openQuickWorryBoxDialog() {
+    final TextEditingController worryCtrl = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('📦 Cất Nỗi Lo Vào Hộp Tạm Thời', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Khi một nỗi lo "nhỡ đâu..." ập đến làm bạn mất tập trung hoặc khó ngủ, hãy viết ngắn gọn để cất vào Hộp Lo Âu và hẹn giờ xem lại lúc 17:30:',
+              style: TextStyle(fontSize: 12.5, height: 1.4),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: worryCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Ví dụ: Lo ngày mai công việc không kịp tiến độ...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = worryCtrl.text.trim().isEmpty
+                  ? 'Nỗi lo chưa đặt tên (đã cất tạm vào hộp)'
+                  : worryCtrl.text.trim();
+              setState(() => _worryBoxItems.insert(0, text));
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('📦 Đã cất nỗi lo vào Hộp Lo Âu an toàn. Tâm trí bạn được phép nghỉ ngơi lúc này!'),
+                  backgroundColor: Color(0xFF2B4C43),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2B4C43), foregroundColor: Colors.white),
+            child: const Text('Cất vào Hộp Lo Âu'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeSignalsCount = <bool>[
@@ -795,88 +858,125 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
     ].where((b) => b).length;
 
     final pathwayStateLabel = activeSignalsCount >= 2
-        ? 'urgent_human_support (Khuyến nghị liên hệ bác sĩ sớm)'
-        : 'routine_support (Hỗ trợ thường quy • Không tự kết luận nguy cơ thấp)';
+        ? 'Cần kết nối bác sĩ hỗ trợ sớm'
+        : 'Hỗ trợ thường quy (Không tự kết luận nguy cơ thấp)';
 
-    return DefaultTabController(
-      length: 5,
-      child: Column(
-        children: [
-          if (_phq9Item9Score >= 1 || _acuteRedFlag48h)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              color: const Color(0xFFFFF1F2),
-              child: Row(
-                children: [
-                  const Icon(Icons.push_pin, color: Color(0xFFBE123C), size: 18),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '📌 ĐÃ GHIM KẾ HOẠCH AN TOÀN (Câu 9 PHQ-9 ≥ 1 / Cờ đỏ 48h): ${_sp2Ctrl.text} • Liên hệ: ${_sp4PhoneCtrl.text} / 115',
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF881337)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    final sectionTabs = <Map<String, Object>>[
+      {'index': 0, 'label': '🎯 1. Lộ trình 3 Tầng'},
+      {'index': 1, 'label': '🧭 2. Kho 68 Phác đồ'},
+      {'index': 2, 'label': '🛡️ 3. An toàn & 115'},
+      {'index': 3, 'label': '💊 4. Thuốc & Gia đình'},
+      {'index': 4, 'label': '📋 5. WHO-5 & Báo cáo'},
+    ];
+
+    return Column(
+      children: [
+        if (_phq9Item9Score >= 1 || _acuteRedFlag48h)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            color: const Color(0xFFECFDF5),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            color: const Color(0xFFFFF1F2),
             child: Row(
               children: [
-                const Icon(Icons.verified_user_outlined, color: Color(0xFF065F46), size: 20),
-                const SizedBox(width: 8),
+                const Icon(Icons.push_pin, color: Color(0xFFBE123C), size: 18),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Trạng thái luồng (§2.3): $pathwayStateLabel\n'
-                    'Sàng lọc không phải là chẩn đoán • Không tự ý thay đổi thuốc.',
-                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF065F46), height: 1.35),
+                    '📌 ĐÃ GHIM KẾ HOẠCH AN TOÀN: ${_sp2Ctrl.text} • Liên hệ: ${_sp4PhoneCtrl.text} / 115',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF881337)),
                   ),
                 ),
                 TextButton(
-                  onPressed: widget.onOpenEmergencySos,
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFBE123C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                  child: const Text('SOS / 115', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                  onPressed: () => setState(() => _activeSectionIndex = 2),
+                  child: const Text('Mở ngay', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFFBE123C))),
                 ),
               ],
             ),
           ),
-          const Material(
-            color: Colors.white,
-            child: TabBar(
-              isScrollable: true,
-              labelColor: Color(0xFF2B4C43),
-              unselectedLabelColor: Color(0xFF6B7982),
-              indicatorColor: Color(0xFF2B4C43),
-              tabs: [
-                Tab(text: '🎯 Lộ trình 3 Tầng (4 Bước & 4 Chặng)'),
-                Tab(text: '🧭 68 Phác đồ (7 Liệu pháp)'),
-                Tab(text: '🛡️ An toàn 6 Mục & 115'),
-                Tab(text: '💊 Thuốc, Lưỡng cực & FFT'),
-                Tab(text: '📋 WHO-5 & Ẩn Báo cáo'),
-              ],
-            ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          color: const Color(0xFFECFDF5),
+          child: Row(
+            children: [
+              const Icon(Icons.verified_user_outlined, color: Color(0xFF065F46), size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Trạng thái: $pathwayStateLabel • Sàng lọc không phải chẩn đoán.',
+                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF065F46), height: 1.3),
+                ),
+              ),
+              TextButton(
+                onPressed: widget.onOpenEmergencySos,
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFBE123C),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                ),
+                child: const Text('SOS / 115', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildThreeTierJourneyTab(),
-                _buildProtocols68Tab(),
-                _buildSafetyPlanAndDirectoryTab(),
-                _buildMedicationBipolarAndFftTab(activeSignalsCount),
-                _buildWho5AndRedactionTab(),
-              ],
-            ),
+        ),
+        // Wrapped 5-Section Selector Grid — 100% visible without horizontal scrolling!
+        Container(
+          width: double.infinity,
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: sectionTabs.map((item) {
+              final idx = item['index']! as int;
+              final label = item['label']! as String;
+              final isSelected = _activeSectionIndex == idx;
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => setState(() => _activeSectionIndex = idx),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF2B4C43) : const Color(0xFFF3F7F5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF2B4C43) : const Color(0xFFD5E0DC),
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? Colors.white : const Color(0xFF1F2C33),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-        ],
-      ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: _buildActiveSectionBody(activeSignalsCount),
+        ),
+      ],
     );
+  }
+
+  Widget _buildActiveSectionBody(int activeSignalsCount) {
+    switch (_activeSectionIndex) {
+      case 0:
+        return _buildThreeTierJourneyTab();
+      case 1:
+        return _buildProtocols68Tab();
+      case 2:
+        return _buildSafetyPlanAndDirectoryTab();
+      case 3:
+        return _buildMedicationBipolarAndFftTab(activeSignalsCount);
+      default:
+        return _buildWho5AndRedactionTab();
+    }
   }
 
   Widget _buildThreeTierJourneyTab() {
@@ -887,6 +987,14 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
             : _emotionalStyle == 'B'
                 ? 'Track 2: Lộ trình Điều tiết Cảm xúc Mạnh & Chịu đựng Căng thẳng (DBT Core)'
                 : 'Track 3: Lộ trình Gỡ rối Suy nghĩ & Kích hoạt Hành vi (CBT / TEAM-CBT)';
+
+    final String suggestedCoreModel = _isCaregiverRole
+        ? 'FFT'
+        : _mdqBipolarPositive
+            ? 'IPSRT'
+            : _emotionalStyle == 'B'
+                ? 'DBT'
+                : 'CBT';
 
     final bool stage2Unlocked = _resistanceScore >= 4;
     final bool blockedByRedFlag = _acuteRedFlag48h && !_confirmedSafeAfterSos;
@@ -915,6 +1023,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                 children: [1, 2, 3, 4].map((step) {
                   final active = _onboardingStep == step;
                   return ChoiceChip(
+                    showCheckmark: false,
                     label: Text('Màn $step/4', style: const TextStyle(fontSize: 12)),
                     selected: active,
                     selectedColor: const Color(0xFF2B4C43),
@@ -932,40 +1041,53 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 6,
                   children: [
                     ChoiceChip(
+                      showCheckmark: false,
                       label: const Text('🙋 Cho chính mình'),
                       selected: !_isCaregiverRole,
+                      selectedColor: const Color(0xFFDCFCE7),
                       onSelected: (_) => setState(() => _isCaregiverRole = false),
                     ),
                     ChoiceChip(
+                      showCheckmark: false,
                       label: const Text('🤝 Hỗ trợ người thân (→ Track 4 FFT)'),
                       selected: _isCaregiverRole,
+                      selectedColor: const Color(0xFFDCFCE7),
                       onSelected: (_) => setState(() => _isCaregiverRole = true),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 const Text(
-                  'Câu 2 (Cờ đỏ 48h): Trong 48h qua, bạn có ý định tự hại hoặc mất ngủ nhiều ngày kèm kích động mất kiểm soát không?',
+                  'Câu 2: Trong 48 giờ qua, bạn có ý định tự làm hại bản thân, hoặc mất ngủ nhiều ngày liên tục kèm kích động mất kiểm soát không?',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Wrap(
-                  spacing: 8,
+                  spacing: 10,
+                  runSpacing: 6,
                   children: [
                     ChoiceChip(
-                      label: const Text('✓ Không có'),
+                      showCheckmark: false,
+                      avatar: const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18),
+                      label: const Text('Không có', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF166534))),
                       selected: !_acuteRedFlag48h,
+                      selectedColor: const Color(0xFFDCFCE7),
+                      backgroundColor: Colors.white,
                       onSelected: (_) => setState(() {
                         _acuteRedFlag48h = false;
                         _confirmedSafeAfterSos = false;
                       }),
                     ),
                     ChoiceChip(
-                      label: const Text('🚨 Có cờ đỏ cấp tính'),
+                      showCheckmark: false,
+                      avatar: const Icon(Icons.emergency_rounded, color: Color(0xFFDC2626), size: 18),
+                      label: const Text('Có', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF991B1B))),
                       selected: _acuteRedFlag48h,
                       selectedColor: const Color(0xFFFEE2E2),
+                      backgroundColor: Colors.white,
                       onSelected: (_) => setState(() {
                         _acuteRedFlag48h = true;
                         _confirmedSafeAfterSos = false;
@@ -986,13 +1108,13 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          '🚨 ĐÃ CHẶN LUỒNG THÔNG THƯỜNG ĐỂ ƯU TIÊN AN TOÀN',
+                          '🚨 ĐÃ TẠM KHÓA LUỒNG THƯỜNG ĐỂ ƯU TIÊN AN TOÀN CỦA BẠN',
                           style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF991B1B)),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           '• Tổng đài: 115 / 1900 1267 (BV Bạch Mai) / 028 3923 4675 (BV Tâm thần TP.HCM)\n'
-                          '• Hạ nhiệt tức thì: DBT TIPP (Thở vào 4s – thở ra 6s)',
+                          '• Hạ nhiệt tức thì: DBT TIPP (Hít nhẹ bằng mũi 4s – thở chậm bằng miệng 6s)',
                           style: TextStyle(fontSize: 12, color: Color(0xFF7F1D1D)),
                         ),
                         const SizedBox(height: 8),
@@ -1003,7 +1125,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                             ElevatedButton(
                               onPressed: widget.onOpenEmergencySos,
                               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
-                              child: const Text('Mở Màn hình SOS & TIPP', style: TextStyle(fontSize: 12)),
+                              child: const Text('Mở Màn hình SOS & Thở Mũi/Miệng', style: TextStyle(fontSize: 12)),
                             ),
                             OutlinedButton(
                               onPressed: () => setState(() => _confirmedSafeAfterSos = true),
@@ -1016,7 +1138,10 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   ),
                 ],
               ] else if (_onboardingStep == 2) ...[
-                Text('1. Sàng lọc Trầm cảm PHQ-9: $_phq9Score/27', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                Text(
+                  'Câu 1. Mức độ trầm buồn, mệt mỏi, mất hứng thú trong 2 tuần qua (Thang PHQ-9: $_phq9Score/27):',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
                 Slider(
                   value: _phq9Score.toDouble(),
                   min: 0,
@@ -1024,7 +1149,10 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   divisions: 27,
                   onChanged: (v) => setState(() => _phq9Score = v.round()),
                 ),
-                Text('2. Lưu ý Câu số 9 PHQ-9 (Ý nghĩ tự hại: $_phq9Item9Score/3 — nếu ≥ 1 tự động ghim Kế hoạch An toàn):', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                Text(
+                  'Câu 2. Tần suất xuất hiện ý nghĩ tự làm hại bản thân hoặc nghĩ rằng mình biến mất sẽ tốt hơn ($_phq9Item9Score/3 — nếu ≥ 1 sẽ tự động ghim Kế hoạch An toàn):',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
                 Slider(
                   value: _phq9Item9Score.toDouble(),
                   min: 0,
@@ -1032,7 +1160,15 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   divisions: 3,
                   onChanged: (v) => setState(() => _phq9Item9Score = v.round()),
                 ),
-                Text('3. Sàng lọc Lo âu GAD-7: $_gad7Score/21', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                const Text(
+                  '0: Không lúc nào • 1: Vài ngày • 2: Hơn nửa số ngày • 3: Gần như mỗi ngày',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Câu 3. Mức độ lo âu, bồn chồn, căng thẳng khó kiểm soát trong 2 tuần qua (Thang GAD-7: $_gad7Score/21):',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
                 Slider(
                   value: _gad7Score.toDouble(),
                   min: 0,
@@ -1051,7 +1187,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   onChanged: (v) => setState(() => _mdqBipolarPositive = v ?? false),
                 ),
               ] else ...[
-                const Text('1. Cường độ & Phong cách Cảm xúc (CBT vs. DBT):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                const Text('Câu 1. Cường độ & Phong cách Cảm xúc (Phân loại CBT vs. DBT):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                 RadioListTile<String>(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -1068,7 +1204,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   onChanged: (v) => setState(() => _emotionalStyle = v ?? 'B'),
                   title: const Text('Lựa chọn B: Cảm xúc bùng nổ dữ dội, hoảng loạn, tức giận hoặc trống rỗng (→ DBT)', style: TextStyle(fontSize: 12.5)),
                 ),
-                Text('2. Đo sự kháng cự / trì hoãn ("Biết nhưng không làm được": $_resistanceScore/10):', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                Text('Câu 2. Mức độ mệt mỏi, trì hoãn hoặc tâm lý "biết nhưng không làm được" ($_resistanceScore/10):', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
                 Slider(
                   value: _resistanceScore.toDouble(),
                   min: 0,
@@ -1077,6 +1213,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                   onChanged: (v) => setState(() => _resistanceScore = v.round()),
                 ),
               ],
+              const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -1093,7 +1230,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
         ),
         const SizedBox(height: 14),
 
-        // TIER 2: 4-STAGE PHASED CARE PATHWAY
+        // TIER 2: 4-STAGE PHASED CARE PATHWAY (Interactive clickable stages!)
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1108,20 +1245,54 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                 'TẦNG 2: LỘ TRÌNH TRỊ LIỆU 4 CHẶNG (PHASED CARE PATHWAY)',
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF2B4C43)),
               ),
-              const SizedBox(height: 8),
-              _buildStageRow('Chặng 1: Ổn định cấp tính', 'DBT TIPP, Thở 4-6, Kế hoạch An toàn 6 mục & ổn định giấc ngủ.'),
-              _buildStageRow(
-                'Chặng 2: Gỡ rào cản (TEAM-CBT) ${stage2Unlocked ? "• 🔓 ĐÃ MỞ KHÓA" : ""}',
-                'Thấu cảm EAR, Mục tiêu Nghịch lý & Khởi động 5 phút cho tâm lý "biết nhưng chưa làm được".',
+              const SizedBox(height: 4),
+              const Text(
+                '💡 Ý nghĩa của Tầng 2: Thay vì bắt bạn làm ngay bài tập phân tích sâu khi đang kiệt sức hay hoảng loạn, hệ thống chia hành trình hồi phục thành 4 bước đi tuần tự vừa sức. Chạm vào bất kỳ Chặng nào bên dưới để mở ngay các bài tập của chặng đó:',
+                style: TextStyle(fontSize: 12, color: Color(0xFF475569), height: 1.4),
               ),
-              _buildStageRow('Chặng 3: Can thiệp lõi', 'Bài tập chuyên sâu theo $suggestedTrackTitle.'),
-              _buildStageRow('Chặng 4: Duy trì & Phòng tái phát', 'Chuỗi 8 bài Chánh niệm MBCT (mở mắt tiếp đất) & Bản đồ Dấu hiệu Sớm Ulysses.'),
+              const SizedBox(height: 10),
+              _buildInteractiveStageCard(
+                stageTitle: 'Chặng 1: Ổn định cấp tính',
+                subtitle: 'Hạ nhiệt sinh lý DBT TIPP, thở 4-6, Kế hoạch An toàn 6 mục & cố định giấc ngủ.',
+                buttonLabel: 'Mở bài tập Chặng 1 (DBT Ổn định) →',
+                onTap: () => _jumpToProtocolSection(
+                  'DBT',
+                  'Đang hiển thị các bài tập thuộc Chặng 1: Ổn định cấp tính (DBT Chịu đựng Căng thẳng: STOP, TIPP, Tự xoa dịu 5 giác quan).',
+                ),
+              ),
+              _buildInteractiveStageCard(
+                stageTitle: 'Chặng 2: Gỡ rào cản (TEAM-CBT) ${stage2Unlocked ? "• 🔓 ĐÃ MỞ KHÓA" : ""}',
+                subtitle: 'Thấu cảm EAR, Mục tiêu Nghịch lý & Khởi động 5 phút cho tâm lý "biết nhưng mệt/ngại chưa làm được".',
+                buttonLabel: 'Mở bài tập Chặng 2 (TEAM-CBT Gỡ rào cản) →',
+                onTap: () => _jumpToProtocolSection(
+                  'TEAM-CBT',
+                  'Đang hiển thị các bài tập thuộc Chặng 2: Gỡ rào cản & Khơi thông động lực (TEAM-CBT).',
+                ),
+              ),
+              _buildInteractiveStageCard(
+                stageTitle: 'Chặng 3: Can thiệp lõi ($suggestedCoreModel)',
+                subtitle: 'Thực hành chuyên sâu theo $suggestedTrackTitle.',
+                buttonLabel: 'Mở bài tập Chặng 3 ($suggestedCoreModel) →',
+                onTap: () => _jumpToProtocolSection(
+                  suggestedCoreModel,
+                  'Đang hiển thị các bài tập thuộc Chặng 3: Can thiệp lõi theo $suggestedTrackTitle.',
+                ),
+              ),
+              _buildInteractiveStageCard(
+                stageTitle: 'Chặng 4: Duy trì & Phòng tái phát (MBCT & Ulysses)',
+                subtitle: 'Chuỗi 8 bài Chánh niệm MBCT (có lựa chọn mở mắt tiếp đất) & Bản đồ Dấu hiệu Sớm.',
+                buttonLabel: 'Mở bài tập Chặng 4 (8 Bài MBCT) →',
+                onTap: () => _jumpToProtocolSection(
+                  'MBCT',
+                  'Đang hiển thị Chuỗi 8 bài Thực hành Chánh niệm Nhận thức MBCT thuộc Chặng 4: Duy trì & Phòng tái phát.',
+                ),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 14),
 
-        // TIER 3: ON-DEMAND 1-TAP TOOLKIT & SOS
+        // TIER 3: ON-DEMAND 1-TAP TOOLKIT & SOS (Separated terminology + immediate working actions!)
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1136,7 +1307,12 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                 'TẦNG 3: KHO CÔNG CỤ TỨC THỜI 1 CHẠM (ON-DEMAND TOOLKIT & SOS)',
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF881337)),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              const Text(
+                'Truy cập ngay bằng 1 chạm khi đang lên cơn hoảng loạn, khó ngủ đêm, tự trách hoặc có nỗi lo ập đến:',
+                style: TextStyle(fontSize: 12, color: Color(0xFF881337)),
+              ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -1145,20 +1321,38 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
                     onPressed: widget.onOpenEmergencySos,
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFBE123C), foregroundColor: Colors.white),
                     icon: const Icon(Icons.emergency_outlined, size: 16),
-                    label: const Text('🚨 Hoảng loạn Cấp (SOS / TIPP)', style: TextStyle(fontSize: 12)),
+                    label: const Text('🚨 Hoảng loạn Cấp (SOS / Thở Mũi - Miệng)', style: TextStyle(fontSize: 12)),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _selectedModel = 'MBCT'),
+                    onPressed: () => _jumpToProtocolSection(
+                      'MBCT',
+                      '🌙 Đã mở Chuỗi 8 bài Chánh niệm & Quét Cơ thể Dịu nhẹ (MBCT Body Scan) giúp thả lỏng dễ ngủ.',
+                    ),
                     icon: const Icon(Icons.nights_stay_outlined, size: 16),
-                    label: const Text('🌙 Khó ngủ / Chánh niệm MBCT', style: TextStyle(fontSize: 12)),
+                    label: const Text('🌙 Dẫn Thiền Dễ Ngủ & Thả Lỏng Cơ Thể', style: TextStyle(fontSize: 12)),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _selectedModel = 'CBT'),
-                    icon: const Icon(Icons.psychology_outlined, size: 16),
-                    label: const Text('🌊 Gỡ rối Suy nghĩ & Hộp Lo âu', style: TextStyle(fontSize: 12)),
+                    onPressed: () => _jumpToProtocolSection(
+                      'CBT',
+                      '📝 Đã mở Nhật ký Suy nghĩ Có Cấu trúc (CBT) để giúp bạn gỡ rối nhanh một suy nghĩ tiêu cực.',
+                    ),
+                    icon: const Icon(Icons.edit_note_outlined, size: 16),
+                    label: const Text('📝 Gỡ rối Nhanh Một Suy Nghĩ Tiêu Cực', style: TextStyle(fontSize: 12)),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _openQuickWorryBoxDialog,
+                    icon: const Icon(Icons.inventory_2_outlined, size: 16),
+                    label: const Text('📦 Cất Nỗi Lo Vào Hộp Tạm Thời (Hộp Lo Âu)', style: TextStyle(fontSize: 12)),
                   ),
                 ],
               ),
+              if (_worryBoxItems.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  '📦 Đã cất trong Hộp Lo Âu (${_worryBoxItems.length}): ${_worryBoxItems.first}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF2B4C43)),
+                ),
+              ],
             ],
           ),
         ),
@@ -1166,21 +1360,37 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
     );
   }
 
-  Widget _buildStageRow(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+  Widget _buildInteractiveStageCard({
+    required String stageTitle,
+    required String subtitle,
+    required String buttonLabel,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD5E2DD)),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF2B4C43)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F2C33))),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF475569), height: 1.35)),
-              ],
+          Text(stageTitle, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1F2C33))),
+          const SizedBox(height: 3),
+          Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF475569), height: 1.35)),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2B4C43),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              child: Text(buttonLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -1204,6 +1414,28 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (_highlightedProtocolHint.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: Color(0xFF065F46), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _highlightedProtocolHint,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const Text(
           'Chọn 1 trong 7 Hệ thống Phác đồ Lâm sàng (§4.1–§4.7):',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2C33)),

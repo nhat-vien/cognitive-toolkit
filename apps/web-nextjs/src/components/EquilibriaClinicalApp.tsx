@@ -1855,26 +1855,75 @@ export function EquilibriaClinicalApp() {
               <div
                 style={{
                   textAlign: 'center',
-                  padding: '24px',
+                  padding: '20px',
                   border: '2px dashed #38bdf8',
                   borderRadius: '50%',
-                  width: '180px',
-                  height: '180px',
+                  width: '210px',
+                  height: '210px',
                   margin: '12px auto',
                   display: 'flex',
                   flexDirection: 'column',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   transform: `scale(${breathingFrame.circleScale})`,
+                  transition: 'transform 0.5s ease',
+                  backgroundColor:
+                    breathingFrame.phase === 'inhale'
+                      ? 'rgba(14, 165, 233, 0.18)'
+                      : breathingFrame.phase === 'hold'
+                        ? 'rgba(20, 184, 166, 0.18)'
+                        : 'rgba(245, 158, 11, 0.18)',
                 }}
               >
-                <strong style={{ fontSize: '1.2rem' }}>
+                {/* Vivid Nose (Inhale) & Mouth (Exhale) SVG Illustration */}
+                {breathingFrame.phase === 'inhale' ? (
+                  <div style={{ marginBottom: '4px' }} aria-label="Minh họa hít vào bằng mũi">
+                    <svg width="64" height="54" viewBox="0 0 64 54" fill="none">
+                      {/* Nose silhouette */}
+                      <path
+                        d="M32 6 C32 6 24 24 22 30 C20 35 24 38 28 38 C30 38 32 36 32 36 C32 36 34 38 36 38 C40 38 44 35 42 30 C40 24 32 6 32 6 Z"
+                        stroke="#38BDF8"
+                        strokeWidth="2.5"
+                        fill="rgba(56, 189, 248, 0.2)"
+                      />
+                      {/* Inward cool air arrows into nostrils */}
+                      <path d="M18 50 L26 40 M26 40 L21 41 M26 40 L25 45" stroke="#7DD3FC" strokeWidth="2.2" strokeLinecap="round" />
+                      <path d="M46 50 L38 40 M38 40 L39 45 M38 40 L43 41" stroke="#7DD3FC" strokeWidth="2.2" strokeLinecap="round" />
+                    </svg>
+                    <div style={{ fontSize: '0.75rem', color: '#7DD3FC', fontWeight: 700 }}>👃⬅️🌬️ Hít nhẹ bằng MŨI</div>
+                  </div>
+                ) : breathingFrame.phase === 'hold' ? (
+                  <div style={{ marginBottom: '4px' }} aria-label="Minh họa giữ hơi nhẹ nhàng">
+                    <div style={{ fontSize: '2rem', lineHeight: 1 }}>🫁✨</div>
+                    <div style={{ fontSize: '0.75rem', color: '#5EEAD4', fontWeight: 700 }}>Giữ nhịp êm dịu</div>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '4px' }} aria-label="Minh họa thở ra chậm bằng miệng">
+                    <svg width="68" height="54" viewBox="0 0 68 54" fill="none">
+                      {/* Pursed lips mouth silhouette */}
+                      <path
+                        d="M14 26 Q24 18 32 22 Q40 18 50 26 Q40 35 32 33 Q24 35 14 26 Z"
+                        stroke="#FBBF24"
+                        strokeWidth="2.5"
+                        fill="rgba(251, 191, 36, 0.22)"
+                      />
+                      <ellipse cx="32" cy="26" rx="6" ry="3.2" fill="#FEF3C7" />
+                      {/* Outward warm breath waves from mouth */}
+                      <path d="M32 36 L32 50 M32 50 L28 45 M32 50 L36 45" stroke="#FDE68A" strokeWidth="2.2" strokeLinecap="round" />
+                      <path d="M22 37 Q18 44 14 48" stroke="#FDE68A" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="3 2" />
+                      <path d="M42 37 Q46 44 50 48" stroke="#FDE68A" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="3 2" />
+                    </svg>
+                    <div style={{ fontSize: '0.75rem', color: '#FDE68A', fontWeight: 700 }}>👄💨➡️ Thở chậm bằng MIỆNG</div>
+                  </div>
+                )}
+                <strong style={{ fontSize: '1.1rem' }}>
                   {breathingFrame.phase === 'inhale'
-                    ? (lang === 'vi' ? 'HÍT VÀO' : 'INHALE')
+                    ? (lang === 'vi' ? 'HÍT VÀO (MŨI)' : 'INHALE (NOSE)')
                     : breathingFrame.phase === 'hold'
                       ? (lang === 'vi' ? 'GIỮ HƠI' : 'HOLD')
-                      : (lang === 'vi' ? 'THỞ RA' : 'EXHALE')}
+                      : (lang === 'vi' ? 'THỞ RA (MIỆNG)' : 'EXHALE (MOUTH)')}
                 </strong>
-                <span>{breathingFrame.phaseRemainingSeconds}s</span>
+                <span style={{ fontWeight: 700 }}>{breathingFrame.phaseRemainingSeconds}s</span>
               </div>
               <p style={{ textAlign: 'center' }}>
                 {lang === 'vi' ? breathingFrame.instructionVi : breathingFrame.instructionEn}
