@@ -77,7 +77,7 @@ class SafetyEvaluationResult:
     triggered_layer: Optional[int]
     action: str  # 'proceed' | 'safety-stop' | 'route-tipp' | 'justified-exit' | 'chain-hard-stop' | 'hypomania-guard'
     outcome: str  # 'in-progress' | 'safety-stop' | 'justified-exit' | 'stopped-early'
-    severity: str  # 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL'
+    severity: str  # 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' (legacy internal compatibility; never presented as low clinical risk)
     force_pushback_off: bool
     recommended_technique: Optional[str]
     ui_mode: str  # 'standard' | 'sos-portal' | 'low-energy-depression' | 'low-stimulus-mania'
@@ -85,6 +85,8 @@ class SafetyEvaluationResult:
     hotlines: List[str] = field(default_factory=list)
     notify_trusted_contacts: bool = False
     reasons: List[str] = field(default_factory=list)
+    pathway_state: str = "routine_support"  # Master Plan §2.3: routine_support | distress_support | professional_follow_up_recommended | urgent_human_support | emergency_guidance
+    claims_user_is_low_risk: bool = False  # Master Plan §2.3 & §8.2: Never claim a user is "low risk" merely because no warning fired
 
 
 class FourLayerSafetyGate:

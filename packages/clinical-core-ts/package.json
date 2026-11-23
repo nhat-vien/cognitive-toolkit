@@ -10,7 +10,8 @@
     "./detectors": "./src/detectors/distortion-detector.ts",
     "./engine": "./src/engine/session-engine.ts",
     "./assessments": "./src/assessments/assessments.ts",
-    "./bipolar": "./src/bipolar/bipolar-engine.ts"
+    "./bipolar": "./src/bipolar/bipolar-engine.ts",
+    "./master-plan": "./src/master-plan/master-plan-governance.ts"
   },
   "scripts": {
     "test": "node --test tests/clinical-core.test.ts",

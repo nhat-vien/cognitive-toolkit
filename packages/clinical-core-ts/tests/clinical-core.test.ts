@@ -65,6 +65,22 @@ import {
   ADVERSARIAL_RED_TEAM_PROMPTS,
   runAdversarialRedTeamAudit,
   verifyZeroTelemetryPrivacyCompliance,
+  // Master Plan Governance, Safety Subsystem & 68-Protocol Catalog
+  MASTER_PROTOCOL_CATALOG,
+  INSTRUMENT_GOVERNANCE_REGISTRY,
+  createProvenancedValue,
+  validateSeparatedClinicalPathwayRecord,
+  validateProtocolManifest,
+  resolveInProgressSessionOnProtocolUpdate,
+  evaluateEmergencyDirectoryStatus,
+  validatePersonalSafetyPlan,
+  evaluateMasterPlanSafetySubsystem,
+  scoreWho5WellBeing,
+  evaluateMedicationSupportAction,
+  evaluateMultiSignalBipolarPrecautions,
+  createGranularCaregiverAccessGrant,
+  revokeCaregiverAccessGrant,
+  buildUserControlledReportWithRedaction,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -823,7 +839,7 @@ describe('6. Phase 2 Expansion: 36 Interactive CBT/TEAM-CBT/DBT/Bipolar Tools, C
     assert.equal(lowEnergyPlan.resilienceScorePercent, 25);
     assert.equal(lowEnergyPlan.lowEnergyDepressionModeActive, true);
     assert.ok(lowEnergyPlan.summaryVi.includes('Low-Energy Mode'));
-    assert.ok(lowEnergyPlan.acceptsSkillsVi[0].microAction.includes('Bước nhỏ 2 phút'));
+    assert.ok(lowEnergyPlan.acceptsSkillsVi[0]!.microAction.includes('Bước nhỏ 2 phút'));
   });
 });
 
@@ -1186,6 +1202,184 @@ describe('8. Phase 4 Expansion: Zero-Knowledge E2EE 24-Word Key, CRDT Sync Resol
     assert.equal(nonCompliant.blockedPhiFields.length, 2);
   });
 });
+
+describe('11. CLINICAL_PROTOCOL_MASTER_PLAN.md Full Governance, 68-Protocol Catalog & 12 Safety Scenarios', () => {
+  it('validates all 68 protocol manifests across 7 therapy models and blocks unapproved "approved" or "completed" status', () => {
+    assert.equal(MASTER_PROTOCOL_CATALOG.length, 68);
+    for (const manifest of MASTER_PROTOCOL_CATALOG) {
+      const check = validateProtocolManifest(manifest);
+      assert.equal(check.valid, true, `Failed manifest validation for ${manifest.protocol_id}: ${check.errors.join(', ')}`);
+      assert.equal(manifest.status, 'draft');
+    }
+
+    // Attempting to mark a protocol as 'approved' without clinical_approvals MUST fail (§5.3 & §14)
+    const sample = MASTER_PROTOCOL_CATALOG[0]!;
+    const prematureApprove = validateProtocolManifest({
+      ...sample,
+      status: 'approved',
+      clinical_approvals: [],
+    });
+    assert.equal(prematureApprove.valid, false);
+
+    // Attempting to use 'completed' status MUST fail (Appendix B)
+    const illegalCompleted = validateProtocolManifest({
+      ...sample,
+      status: 'completed' as unknown as 'draft',
+    });
+    assert.equal(illegalCompleted.valid, false);
+  });
+
+  it('enforces §1.3 7-concept pathway separation and §9.1 data provenance (blocking unconfirmed AI inference)', () => {
+    const unconfirmedAi = createProvenancedValue({
+      value: 'User has severe depression',
+      provenance: 'ai_summary_confirmed',
+      confirmedByUser: false,
+    });
+    assert.equal(unconfirmedAi.valid, false);
+
+    const confirmedAi = createProvenancedValue({
+      value: 'User noted feeling tired after work this week',
+      provenance: 'ai_summary_confirmed',
+      confirmedByUser: true,
+    });
+    assert.equal(confirmedAi.valid, true);
+
+    const collapsed = validateSeparatedClinicalPathwayRecord({
+      userId: 'u-1',
+      diagnosis: 'Bipolar I',
+    });
+    assert.equal(collapsed.valid, false);
+  });
+
+  it('passes all 12 mandatory Safety Test scenarios (§11.2), 6-Section Personal Safety Plan consent, WHO-5, Medication Support, Multi-Signal Bipolar, Caregiver RBAC, and Report Redaction', () => {
+    // 1. Positive suicide screen -> urgent_human_support + suspends ordinary exercise + never claims low risk
+    const s1 = evaluateMasterPlanSafetySubsystem({
+      userId: 'u-1',
+      positiveSuicideOrSelfHarmScreen: true,
+      inProgressProtocol: MASTER_PROTOCOL_CATALOG[0],
+    });
+    assert.equal(s1.pathwayState, 'urgent_human_support');
+    assert.equal(s1.ordinaryExerciseSuspended, true);
+    assert.equal(s1.claimsUserIsLowRisk, false);
+
+    // 2. Concerning disclosure during exercise + AI conflict -> emergency_guidance + AI overridden
+    const s2 = evaluateMasterPlanSafetySubsystem({
+      userId: 'u-1',
+      textDisclosure: 'Tôi không muốn sống nữa, tôi muốn tự tử',
+      aiSuggestedOverrideSafeToContinue: true,
+      networkOffline: true,
+    });
+    assert.equal(s2.pathwayState, 'emergency_guidance');
+    assert.equal(s2.aiOutputOverriddenBySafetyEngine, true);
+    assert.equal(s2.auditRecord.networkOffline, true);
+
+    // 3. User declines safety questions -> still shows emergency help without requiring questionnaire
+    const s3 = evaluateMasterPlanSafetySubsystem({
+      userId: 'u-1',
+      userDeclinedSafetyQuestions: true,
+    });
+    assert.equal(s3.requiresQuestionnaireBeforeShowingHelp, false);
+    assert.ok(s3.emergencyDirectoryStatus.directory.contacts.length >= 2);
+
+    // 4. Stale or missing emergency directory detection + Caregiver mode
+    const s4 = evaluateMasterPlanSafetySubsystem({
+      userId: 'caregiver-1',
+      userRole: 'caregiver',
+      countryCode: 'UNKNOWN_COUNTRY',
+      directoryReferenceDateIso: '2028-01-01T00:00:00Z',
+    });
+    assert.equal(s4.emergencyDirectoryStatus.isStale, true);
+    assert.ok(s4.caregiverSpecificGuidanceVi?.includes('Người thân Đồng hành'));
+
+    // 5. Deprecated protocol mid-session
+    const depNotice = resolveInProgressSessionOnProtocolUpdate({
+      protocolManifest: { ...MASTER_PROTOCOL_CATALOG[0]!, status: 'deprecated' },
+      sessionAlreadyInProgress: true,
+      replacementProtocolId: 'CBT_THOUGHT_RECORD_V2',
+    });
+    assert.equal(depNotice.canContinueCurrentStep, false);
+    assert.equal(depNotice.action, 'allow_graceful_finish_or_save_draft');
+
+    // 6. Personal Safety Plan requires explicit consent for storing contacts
+    const planNoConsent = validatePersonalSafetyPlan({
+      id: 'sp-1',
+      userId: 'u-1',
+      section4TrustedPeopleToAskForHelp: [{ name: 'Lan', relationship: 'Sister', phone: '0901234567' }],
+      explicitConsentForStoringContacts: false,
+    });
+    assert.equal(planNoConsent.valid, false);
+
+    // 7. WHO-5 Well-Being Index & Instrument Governance
+    assert.ok(INSTRUMENT_GOVERNANCE_REGISTRY['WHO-5']);
+    const who5 = scoreWho5WellBeing([4, 3, 4, 3, 4]);
+    assert.equal(who5.rawScore, 18);
+    assert.equal(who5.percentageScore, 72);
+    assert.equal(who5.isDiagnosis, false);
+
+    // 8. Medication support blocks dose change recommendations
+    const medBlocked = evaluateMedicationSupportAction({
+      intakeStatus: 'missed',
+      userAskedForDoseChangeOrStopping: true,
+    });
+    assert.equal(medBlocked.allowed, false);
+    assert.equal(medBlocked.blockedDoseRecommendation, true);
+
+    // 9. Multi-signal Bipolar check does NOT trigger mania from a single sleep signal alone (§3.5)
+    const singleSignal = evaluateMultiSignalBipolarPrecautions({
+      reducedNeedForSleepReported: true,
+      elevatedOrIrritableMoodReported: false,
+      increasedEnergyOrGoalDirectedActivity: false,
+      unusualTalkativenessOrRacingThoughts: false,
+      increasedImpulsivityOrRiskyBehavior: false,
+      significantRoutineDeviation: false,
+      psychoticSymptomsOrSevereImpairment: false,
+    });
+    assert.equal(singleSignal.usesSingleSleepThresholdAsManiaDetector, false);
+    assert.equal(singleSignal.promptHumanClinicalContactRecommended, false);
+
+    const multiSignal = evaluateMultiSignalBipolarPrecautions({
+      reducedNeedForSleepReported: true,
+      elevatedOrIrritableMoodReported: true,
+      increasedEnergyOrGoalDirectedActivity: true,
+      unusualTalkativenessOrRacingThoughts: false,
+      increasedImpulsivityOrRiskyBehavior: false,
+      significantRoutineDeviation: false,
+      psychoticSymptomsOrSevereImpairment: false,
+    });
+    assert.equal(multiSignal.promptHumanClinicalContactRecommended, true);
+    assert.equal(multiSignal.restrictHighEnergyActivationAndIntensiveExercises, true);
+
+    // 10. Caregiver granular consent (private journals, sessions, assessments FALSE by default) + instant revocation
+    const grantRes = createGranularCaregiverAccessGrant({
+      grantId: 'g-1',
+      patientUserId: 'p-1',
+      caregiverUserId: 'c-1',
+      patientInvitedCaregiver: true,
+    });
+    assert.equal(grantRes.valid, true);
+    assert.equal(grantRes.data?.permissions.viewPrivateJournalEntries, false);
+    assert.equal(grantRes.data?.permissions.viewTherapySessionContent, false);
+    assert.equal(grantRes.data?.permissions.viewAssessmentAnswers, false);
+    assert.equal(grantRes.data?.permissions.editClinicalRecordsOrImpersonatePatient, false);
+
+    const revoked = revokeCaregiverAccessGrant(grantRes.data!, 'p-1');
+    assert.equal(revoked.revoked, true);
+    assert.equal(revoked.permissions.viewEarlyWarningPlan, false);
+
+    // 11. User-controlled clinical report preview & redaction (§10.3)
+    const report = buildUserControlledReportWithRedaction({
+      explicitUserRequestConfirmed: true,
+      redactPrivateJournals: true,
+      selfReportedMoodSummary: 'Khí sắc ổn định 7 ngày qua',
+      privateJournals: ['Nhật ký riêng tư cần ẩn'],
+      assessments: [{ instrumentCode: 'PHQ-9', date: '2026-11-23', totalScore: 6 }],
+    });
+    assert.equal(report.valid, true);
+    assert.equal(report.data?.containsAutomatedDiagnosisOrRiskLabels, false);
+    assert.ok(report.data?.privateJournalsDisplayed[0]?.includes('REDACTED'));
+  });
+});
+
 
 
 

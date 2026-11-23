@@ -1146,6 +1146,47 @@ test('12. Sleep Support — Thiền Buông Thư Bên Dòng Suối Mát & 3 Studi
   assert.equal(engine.isPlaying(), false);
 });
 
+import {
+  MASTER_PROTOCOL_CATALOG,
+  validateProtocolManifest,
+  evaluateMasterPlanSafetySubsystem,
+  scoreWho5WellBeing,
+  createGranularCaregiverAccessGrant,
+  buildUserControlledReportWithRedaction,
+} from '../src/clinical/index.ts';
+
+test('13. CLINICAL_PROTOCOL_MASTER_PLAN.md Governance, 68-Protocol Catalog & Deterministic Safety Subsystem', () => {
+  assert.equal(MASTER_PROTOCOL_CATALOG.length, 68);
+  assert.equal(validateProtocolManifest(MASTER_PROTOCOL_CATALOG[0]!).valid, true);
+  assert.equal(
+    validateProtocolManifest({ ...MASTER_PROTOCOL_CATALOG[0]!, status: 'approved', clinical_approvals: [] }).valid,
+    false,
+  );
+  const safety = evaluateMasterPlanSafetySubsystem({
+    userId: 'web-user-1',
+    userRequestedEmergencyHelpDirectly: true,
+    networkOffline: true,
+  });
+  assert.equal(safety.pathwayState, 'emergency_guidance');
+  assert.equal(safety.claimsUserIsLowRisk, false);
+  assert.equal(safety.requiresQuestionnaireBeforeShowingHelp, false);
+  assert.equal(scoreWho5WellBeing([5, 4, 4, 4, 3]).percentageScore, 80);
+  const grant = createGranularCaregiverAccessGrant({
+    grantId: 'cg-1',
+    patientUserId: 'p-1',
+    caregiverUserId: 'c-1',
+    patientInvitedCaregiver: true,
+  });
+  assert.equal(grant.data?.permissions.viewPrivateJournalEntries, false);
+  const redacted = buildUserControlledReportWithRedaction({
+    explicitUserRequestConfirmed: true,
+    selfReportedMoodSummary: 'Ổn định',
+    privateJournals: ['Bí mật'],
+    assessments: [{ instrumentCode: 'GAD-7', date: '2026-11-23', totalScore: 4 }],
+  });
+  assert.equal(redacted.data?.containsAutomatedDiagnosisOrRiskLabels, false);
+});
+
 
 
 

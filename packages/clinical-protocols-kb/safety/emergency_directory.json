@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "status": "draft",
+  "disclaimer_vi": "Ứng dụng không được giám sát liên tục 24/7 và không thể tự động điều phối xe cấp cứu. Nếu bạn hoặc người thân đang gặp nguy hiểm tức thì, hãy gọi ngay số cấp cứu địa phương hoặc đến cơ sở y tế gần nhất.",
+  "disclaimer_en": "This application is not continuously monitored 24/7 and cannot dispatch emergency services. If you or someone else is in immediate danger, call your local emergency number or go to the nearest emergency department immediately.",
+  "max_verification_age_days": 90,
+  "regions": [
+    {
+      "country_code": "VN",
+      "region_name_vi": "Việt Nam (Toàn quốc & Tuyến Trung ương)",
+      "region_name_en": "Vietnam (National & Major Psychiatric Centers)",
+      "last_verified_date": "2026-11-23",
+      "verified_by": "Clinical Safety Review Pending (v0.1.0-draft)",
+      "verification_status": "in_safety_review",
+      "contacts": [
+        {
+          "id": "vn-115",
+          "name_vi": "Cấp cứu Y tế Khẩn cấp Toàn quốc",
+          "name_en": "National Emergency Medical Services",
+          "phone": "115",
+          "hours": "24/7",
+          "is_emergency_dispatch": true,
+          "notes_vi": "Gọi ngay khi có nguy cơ đe dọa tính mạng hoặc tự hại cấp tính."
+        },
+        {
+          "id": "vn-111",
+          "name_vi": "Tổng đài Quốc gia Bảo vệ Trẻ em & Phòng chống Bạo lực",
+          "name_en": "National Helpline for Child Protection & Domestic Abuse Prevention",
+          "phone": "111",
+          "hours": "24/7 (Miễn phí)",
+          "is_emergency_dispatch": false,
+          "notes_vi": "Hỗ trợ khẩn cấp khi bị bạo hành, xâm hại hoặc không an toàn trong gia đình."
+        },
+        {
+          "id": "vn-bach-mai",
+          "name_vi": "Viện Sức khỏe Tâm thần — Bệnh viện Bạch Mai (Hà Nội)",
+          "name_en": "National Institute of Mental Health — Bach Mai Hospital (Hanoi)",
+          "phone": "1900 1267",
+          "hours": "Giờ hành chính & Trực cấp cứu nội viện",
+          "is_emergency_dispatch": false,
+          "notes_vi": "Tư vấn và tiếp nhận thăm khám chuyên khoa tâm thần."
+        },
+        {
+          "id": "vn-hcmc-psych",
+          "name_vi": "Bệnh viện Tâm thần TP. Hồ Chí Minh",
+          "name_en": "Ho Chi Minh City Psychiatric Hospital",
+          "phone": "028 3923 4675",
+          "hours": "Trực chuyên môn 24/7",
+          "is_emergency_dispatch": false,
+          "notes_vi": "Liên hệ cấp cứu và thăm khám chuyên khoa tâm thần khu vực phía Nam."
+        }
+      ]
+    },
+    {
+      "country_code": "US",
+      "region_name_vi": "Hoa Kỳ & Canada",
+      "region_name_en": "United States & Canada",
+      "last_verified_date": "2026-11-23",
+      "verified_by": "Clinical Safety Review Pending (v0.1.0-draft)",
+      "verification_status": "in_safety_review",
+      "contacts": [
+        {
+          "id": "us-911",
+          "name_vi": "Dịch vụ Cấp cứu Khẩn cấp (911)",
+          "name_en": "Emergency Medical & Safety Dispatch (911)",
+          "phone": "911",
+          "hours": "24/7",
+          "is_emergency_dispatch": true,
+          "notes_vi": "Gọi khi cần can thiệp cấp cứu y tế tại chỗ."
+        },
+        {
+          "id": "us-988",
+          "name_vi": "Đường dây Hỗ trợ Khủng hoảng & Phòng ngừa Tự sát (988)",
+          "name_en": "988 Suicide & Crisis Lifeline",
+          "phone": "988",
+          "hours": "24/7 (Call or Text)",
+          "is_emergency_dispatch": false,
+          "notes_vi": "Hỗ trợ tâm lý khẩn cấp miễn phí 24/7."
+        }
+      ]
+    },
+    {
+      "country_code": "EU_UK",
+      "region_name_vi": "Châu Âu & Vương quốc Anh",
+      "region_name_en": "European Union & United Kingdom",
+      "last_verified_date": "2026-11-23",
+      "verified_by": "Clinical Safety Review Pending (v0.1.0-draft)",
+      "verification_status": "in_safety_review",
+      "contacts": [
+        {
+          "id": "eu-112",
+          "name_vi": "Số Cấp cứu Chung Châu Âu (112) / Anh (999)",
+          "name_en": "European Emergency Number (112) / UK Emergency (999)",
+          "phone": "112",
+          "hours": "24/7",
+          "is_emergency_dispatch": true,
+          "notes_vi": "Số cấp cứu y tế khẩn cấp toàn châu Âu."
+        }
+      ]
+    }
+  ]
+}

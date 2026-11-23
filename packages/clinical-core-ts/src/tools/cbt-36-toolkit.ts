@@ -916,7 +916,7 @@ export function getCbt36ToolBySlugOrId(toolSlugOrId: string): Cbt36ToolDefinitio
       t.titleEn.toLowerCase().includes(normalized) ||
       t.titleVi.toLowerCase().includes(normalized),
   );
-  return partial ?? CBT_36_TOOLS_CATALOG[0];
+  return partial ?? CBT_36_TOOLS_CATALOG[0]!;
 }
 
 /**
@@ -1156,8 +1156,8 @@ export function runInteractiveToolkitExercise(
     instantAnalysisEn,
     guidedReframeVi,
     guidedReframeEn,
-    nextActionStepVi,
-    nextActionStepEn,
+    nextActionStepVi: nextActionStepVi ?? '',
+    nextActionStepEn: nextActionStepEn ?? '',
     clinicalGuardrailNoteVi,
     clinicalGuardrailNoteEn,
   };
