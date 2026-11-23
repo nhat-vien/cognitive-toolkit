@@ -4199,26 +4199,50 @@ export function EquilibriaClinicalApp() {
                       color: theme.palette.textSecondary,
                     }}
                   >
-                    <strong style={{ color: theme.palette.textPrimary, display: 'block', marginBottom: '6px' }}>
+                    <strong style={{ color: theme.palette.textPrimary, display: 'block', marginBottom: '8px' }}>
                       {lang === 'vi'
-                        ? '📖 Giới thiệu nhanh các phương pháp thực hành (giúp bạn chọn đúng bài):'
-                        : '📖 Quick Guide to the Therapy Methods:'}
+                        ? '📖 Giới thiệu nhanh & Tác dụng của từng phương pháp (giúp bạn chọn đúng bài):'
+                        : '📖 Quick Guide & Benefits of Each Method:'}
                     </strong>
                     {lang === 'vi' ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
-                        <div>• <strong>CBT (Nhận thức – Hành vi):</strong> Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan, nhẹ nhàng hơn (Bài 1, 2).</div>
-                        <div>• <strong>TEAM-CBT (Gỡ rào cản dịu dàng):</strong> Thấu cảm trước khi thay đổi, giảm áp lực phải hoàn hảo (Bài 3).</div>
-                        <div>• <strong>DBT (Điều hòa Cảm xúc):</strong> Làm dịu cơn sóng cảm xúc mạnh, kết nối trí tuệ bình an & giao tiếp rõ ràng (Bài 4, 5, 6, 7).</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '10px' }}>
+                        <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: theme.palette.background, border: `1px solid ${theme.palette.border}` }}>
+                          <div style={{ fontWeight: 700, color: theme.palette.textPrimary, marginBottom: '4px' }}>
+                            📝 CBT (Nhận thức – Hành vi • Bài 1, 2)
+                          </div>
+                          <div>Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan hơn.</div>
+                          <div style={{ marginTop: '4px', color: theme.palette.primary, fontWeight: 600 }}>
+                            ✓ Tác dụng: Giảm lo âu kéo dài, bớt trầm buồn & kiệt sức, cắt vòng lặp suy nghĩ tiêu cực và lấy lại động lực sống.
+                          </div>
+                        </div>
+                        <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: theme.palette.background, border: `1px solid ${theme.palette.border}` }}>
+                          <div style={{ fontWeight: 700, color: theme.palette.textPrimary, marginBottom: '4px' }}>
+                            🎯 TEAM-CBT (Gỡ rào cản dịu dàng • Bài 3)
+                          </div>
+                          <div>Thấu cảm trước khi thay đổi, gỡ bỏ tâm lý ngại bắt đầu hoặc sợ thất bại.</div>
+                          <div style={{ marginTop: '4px', color: theme.palette.primary, fontWeight: 600 }}>
+                            ✓ Tác dụng: Giảm áp lực phải hoàn hảo, vượt qua trì hoãn, bớt tự phán xét và thấy nhẹ nhàng hơn khi bắt đầu thay đổi.
+                          </div>
+                        </div>
+                        <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: theme.palette.background, border: `1px solid ${theme.palette.border}` }}>
+                          <div style={{ fontWeight: 700, color: theme.palette.textPrimary, marginBottom: '4px' }}>
+                            🧘 DBT (Điều hòa Cảm xúc • Bài 4, 5, 6, 7)
+                          </div>
+                          <div>Làm dịu cơn sóng cảm xúc mạnh, kết nối trí tuệ bình an & giao tiếp rõ ràng.</div>
+                          <div style={{ marginTop: '4px', color: theme.palette.primary, fontWeight: 600 }}>
+                            ✓ Tác dụng: Hạ nhiệt nhanh cơn hoảng loạn hoặc nóng giận, tránh hành động bốc đồng và giữ mối quan hệ lành mạnh hơn.
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div>
-                        • <strong>CBT:</strong> Spot unhelpful automatic thoughts and build balanced perspectives. • <strong>TEAM-CBT:</strong> Empathy before change. • <strong>DBT:</strong> Regulate intense emotions and communicate clearly.
+                        • <strong>CBT:</strong> Spot unhelpful thoughts — <em>reduces persistent anxiety, low mood, and rumination</em>. • <strong>TEAM-CBT:</strong> Empathy before change — <em>eases perfectionism and procrastination</em>. • <strong>DBT:</strong> Regulate intense emotions — <em>calms acute distress quickly and strengthens communication</em>.
                       </div>
                     )}
-                    <div style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.9 }}>
+                    <div style={{ marginTop: '8px', fontSize: '0.8rem', opacity: 0.9 }}>
                       {lang === 'vi'
-                        ? '💡 Mục này gồm 7 lộ trình đi sâu từng bước. Nếu bạn chỉ cần tra cứu nhanh mẹo 3–5 phút (trì hoãn, mất ngủ...), hãy mở tab "🧰 Thư viện 36 Công cụ" trên thanh menu.'
-                        : '💡 This view offers 7 step-by-step guided protocols. For quick 3–5 minute tools, open "36 Quick Tools Library".'}
+                        ? '💡 Mục này gồm 7 lộ trình đi sâu từng bước. Nếu bạn chỉ cần mẹo thực hành nhanh 3–5 phút (trì hoãn, mất ngủ...), hãy chọn mục "🧰 36 Kỹ thuật Nhanh" ngay phía trên.'
+                        : '💡 This view offers 7 step-by-step guided protocols. For quick 3–5 minute tools, select "36 Quick Tools" above.'}
                     </div>
                   </div>
 

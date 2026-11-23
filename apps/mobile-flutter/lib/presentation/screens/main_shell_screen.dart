@@ -813,20 +813,24 @@ class _MainShellScreenState extends State<MainShellScreen> {
           child: const ExpansionTile(
             leading: Icon(Icons.menu_book_outlined, color: Color(0xFF4F7A65)),
             title: Text(
-              'Tìm hiểu nhanh: CBT, DBT, IPSRT là gì?',
+              'Tìm hiểu nhanh: CBT, TEAM-CBT, DBT & tác dụng',
               style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
             ),
             subtitle: Text(
-              'Chạm để xem giải thích ngắn gọn bằng tiếng Việt dễ hiểu',
+              'Chạm để xem giới thiệu ngắn gọn và lợi ích của từng phương pháp',
               style: TextStyle(fontSize: 12, color: Color(0xFF6B7982)),
             ),
             childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 14),
             children: [
               Text(
-                '• CBT (Nhận thức – Hành vi): Giúp bạn nhận ra những suy nghĩ tiêu cực hay tự trách đang làm mình mệt mỏi, từ đó nhìn sự việc khách quan và nhẹ lòng hơn.\n\n'
-                '• DBT (Điều hòa Cảm xúc): Giúp giữ bình tĩnh nhanh khi cảm xúc dâng trào mạnh, chấp nhận thực tại và giao tiếp rõ ràng hơn.\n\n'
-                '• TEAM-CBT (Gỡ rào cản nhẹ nhàng): Lắng nghe thấu cảm trước khi thay đổi, giúp vượt qua trì hoãn mà không tự gây áp lực.\n\n'
-                '• IPSRT (Nhịp sinh học): Giữ đều giờ thức – ngủ và sinh hoạt hằng ngày để bảo vệ khí sắc ổn định.',
+                '• CBT (Nhận thức – Hành vi): Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan hơn.\n'
+                '  → Tác dụng: Giảm lo âu kéo dài, bớt trầm buồn & kiệt sức, cắt vòng lặp suy nghĩ tiêu cực và lấy lại động lực sống.\n\n'
+                '• TEAM-CBT (Gỡ rào cản dịu dàng): Lắng nghe thấu cảm trước khi thay đổi, tháo gỡ tâm lý ngại bắt đầu.\n'
+                '  → Tác dụng: Giảm áp lực phải hoàn hảo, vượt qua trì hoãn, bớt tự phán xét và thấy nhẹ nhàng hơn khi bắt đầu.\n\n'
+                '• DBT (Điều hòa Cảm xúc): Làm dịu cơn sóng cảm xúc mạnh, chấp nhận thực tại và giao tiếp rõ ràng hơn.\n'
+                '  → Tác dụng: Hạ nhiệt nhanh cơn hoảng loạn hoặc nóng giận, tránh hành động bốc đồng và giữ mối quan hệ lành mạnh.\n\n'
+                '• IPSRT (Nhịp sinh học): Giữ đều giờ thức – ngủ và sinh hoạt hằng ngày.\n'
+                '  → Tác dụng: Ổn định khí sắc, cải thiện chất lượng giấc ngủ và phòng ngừa dao động cảm xúc quá mức.',
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
