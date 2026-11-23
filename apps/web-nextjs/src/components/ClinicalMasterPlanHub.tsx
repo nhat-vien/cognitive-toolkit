@@ -1614,7 +1614,7 @@ export function ClinicalMasterPlanHub({
           SUB-TAB 2: 6-SECTION PERSONAL SAFETY PLAN & OFFLINE EMERGENCY DIRECTORY (§3.3-3.4)
          ===================================================================== */}
       {subTab === 'safety-plan-directory' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
           {/* 6-Section Personal Safety Plan (§3.4) */}
           <div style={{ padding: '20px', borderRadius: '18px', backgroundColor: '#FFFFFF', border: '1px solid #D8E3DF' }}>
             <h3 style={{ marginTop: 0, marginBottom: '6px', color: '#1A272D' }}>
@@ -1653,7 +1653,7 @@ export function ClinicalMasterPlanHub({
               </div>
             ))}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '8px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#26353D', marginBottom: '4px' }}>
                   4. Người tin cậy để nhờ giúp (Tên):
@@ -1822,7 +1822,7 @@ export function ClinicalMasterPlanHub({
           SUB-TAB 3: MEDICATION SUPPORT (§7) & MULTI-SIGNAL BIPOLAR (§3.5)
          ===================================================================== */}
       {subTab === 'meds-and-bipolar' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
           {/* Medication Support (§7) */}
           <div style={{ padding: '20px', borderRadius: '18px', backgroundColor: '#FFFFFF', border: '1px solid #D8E3DF' }}>
             <h3 style={{ marginTop: 0, marginBottom: '6px', color: '#1A272D' }}>
@@ -2133,7 +2133,7 @@ export function ClinicalMasterPlanHub({
           SUB-TAB 5: WHO-5 WELL-BEING (§6.2) & REPORT PREVIEW/REDACTION (§10.3)
          ===================================================================== */}
       {subTab === 'who5-and-redaction' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
           {/* WHO-5 Well-Being Index (§6.2) */}
           <div style={{ padding: '20px', borderRadius: '18px', backgroundColor: '#FFFFFF', border: '1px solid #D8E3DF' }}>
             <h3 style={{ marginTop: 0, marginBottom: '6px', color: '#1A272D' }}>

@@ -16,14 +16,36 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.65;
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+svg,
+img,
+canvas,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+pre,
+code {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Serene Sanctuary Layout (KazKozDev/cbt-assistant + irolinski/Well_CBT inspired) */
@@ -89,6 +111,7 @@ main section,
 main article {
   position: relative;
   z-index: 1;
+  max-width: 100%;
   border-radius: 20px !important;
   padding: 22px 24px !important;
   box-shadow: 0 10px 30px rgba(47, 47, 43, 0.045), 0 2px 8px rgba(121, 114, 152, 0.04);
@@ -98,6 +121,11 @@ main article {
 h1, h2, h3, h4 {
   letter-spacing: -0.015em;
   line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+
+button {
+  max-width: 100%;
 }
 
 input[type="text"],
@@ -107,6 +135,7 @@ input[type="number"],
 textarea,
 select,
 .sanctuary-input {
+  max-width: 100%;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   padding: 9px 13px;
@@ -147,6 +176,7 @@ input[type="range"] {
   height: 6px;
   border-radius: 6px;
   cursor: pointer;
+  max-width: 100%;
 }
 
 input[type="checkbox"] {
@@ -155,8 +185,10 @@ input[type="checkbox"] {
   height: 16px;
   vertical-align: middle;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
+/* Tablet & Mobile Responsive Adaptations */
 @media (max-width: 960px) {
   .sanctuary-shell {
     flex-direction: column;
@@ -165,6 +197,48 @@ input[type="checkbox"] {
 
   .sanctuary-sidebar {
     width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  header {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+
+  main {
+    margin: 12px auto !important;
+    padding: 0 10px !important;
+  }
+
+  main section,
+  main article {
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  h1 {
+    font-size: 1.32rem !important;
+  }
+
+  h2 {
+    font-size: 1.15rem !important;
+  }
+
+  h3 {
+    font-size: 1.02rem !important;
+  }
+
+  nav button {
+    white-space: normal !important;
+    text-align: center;
+    padding: 7px 10px !important;
+    font-size: 0.82rem !important;
+  }
+
+  [role="dialog"] > div {
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
   }
 }
 

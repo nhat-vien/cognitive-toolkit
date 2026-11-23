@@ -1597,10 +1597,10 @@ export function EquilibriaClinicalApp() {
           gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', minWidth: 0 }}>
           <span style={{ fontSize: '1.7rem' }}>🌿</span>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <strong style={{ fontSize: '1.25rem', color: theme.palette.textPrimary, letterSpacing: '-0.01em' }}>
                 Haven
               </strong>
@@ -1796,7 +1796,7 @@ export function EquilibriaClinicalApp() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
               gap: '20px',
             }}
           >
@@ -2100,14 +2100,15 @@ export function EquilibriaClinicalApp() {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '20px' }}>
               {/* Left Column: Email & Password Sign In / Sign Up */}
               <div
                 style={{
-                  padding: '24px',
+                  padding: 'clamp(14px, 3vw, 24px)',
                   borderRadius: '18px',
                   backgroundColor: theme.palette.background,
                   border: `1px solid ${theme.palette.border}`,
+                  minWidth: 0,
                 }}
               >
                 {/* 1-Tap Google Sign-In Button */}
@@ -2300,13 +2301,14 @@ export function EquilibriaClinicalApp() {
               {/* Right Column: Instant Entry by Emotional Needs & Anonymous Mode */}
               <div
                 style={{
-                  padding: '24px',
+                  padding: 'clamp(14px, 3vw, 24px)',
                   borderRadius: '18px',
                   backgroundColor: theme.palette.background,
                   border: `1px solid ${theme.palette.border}`,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
+                  minWidth: 0,
                 }}
               >
                 <div>
@@ -3843,7 +3845,7 @@ export function EquilibriaClinicalApp() {
                                 </div>
 
                                 {/* Options */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginLeft: '36px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: '8px', marginLeft: '0' }}>
                                   {(lang === 'vi' ? scaleDef.optionsVi : scaleDef.optionsEn).map((optText, optIdx) => {
                                     const isSelected = selectedOpt === optIdx;
                                     return (
@@ -4480,7 +4482,7 @@ export function EquilibriaClinicalApp() {
                   </div>
 
                   {/* 7 Interactive Guided Protocols Grid (Filtered by activeProtocolStep for low cognitive load) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '16px' }}>
                     {/* 1. CBT 7-Step Thought Record with Accuracy Check */}
                     {(activeProtocolStep === 1 || activeProtocolStep === 'all') && (
                       <article
@@ -5194,7 +5196,7 @@ export function EquilibriaClinicalApp() {
                 </section>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 310px), 1fr))', gap: '16px' }}>
                 {/* 2. TEAM-CBT Pleasure-Predicting & Mastery/Pleasure (M/P) Sheet */}
                 {(activeToolkitSubTab === 'mp-sheet' || activeToolkitSubTab === 'all') && (
                   <section
@@ -6687,7 +6689,7 @@ export function EquilibriaClinicalApp() {
                       <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>
                         {lang === 'vi' ? 'Chuyển đổi nhanh ca bệnh mẫu (Dành cho Bác sĩ kiểm tra):' : 'Switch Demo Patient Cases (For Clinicians):'}
                       </strong>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: '8px' }}>
                         {QUICK_DEMO_PROFILES.map((p) => (
                           <button
                             key={p.id}
