@@ -275,9 +275,9 @@ export function EquilibriaClinicalApp() {
   const [sosOpen, setSosOpen] = useState<boolean>(false);
   const [activeProtocolStep, setActiveProtocolStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 'all'>(1);
   const [activeToolkitSubTab, setActiveToolkitSubTab] = useState<
-    'catalog-36' | 'mp-sheet' | 'anti-procrastination' | 'downward-arrow' | 'abc-please' | 'cbti-sleep' | 'all'
-  >('catalog-36');
-  const [tab1SubView, setTab1SubView] = useState<'companion' | 'practice-7' | 'emotions'>('companion');
+    'practice-7' | 'catalog-36' | 'mp-sheet' | 'anti-procrastination' | 'downward-arrow' | 'abc-please' | 'cbti-sleep' | 'all'
+  >('practice-7');
+  const [tab1SubView, setTab1SubView] = useState<'companion' | 'emotions'>('companion');
   const [tab2SubView, setTab2SubView] = useState<'worry-box' | 'wave-90s' | 'exposure' | 'prediction'>('worry-box');
   const [tab3SubView, setTab3SubView] = useState<'mood-chart' | 'ipsrt-rhythm' | 'safety-plan' | 'sleep-meditation'>('mood-chart');
   const [tab4SubView, setTab4SubView] = useState<'scales-6' | 'doctor-report'>('scales-6');
@@ -2408,11 +2408,11 @@ export function EquilibriaClinicalApp() {
           >
             {(
               [
-                ['session-player', '🌿', lang === 'vi' ? 'Tâm sự & Nhật ký' : 'Journal & Practice'],
+                ['session-player', '🌿', lang === 'vi' ? 'Tâm sự' : 'Journal'],
+                ['tools-36-team-cbt', '🌱', lang === 'vi' ? 'Thực hành' : 'Practice'],
                 ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
                 ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Tâm trạng & Giấc ngủ' : 'Mood & Sleep'],
-                ['tools-36-team-cbt', '🧰', lang === 'vi' ? 'Thư viện 36 Công cụ' : '36 Quick Tools Library'],
-                ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý Đồng hành' : 'AI Companion'],
+                ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý AI' : 'AI Companion'],
                 ['assessments-report', '📋', lang === 'vi' ? 'Tự đánh giá' : 'Self-Checks'],
                 ['account-privacy-vault', '👤', lang === 'vi' ? 'Hồ sơ' : 'Profile'],
               ] as const
@@ -2473,7 +2473,6 @@ export function EquilibriaClinicalApp() {
                 {(
                   [
                     ['companion', '💬', lang === 'vi' ? 'Tâm sự & Giải tỏa Cảm xúc' : 'Share & Emotional Relief'],
-                    ['practice-7', '🧭', lang === 'vi' ? '7 Lộ trình Gỡ rối Từng bước' : '7 Step-by-Step Protocols'],
                     ['emotions', '🎨', lang === 'vi' ? 'Gọi tên 5 Nhóm Cảm xúc' : '5-Family Emotion Cards'],
                   ] as const
                 ).map(([viewId, icon, label]) => (
@@ -2641,7 +2640,7 @@ export function EquilibriaClinicalApp() {
                           {lang === 'vi'
                             ? distressIntensity >= 7
                               ? 'Cảm xúc lúc này đang khá mạnh. Trước khi suy nghĩ tiếp, bạn hãy mở "Bình Tĩnh Ngay" ở góc trên hoặc tập thở chậm 1 phút để làm dịu cơ thể nhé.'
-                              : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang mục "7 Lộ trình Gỡ rối Từng bước" bên trên để viết lại suy nghĩ cân bằng hơn.'
+                              : 'Tâm trí bạn hiện đủ lắng để cùng gỡ rối nhẹ nhàng. Bạn có thể chuyển sang tab "🌱 Thực hành" trên thanh menu để bắt đầu bài tập phù hợp.'
                             : dbtFirstRouter.rationaleEn}
                         </p>
                       )}
@@ -2730,583 +2729,6 @@ export function EquilibriaClinicalApp() {
                 </section>
               )}
 
-              {/* VIEW 2: 7 Guided Protocols (Only visible when tab1SubView === 'practice-7') */}
-              {tab1SubView === 'practice-7' && (
-                <>
-                  {/* Short Friendly Introduction to CBT, DBT, TEAM-CBT */}
-                  <div
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: '14px',
-                      backgroundColor: theme.palette.surface,
-                      border: `1px solid ${theme.palette.border}`,
-                      marginBottom: '14px',
-                      fontSize: '0.86rem',
-                      lineHeight: 1.55,
-                      color: theme.palette.textSecondary,
-                    }}
-                  >
-                    <strong style={{ color: theme.palette.textPrimary, display: 'block', marginBottom: '6px' }}>
-                      {lang === 'vi'
-                        ? '📖 Giới thiệu nhanh các phương pháp thực hành (giúp bạn chọn đúng bài):'
-                        : '📖 Quick Guide to the Therapy Methods:'}
-                    </strong>
-                    {lang === 'vi' ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
-                        <div>• <strong>CBT (Nhận thức – Hành vi):</strong> Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan, nhẹ nhàng hơn (Bài 1, 2).</div>
-                        <div>• <strong>TEAM-CBT (Gỡ rào cản dịu dàng):</strong> Thấu cảm trước khi thay đổi, giảm áp lực phải hoàn hảo (Bài 3).</div>
-                        <div>• <strong>DBT (Điều hòa Cảm xúc):</strong> Làm dịu cơn sóng cảm xúc mạnh, kết nối trí tuệ bình an & giao tiếp rõ ràng (Bài 4, 5, 6, 7).</div>
-                      </div>
-                    ) : (
-                      <div>
-                        • <strong>CBT:</strong> Spot unhelpful automatic thoughts and build balanced perspectives. • <strong>TEAM-CBT:</strong> Empathy before change. • <strong>DBT:</strong> Regulate intense emotions and communicate clearly.
-                      </div>
-                    )}
-                    <div style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.9 }}>
-                      {lang === 'vi'
-                        ? '💡 Mục này gồm 7 lộ trình đi sâu từng bước. Nếu bạn chỉ cần tra cứu nhanh mẹo 3–5 phút (trì hoãn, mất ngủ...), hãy mở tab "🧰 Thư viện 36 Công cụ" trên thanh menu.'
-                        : '💡 This view offers 7 step-by-step guided protocols. For quick 3–5 minute tools, open "36 Quick Tools Library".'}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                    {(
-                      [
-                        [1, '📝', lang === 'vi' ? '1. Nhật ký Suy nghĩ' : '1. Thought Record'],
-                        [2, '🌱', lang === 'vi' ? '2. Kích hoạt Hành vi' : '2. Behavioral Activation'],
-                        [3, '🎯', lang === 'vi' ? '3. Mục tiêu Nghịch lý' : '3. Paradoxical Agenda'],
-                        [4, '🔄', lang === 'vi' ? '4. Hành động Đối lập' : '4. Opposite Action'],
-                        [5, '🧘', lang === 'vi' ? '5. Trí tuệ Wise Mind' : '5. Wise Mind'],
-                        [6, '🔗', lang === 'vi' ? '6. Chuỗi Hành vi' : '6. Chain Analysis'],
-                        [7, '💬', lang === 'vi' ? '7. Giao tiếp DEAR MAN' : '7. DEAR MAN Roleplay'],
-                      ] as const
-                    ).map(([num, icon, title]) => {
-                      const isSelected = activeProtocolStep === num;
-                      return (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => setActiveProtocolStep(num)}
-                          style={{
-                            padding: '7px 13px',
-                            borderRadius: '11px',
-                            border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                            backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
-                            color: isSelected ? '#ffffff' : theme.palette.textPrimary,
-                            fontWeight: 600,
-                            fontSize: '0.84rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {icon} {title}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* 7 Interactive Guided Protocols Grid (Filtered by activeProtocolStep for low cognitive load) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
-                    {/* 1. CBT 7-Step Thought Record with Accuracy Check */}
-                    {(activeProtocolStep === 1 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '1. Bảng 7 Bước Ghi Nhận Suy Nghĩ CBT (Kiểm Tra Tính Khách Quan)'
-                            : '1. CBT 7-Step Thought Record (with Objective Accuracy Check)'}
-                        </h3>
-
-                        <div style={{ marginBottom: '10px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
-                            {lang === 'vi' ? 'Bước 1 — Tình huống thực tế (Góc nhìn camera khách quan):' : 'Step 1 — Objective Situation:'}
-                          </label>
-                          <input
-                            type="text"
-                            value={trSituation}
-                            onChange={(e) => setTrSituation((e.target as HTMLInputElement).value)}
-                            className="sanctuary-input"
-                            placeholder={
-                              lang === 'vi'
-                                ? 'Ví dụ: Gửi tin nhắn cho quản lý lúc 14:00, đến 17:00 chưa thấy phản hồi...'
-                                : 'e.g., Sent message at 2pm, no reply by 5pm...'
-                            }
-                            style={{ width: '100%', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        <div style={{ marginBottom: '10px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
-                            {lang === 'vi' ? 'Bước 2 — Suy nghĩ tự động nảy sinh:' : 'Step 2 — Hot Automatic Thought:'}
-                          </label>
-                          <input
-                            type="text"
-                            value={trHotThought}
-                            onChange={(e) => setTrHotThought((e.target as HTMLInputElement).value)}
-                            className="sanctuary-input"
-                            placeholder={
-                              lang === 'vi'
-                                ? 'Ví dụ: Chắc chắn họ nghĩ tôi làm việc kém cỏi và sắp đuổi việc tôi...'
-                                : 'e.g., They definitely think I failed completely...'
-                            }
-                            style={{ width: '100%', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        {/* Starter Sample Chip when empty */}
-                        {!trSituation && !trHotThought && (
-                          <div style={{ marginBottom: '12px' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTrSituation('Gửi tin nhắn công việc lúc 14:00 nhưng đến 17:00 chưa thấy phản hồi.');
-                                setTrHotThought('Chắc chắn họ nghĩ tôi làm việc kém cỏi và đang khó chịu với tôi.');
-                              }}
-                              style={{
-                                padding: '5px 12px',
-                                borderRadius: '14px',
-                                border: `1px dashed ${theme.palette.border}`,
-                                backgroundColor: 'transparent',
-                                color: theme.palette.textSecondary,
-                                fontSize: '0.8rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {lang === 'vi' ? '💡 Thử điền tình huống mẫu' : '💡 Try sample scenario'}
-                            </button>
-                          </div>
-                        )}
-
-                        {thoughtRecordEval.distortions.negative.length > 0 && (
-                          <div style={{ fontSize: '0.82rem', marginBottom: '10px' }}>
-                            <strong style={{ display: 'block', marginBottom: '4px' }}>
-                              {lang === 'vi' ? 'Khuôn mẫu suy nghĩ nhận diện:' : 'Detected Distortions:'}
-                            </strong>
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                              {thoughtRecordEval.distortions.negative.map((d) => (
-                                <span
-                                  key={d.id}
-                                  style={{
-                                    padding: '3px 9px',
-                                    borderRadius: '10px',
-                                    backgroundColor: 'rgba(121, 114, 152, 0.12)',
-                                    color: theme.palette.primary,
-                                    fontWeight: 600,
-                                    fontSize: '0.78rem',
-                                  }}
-                                >
-                                  {lang === 'vi' ? d.nameVi : d.nameEn}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <label style={{ display: 'block', margin: '10px 0', fontSize: '0.88rem', fontWeight: 600 }}>
-                          <input
-                            type="checkbox"
-                            checked={trIsObjectivelyTrue}
-                            onChange={(e) => setTrIsObjectivelyTrue((e.target as HTMLInputElement).checked)}
-                          />{' '}
-                          {lang === 'vi'
-                            ? 'Kiểm tra tính khách quan: Suy nghĩ này là một sự thật khách quan (mất mát có thật, không thể chối cãi)?'
-                            : 'Accuracy Check: Is this thought an objectively true fact (real loss / unavoidable truth)?'}
-                        </label>
-
-                        <div
-                          style={{
-                            padding: '12px 14px',
-                            borderRadius: '12px',
-                            backgroundColor: trIsObjectivelyTrue ? warnAlertBg : calmAlertBg,
-                            color: trIsObjectivelyTrue ? warnAlertText : calmAlertText,
-                            fontSize: '0.86rem',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <strong>{lang === 'vi' ? 'Kết quả thẩm định: ' : 'Clinical Outcome: '}</strong>
-                            {renderClinicalBadge(thoughtRecordEval.outcome, lang)}
-                          </div>
-                          <p style={{ margin: 0, lineHeight: 1.5 }}>
-                            {lang === 'vi'
-                              ? thoughtRecordEval.accuracyCheck.coachingVi
-                              : thoughtRecordEval.accuracyCheck.coachingEn}
-                          </p>
-                        </div>
-                      </article>
-                    )}
-
-                    {/* 2. CBT Behavioral Activation 6-Step with Mandatory Rest Check & Confidence >= 7/10 */}
-                    {(activeProtocolStep === 2 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '2. Kế Hoạch Kích Hoạt Hành Vi CBT 6 Bước (Kiểm Tra Nghỉ Ngơi Sinh Học)'
-                            : '2. CBT 6-Step Behavioral Activation (with Rest Check & Confidence Gate)'}
-                        </h3>
-                        <p style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
-                          {lang === 'vi'
-                            ? behavioralActivationEval.predictionErrorInsightVi
-                            : behavioralActivationEval.predictionErrorInsightEn}
-                        </p>
-
-                        <div style={{ marginBottom: '10px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
-                            {lang === 'vi' ? 'Bước 1 — Hoạt động bạn muốn thực hiện:' : 'Step 1 — Chosen Activity:'}
-                          </label>
-                          <input
-                            type="text"
-                            value={baActivity}
-                            onChange={(e) => setBaActivity((e.target as HTMLInputElement).value)}
-                            className="sanctuary-input"
-                            placeholder={
-                              lang === 'vi'
-                                ? 'Ví dụ: Đi bộ nhẹ quanh sân đón nắng sáng 10 phút, tưới cây...'
-                                : 'e.g., Take a gentle 10-minute walk outside...'
-                            }
-                            style={{ width: '100%', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        {!baActivity && (
-                          <div style={{ marginBottom: '10px' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setBaActivity('Đi bộ nhẹ quanh sân đón nắng sáng 10 phút');
-                                setBaObstacle('Cảm thấy nặng nề không muốn bước ra khỏi giường');
-                                setBaTwoMinFallback('Mở rèm cửa sổ và đứng hít thở 2 phút');
-                              }}
-                              style={{
-                                padding: '5px 12px',
-                                borderRadius: '14px',
-                                border: `1px dashed ${theme.palette.border}`,
-                                backgroundColor: 'transparent',
-                                color: theme.palette.textSecondary,
-                                fontSize: '0.8rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {lang === 'vi' ? '💡 Thử gợi ý mẫu: Đi bộ nhẹ đón nắng' : '💡 Try sample activity'}
-                            </button>
-                          </div>
-                        )}
-
-                        <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem', fontWeight: 600 }}>
-                          <input
-                            type="checkbox"
-                            checked={baNeedsRest}
-                            onChange={(e) => setBaNeedsRest((e.target as HTMLInputElement).checked)}
-                          />{' '}
-                          {lang === 'vi'
-                            ? 'Bước 2 — KIỂM TRA NGHỈ NGƠI: Cơ thể đang kiệt sức sinh học / thiếu ngủ, cần Nghỉ Ngơi Không Áy Náy?'
-                            : 'Step 2 — REST CHECK: Are you biologically exhausted / ill / sleep-deprived and in need of Guilt-Free Rest?'}
-                        </label>
-
-                        <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem' }}>
-                          {lang === 'vi'
-                            ? 'Bước 4 — Mức độ tự tin thực hiện (Thang 0–10, tối thiểu cần 7/10): '
-                            : 'Step 4 — Confidence rating to complete (0-10, requires >= 7/10): '}
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={baConfidence}
-                            onChange={(e) => setBaConfidence(Number((e.target as HTMLInputElement).value))}
-                            style={{ width: '55px', marginLeft: '6px' }}
-                          />
-                        </label>
-
-                        <div
-                          style={{
-                            padding: '12px 14px',
-                            borderRadius: '12px',
-                            backgroundColor: resultSurfaceBg,
-                            color: resultSurfaceText,
-                            border: `1px solid ${resultSurfaceBorder}`,
-                            fontSize: '0.86rem',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
-                            {renderClinicalBadge(behavioralActivationEval.outcome, lang)}
-                          </div>
-                          <p style={{ margin: 0, lineHeight: 1.5 }}>
-                            {!behavioralActivationEval.confidencePassed
-                              ? behavioralActivationEval.requireMicroShrinkPromptVi
-                              : behavioralActivationEval.ifThenPlan}
-                          </p>
-                        </div>
-                      </article>
-                    )}
-
-                    {/* 3. TEAM-CBT Paradoxical Agenda Setting */}
-                    {(activeProtocolStep === 3 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '3. Khám Phá Mặt Tích Cực Của Cảm Xúc & Hạ Nhiệt Lo Âu'
-                            : '3. TEAM-CBT Paradoxical Agenda Setting (Magic Dial)'}
-                        </h3>
-                        <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
-                          {lang === 'vi' ? pasEval.summaryVi : pasEval.summaryEn}
-                        </p>
-                        <label style={{ fontSize: '0.88rem' }}>
-                          {lang === 'vi'
-                            ? 'Mức lo âu bạn mong muốn giữ lại để duy trì sự cẩn thận (%): '
-                            : 'Target anxiety level you wish to keep (%): '}
-                          <input
-                            type="number"
-                            min={10}
-                            max={80}
-                            value={pasMagicDialTarget}
-                            onChange={(e) => setPasMagicDialTarget(Number((e.target as HTMLInputElement).value))}
-                            style={{ width: '60px', marginLeft: '6px', marginRight: '4px' }}
-                          />
-                          %
-                        </label>
-                      </article>
-                    )}
-
-                    {/* 4. DBT Opposite Action (4 steps with Justified Check) */}
-                    {(activeProtocolStep === 4 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '4. Hành Động Đối Lập DBT (Kiểm Tra Mối Nguy Hiểm Thực Tế)'
-                            : '4. DBT Opposite Action (with Objective Danger Gate)'}
-                        </h3>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.88rem' }}>
-                          <input
-                            type="checkbox"
-                            checked={oaRealDanger}
-                            onChange={(e) => setOaRealDanger((e.target as HTMLInputElement).checked)}
-                          />{' '}
-                          {lang === 'vi'
-                            ? 'Bước 3 — KIỂM TRA MỐI NGUY: Tình huống có nguy cơ thực tế tới tính mạng, bạo lực hay sự an toàn của bạn không?'
-                            : 'Step 3 — DANGER CHECK: Is there real-world, objective danger or physical unsafety in this situation?'}
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
-                          {renderClinicalBadge(oppositeActionEval.outcome, lang)}
-                        </div>
-                        <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
-                          {lang === 'vi' ? oppositeActionEval.directiveVi : oppositeActionEval.directiveEn}
-                        </p>
-                      </article>
-                    )}
-
-                    {/* 5. DBT Wise Mind (6 steps with Harsh Self-Critic Guard & "Nothing yet") */}
-                    {(activeProtocolStep === 5 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '5. Trí Tuệ Sáng Suốt Wise Mind (Bảo Vệ Khỏi Phán Xét Tiêu Cực)'
-                            : '5. DBT Wise Mind (with Self-Critic Guard)'}
-                        </h3>
-                        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
-                          {lang === 'vi'
-                            ? 'Bước 3 — Tiếng nói lý trí (Góc nhìn thực tế, công bằng với bản thân):'
-                            : 'Step 3 (Reasonable Mind — Realistic, balanced perspective):'}
-                          <input
-                            type="text"
-                            value={wmReasonableText}
-                            onChange={(e) => setWmReasonableText((e.target as HTMLInputElement).value)}
-                            className="sanctuary-input"
-                            placeholder={
-                              lang === 'vi'
-                                ? 'Ví dụ: Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì sức khỏe ổn định hơn...'
-                                : 'e.g., Taking more work will reduce sleep; declining keeps routine stable...'
-                            }
-                            style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                          />
-                        </label>
-                        {!wmReasonableText && (
-                          <div style={{ marginBottom: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setWmReasonableText('Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.')
-                              }
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: '12px',
-                                border: `1px dashed ${theme.palette.border}`,
-                                backgroundColor: 'transparent',
-                                color: theme.palette.textSecondary,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {lang === 'vi' ? '💡 Thử tiếng nói lý trí mẫu' : '💡 Try sample reasonable thought'}
-                            </button>
-                          </div>
-                        )}
-                        <p style={{ fontSize: '0.82rem', color: wiseMindEval.criticGuard.isSelfCriticDisguised ? '#e11d48' : theme.palette.primary }}>
-                          {lang === 'vi'
-                            ? wiseMindEval.criticGuard.reframePromptVi
-                            : wiseMindEval.criticGuard.reframePromptEn}
-                        </p>
-                        <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
-                          {lang === 'vi' ? wiseMindEval.closingSummaryVi : wiseMindEval.closingSummaryEn}
-                        </p>
-                      </article>
-                    )}
-
-                    {/* 6. DBT Chain Analysis (6 steps + Hard Stops for self-harm/victimization + Shame Protocol) */}
-                    {(activeProtocolStep === 6 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '6. Phân Tích Chuỗi Hành Vi DBT (Nhận Diện Tác Nhân & Phục Hồi)'
-                            : '6. DBT Behavioral Chain Analysis (Vulnerabilities, Links & Repair)'}
-                        </h3>
-                        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
-                          {lang === 'vi'
-                            ? 'Bước 1 — Hành vi bạn muốn cùng Haven tìm hiểu và tháo gỡ:'
-                            : 'Step 1 — Target behavior to analyze with Haven:'}
-                          <input
-                            type="text"
-                            value={caTargetBehavior}
-                            onChange={(e) => setCaTargetBehavior((e.target as HTMLInputElement).value)}
-                            className="sanctuary-input"
-                            placeholder={
-                              lang === 'vi'
-                                ? 'Ví dụ: Thức khuya lướt điện thoại đến 2 giờ sáng, ăn đồ ngọt mất kiểm soát...'
-                                : 'e.g., Staying up late scrolling until 2am...'
-                            }
-                            style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                          />
-                        </label>
-                        {!caTargetBehavior && (
-                          <div style={{ marginBottom: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCaTargetBehavior('Thức đến 2 giờ sáng lướt mạng và đặt mua đồ công nghệ không cần thiết')
-                              }
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: '12px',
-                                border: `1px dashed ${theme.palette.border}`,
-                                backgroundColor: 'transparent',
-                                color: theme.palette.textSecondary,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {lang === 'vi' ? '💡 Thử hành vi mẫu: Thức khuya mua sắm' : '💡 Try sample behavior'}
-                            </button>
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <strong>{lang === 'vi' ? 'Kết quả phân tích: ' : 'Outcome: '}</strong>
-                          {renderClinicalBadge(chainAnalysisEval.outcome, lang)}
-                        </div>
-                        <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
-                          {lang === 'vi' ? chainAnalysisEval.summaryVi : chainAnalysisEval.summaryEn}
-                        </p>
-                      </article>
-                    )}
-
-                    {/* 7. DBT DEAR MAN + TEAM-CBT EAR with Interactive AI Roleplay Rehearsal */}
-                    {(activeProtocolStep === 7 || activeProtocolStep === 'all') && (
-                      <article
-                        style={{
-                          padding: '16px',
-                          borderRadius: '16px',
-                          backgroundColor: theme.palette.surface,
-                          border: `1px solid ${theme.palette.border}`,
-                          gridColumn: '1 / -1',
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>
-                          {lang === 'vi'
-                            ? '7. Giao Tiếp Quyết Đoán DEAR MAN + 5 Bí Quyết EAR & Tập Dượt Cùng AI'
-                            : '7. DBT DEAR MAN + 5 EAR Communication Secrets & AI Roleplay'}
-                        </h3>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '0.88rem' }}>
-                            {lang === 'vi' ? 'Mức độ thử thách của người đối thoại trong kịch bản:' : 'Partner resistance level in roleplay:'}
-                          </span>
-                          {(['softer', 'moderate', 'harder'] as const).map((resLvl) => (
-                            <button
-                              key={resLvl}
-                              type="button"
-                              onClick={() => setDmResistance(resLvl)}
-                              style={{
-                                padding: '5px 12px',
-                                backgroundColor: dmResistance === resLvl ? theme.palette.primary : 'transparent',
-                                color: dmResistance === resLvl ? '#fff' : theme.palette.textPrimary,
-                                border: `1px solid ${theme.palette.border}`,
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                fontSize: '0.82rem',
-                              }}
-                            >
-                              {resLvl === 'softer'
-                                ? (lang === 'vi' ? 'DỊU DÀNG' : 'SOFTER')
-                                : resLvl === 'moderate'
-                                  ? (lang === 'vi' ? 'TIÊU CHUẨN' : 'MODERATE')
-                                  : (lang === 'vi' ? 'THỬ THÁCH' : 'FIRMER')}
-                            </button>
-                          ))}
-                        </div>
-                        <p style={{ fontSize: '0.88rem' }}>
-                          <strong>{lang === 'vi' ? 'Kịch bản DEAR MAN hoàn chỉnh: ' : 'Assembled DEAR MAN Script: '}</strong> &ldquo;{dearManEval.assembledScript}&rdquo;
-                        </p>
-                        <p style={{ fontSize: '0.88rem', padding: '12px', backgroundColor: 'rgba(121, 114, 152, 0.08)', borderRadius: '8px', borderLeft: `3px solid ${theme.palette.primary}` }}>
-                          {lang === 'vi' ? dearManEval.roleplayPartnerReplyVi : dearManEval.roleplayPartnerReplyEn}
-                        </p>
-                        <p style={{ fontSize: '0.84rem' }}>
-                          <strong>{lang === 'vi' ? 'Góp ý sau phiên đóng vai: ' : 'Post-Roleplay Coaching: '}</strong>{' '}
-                          {lang === 'vi' ? `${dearManEval.coachingStrengthVi} | ${dearManEval.coachingTweakVi}` : `${dearManEval.coachingStrengthEn} | ${dearManEval.coachingTweakEn}`}
-                        </p>
-                      </article>
-                    )}
-                  </div>
-                </>
-              )}
             </main>
           )}
 
@@ -4482,21 +3904,22 @@ export function EquilibriaClinicalApp() {
               <SanctuaryHeroBanner
                 scene="botanical-garden"
                 isDark={theme.mode === 'low-stimulus-mania'}
-                title={lang === 'vi' ? 'Thư Viện 36 Công Cụ Tâm Lý Nhanh' : '36 Quick Psychological Tools Library'}
+                title={lang === 'vi' ? 'Không Gian Thực Hành Tâm Lý (CBT • DBT • TEAM-CBT)' : 'Guided Psychological Practice Hub'}
                 subtitle={
                   lang === 'vi'
-                    ? 'Tra cứu nhanh các kỹ thuật ngắn gọn (3–5 phút) theo từng tình huống cụ thể như trì hoãn, mất ngủ hay tự trách — khác với 7 Lộ trình gỡ rối chuyên sâu ở trang Tâm sự.'
-                    : 'Browse quick 3–5 minute exercises for procrastination, sleep, or self-criticism — distinct from the 7 deep step-by-step protocols.'
+                    ? 'Toàn bộ bài tập được gom về một nơi duy nhất: chọn 7 bài tập cốt lõi theo từng bước hoặc tra cứu nhanh 36 kỹ thuật ngắn gọn.'
+                    : 'All exercises unified in one clear space: follow the 7 core step-by-step protocols or browse 36 quick self-care tools.'
                 }
               />
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                 {(
                   [
-                    ['catalog-36', '🧰', lang === 'vi' ? 'Thư viện Bài tập Nhanh' : 'Quick Exercises'],
+                    ['practice-7', '🧭', lang === 'vi' ? '7 Bài tập Cốt lõi (CBT & DBT)' : '7 Core Protocols'],
+                    ['catalog-36', '🧰', lang === 'vi' ? '36 Kỹ thuật Nhanh' : '36 Quick Tools'],
                     ['mp-sheet', '☀️', lang === 'vi' ? 'Dự đoán Niềm vui' : 'Pleasure Predicting'],
                     ['anti-procrastination', '⏱️', lang === 'vi' ? 'Vượt Trì hoãn 5 Phút' : '5-Min Start'],
-                    ['downward-arrow', '🏹', lang === 'vi' ? 'Tháo gỡ Niềm tin Khắt khe' : 'Core Beliefs'],
+                    ['downward-arrow', '🏹', lang === 'vi' ? 'Tháo gỡ Niềm tin' : 'Core Beliefs'],
                     ['abc-please', '🌿', lang === 'vi' ? 'Chăm sóc Thân - Tâm' : 'Daily Resilience'],
                     ['cbti-sleep', '🌙', lang === 'vi' ? 'Nhật ký Giấc ngủ' : 'Sleep Diary'],
                   ] as const
@@ -4523,6 +3946,584 @@ export function EquilibriaClinicalApp() {
                   );
                 })}
               </div>
+
+              {/* VIEW 2: 7 Guided Protocols (Only visible when activeToolkitSubTab === 'practice-7') */}
+              {activeToolkitSubTab === 'practice-7' && (
+                <>
+                  {/* Short Friendly Introduction to CBT, DBT, TEAM-CBT */}
+                  <div
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      backgroundColor: theme.palette.surface,
+                      border: `1px solid ${theme.palette.border}`,
+                      marginBottom: '14px',
+                      fontSize: '0.86rem',
+                      lineHeight: 1.55,
+                      color: theme.palette.textSecondary,
+                    }}
+                  >
+                    <strong style={{ color: theme.palette.textPrimary, display: 'block', marginBottom: '6px' }}>
+                      {lang === 'vi'
+                        ? '📖 Giới thiệu nhanh các phương pháp thực hành (giúp bạn chọn đúng bài):'
+                        : '📖 Quick Guide to the Therapy Methods:'}
+                    </strong>
+                    {lang === 'vi' ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+                        <div>• <strong>CBT (Nhận thức – Hành vi):</strong> Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan, nhẹ nhàng hơn (Bài 1, 2).</div>
+                        <div>• <strong>TEAM-CBT (Gỡ rào cản dịu dàng):</strong> Thấu cảm trước khi thay đổi, giảm áp lực phải hoàn hảo (Bài 3).</div>
+                        <div>• <strong>DBT (Điều hòa Cảm xúc):</strong> Làm dịu cơn sóng cảm xúc mạnh, kết nối trí tuệ bình an & giao tiếp rõ ràng (Bài 4, 5, 6, 7).</div>
+                      </div>
+                    ) : (
+                      <div>
+                        • <strong>CBT:</strong> Spot unhelpful automatic thoughts and build balanced perspectives. • <strong>TEAM-CBT:</strong> Empathy before change. • <strong>DBT:</strong> Regulate intense emotions and communicate clearly.
+                      </div>
+                    )}
+                    <div style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.9 }}>
+                      {lang === 'vi'
+                        ? '💡 Mục này gồm 7 lộ trình đi sâu từng bước. Nếu bạn chỉ cần tra cứu nhanh mẹo 3–5 phút (trì hoãn, mất ngủ...), hãy mở tab "🧰 Thư viện 36 Công cụ" trên thanh menu.'
+                        : '💡 This view offers 7 step-by-step guided protocols. For quick 3–5 minute tools, open "36 Quick Tools Library".'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    {(
+                      [
+                        [1, '📝', lang === 'vi' ? '1. Nhật ký Suy nghĩ' : '1. Thought Record'],
+                        [2, '🌱', lang === 'vi' ? '2. Kích hoạt Hành vi' : '2. Behavioral Activation'],
+                        [3, '🎯', lang === 'vi' ? '3. Mục tiêu Nghịch lý' : '3. Paradoxical Agenda'],
+                        [4, '🔄', lang === 'vi' ? '4. Hành động Đối lập' : '4. Opposite Action'],
+                        [5, '🧘', lang === 'vi' ? '5. Trí tuệ Wise Mind' : '5. Wise Mind'],
+                        [6, '🔗', lang === 'vi' ? '6. Chuỗi Hành vi' : '6. Chain Analysis'],
+                        [7, '💬', lang === 'vi' ? '7. Giao tiếp DEAR MAN' : '7. DEAR MAN Roleplay'],
+                      ] as const
+                    ).map(([num, icon, title]) => {
+                      const isSelected = activeProtocolStep === num;
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setActiveProtocolStep(num)}
+                          style={{
+                            padding: '7px 13px',
+                            borderRadius: '11px',
+                            border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                            backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
+                            color: isSelected ? '#ffffff' : theme.palette.textPrimary,
+                            fontWeight: 600,
+                            fontSize: '0.84rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {icon} {title}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 7 Interactive Guided Protocols Grid (Filtered by activeProtocolStep for low cognitive load) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+                    {/* 1. CBT 7-Step Thought Record with Accuracy Check */}
+                    {(activeProtocolStep === 1 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '1. Bảng 7 Bước Ghi Nhận Suy Nghĩ CBT (Kiểm Tra Tính Khách Quan)'
+                            : '1. CBT 7-Step Thought Record (with Objective Accuracy Check)'}
+                        </h3>
+
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            {lang === 'vi' ? 'Bước 1 — Tình huống thực tế (Góc nhìn camera khách quan):' : 'Step 1 — Objective Situation:'}
+                          </label>
+                          <input
+                            type="text"
+                            value={trSituation}
+                            onChange={(e) => setTrSituation((e.target as HTMLInputElement).value)}
+                            className="sanctuary-input"
+                            placeholder={
+                              lang === 'vi'
+                                ? 'Ví dụ: Gửi tin nhắn cho quản lý lúc 14:00, đến 17:00 chưa thấy phản hồi...'
+                                : 'e.g., Sent message at 2pm, no reply by 5pm...'
+                            }
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            {lang === 'vi' ? 'Bước 2 — Suy nghĩ tự động nảy sinh:' : 'Step 2 — Hot Automatic Thought:'}
+                          </label>
+                          <input
+                            type="text"
+                            value={trHotThought}
+                            onChange={(e) => setTrHotThought((e.target as HTMLInputElement).value)}
+                            className="sanctuary-input"
+                            placeholder={
+                              lang === 'vi'
+                                ? 'Ví dụ: Chắc chắn họ nghĩ tôi làm việc kém cỏi và sắp đuổi việc tôi...'
+                                : 'e.g., They definitely think I failed completely...'
+                            }
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        {/* Starter Sample Chip when empty */}
+                        {!trSituation && !trHotThought && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTrSituation('Gửi tin nhắn công việc lúc 14:00 nhưng đến 17:00 chưa thấy phản hồi.');
+                                setTrHotThought('Chắc chắn họ nghĩ tôi làm việc kém cỏi và đang khó chịu với tôi.');
+                              }}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: '14px',
+                                border: `1px dashed ${theme.palette.border}`,
+                                backgroundColor: 'transparent',
+                                color: theme.palette.textSecondary,
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '💡 Thử điền tình huống mẫu' : '💡 Try sample scenario'}
+                            </button>
+                          </div>
+                        )}
+
+                        {thoughtRecordEval.distortions.negative.length > 0 && (
+                          <div style={{ fontSize: '0.82rem', marginBottom: '10px' }}>
+                            <strong style={{ display: 'block', marginBottom: '4px' }}>
+                              {lang === 'vi' ? 'Khuôn mẫu suy nghĩ nhận diện:' : 'Detected Distortions:'}
+                            </strong>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {thoughtRecordEval.distortions.negative.map((d) => (
+                                <span
+                                  key={d.id}
+                                  style={{
+                                    padding: '3px 9px',
+                                    borderRadius: '10px',
+                                    backgroundColor: 'rgba(121, 114, 152, 0.12)',
+                                    color: theme.palette.primary,
+                                    fontWeight: 600,
+                                    fontSize: '0.78rem',
+                                  }}
+                                >
+                                  {lang === 'vi' ? d.nameVi : d.nameEn}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <label style={{ display: 'block', margin: '10px 0', fontSize: '0.88rem', fontWeight: 600 }}>
+                          <input
+                            type="checkbox"
+                            checked={trIsObjectivelyTrue}
+                            onChange={(e) => setTrIsObjectivelyTrue((e.target as HTMLInputElement).checked)}
+                          />{' '}
+                          {lang === 'vi'
+                            ? 'Kiểm tra tính khách quan: Suy nghĩ này là một sự thật khách quan (mất mát có thật, không thể chối cãi)?'
+                            : 'Accuracy Check: Is this thought an objectively true fact (real loss / unavoidable truth)?'}
+                        </label>
+
+                        <div
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: '12px',
+                            backgroundColor: trIsObjectivelyTrue ? warnAlertBg : calmAlertBg,
+                            color: trIsObjectivelyTrue ? warnAlertText : calmAlertText,
+                            fontSize: '0.86rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <strong>{lang === 'vi' ? 'Kết quả thẩm định: ' : 'Clinical Outcome: '}</strong>
+                            {renderClinicalBadge(thoughtRecordEval.outcome, lang)}
+                          </div>
+                          <p style={{ margin: 0, lineHeight: 1.5 }}>
+                            {lang === 'vi'
+                              ? thoughtRecordEval.accuracyCheck.coachingVi
+                              : thoughtRecordEval.accuracyCheck.coachingEn}
+                          </p>
+                        </div>
+                      </article>
+                    )}
+
+                    {/* 2. CBT Behavioral Activation 6-Step with Mandatory Rest Check & Confidence >= 7/10 */}
+                    {(activeProtocolStep === 2 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '2. Kế Hoạch Kích Hoạt Hành Vi CBT 6 Bước (Kiểm Tra Nghỉ Ngơi Sinh Học)'
+                            : '2. CBT 6-Step Behavioral Activation (with Rest Check & Confidence Gate)'}
+                        </h3>
+                        <p style={{ fontSize: '0.82rem', color: theme.palette.textSecondary }}>
+                          {lang === 'vi'
+                            ? behavioralActivationEval.predictionErrorInsightVi
+                            : behavioralActivationEval.predictionErrorInsightEn}
+                        </p>
+
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>
+                            {lang === 'vi' ? 'Bước 1 — Hoạt động bạn muốn thực hiện:' : 'Step 1 — Chosen Activity:'}
+                          </label>
+                          <input
+                            type="text"
+                            value={baActivity}
+                            onChange={(e) => setBaActivity((e.target as HTMLInputElement).value)}
+                            className="sanctuary-input"
+                            placeholder={
+                              lang === 'vi'
+                                ? 'Ví dụ: Đi bộ nhẹ quanh sân đón nắng sáng 10 phút, tưới cây...'
+                                : 'e.g., Take a gentle 10-minute walk outside...'
+                            }
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        {!baActivity && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBaActivity('Đi bộ nhẹ quanh sân đón nắng sáng 10 phút');
+                                setBaObstacle('Cảm thấy nặng nề không muốn bước ra khỏi giường');
+                                setBaTwoMinFallback('Mở rèm cửa sổ và đứng hít thở 2 phút');
+                              }}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: '14px',
+                                border: `1px dashed ${theme.palette.border}`,
+                                backgroundColor: 'transparent',
+                                color: theme.palette.textSecondary,
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '💡 Thử gợi ý mẫu: Đi bộ nhẹ đón nắng' : '💡 Try sample activity'}
+                            </button>
+                          </div>
+                        )}
+
+                        <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem', fontWeight: 600 }}>
+                          <input
+                            type="checkbox"
+                            checked={baNeedsRest}
+                            onChange={(e) => setBaNeedsRest((e.target as HTMLInputElement).checked)}
+                          />{' '}
+                          {lang === 'vi'
+                            ? 'Bước 2 — KIỂM TRA NGHỈ NGƠI: Cơ thể đang kiệt sức sinh học / thiếu ngủ, cần Nghỉ Ngơi Không Áy Náy?'
+                            : 'Step 2 — REST CHECK: Are you biologically exhausted / ill / sleep-deprived and in need of Guilt-Free Rest?'}
+                        </label>
+
+                        <label style={{ display: 'block', margin: '8px 0', fontSize: '0.88rem' }}>
+                          {lang === 'vi'
+                            ? 'Bước 4 — Mức độ tự tin thực hiện (Thang 0–10, tối thiểu cần 7/10): '
+                            : 'Step 4 — Confidence rating to complete (0-10, requires >= 7/10): '}
+                          <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={baConfidence}
+                            onChange={(e) => setBaConfidence(Number((e.target as HTMLInputElement).value))}
+                            style={{ width: '55px', marginLeft: '6px' }}
+                          />
+                        </label>
+
+                        <div
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: '12px',
+                            backgroundColor: resultSurfaceBg,
+                            color: resultSurfaceText,
+                            border: `1px solid ${resultSurfaceBorder}`,
+                            fontSize: '0.86rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
+                            {renderClinicalBadge(behavioralActivationEval.outcome, lang)}
+                          </div>
+                          <p style={{ margin: 0, lineHeight: 1.5 }}>
+                            {!behavioralActivationEval.confidencePassed
+                              ? behavioralActivationEval.requireMicroShrinkPromptVi
+                              : behavioralActivationEval.ifThenPlan}
+                          </p>
+                        </div>
+                      </article>
+                    )}
+
+                    {/* 3. TEAM-CBT Paradoxical Agenda Setting */}
+                    {(activeProtocolStep === 3 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '3. Khám Phá Mặt Tích Cực Của Cảm Xúc & Hạ Nhiệt Lo Âu'
+                            : '3. TEAM-CBT Paradoxical Agenda Setting (Magic Dial)'}
+                        </h3>
+                        <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
+                          {lang === 'vi' ? pasEval.summaryVi : pasEval.summaryEn}
+                        </p>
+                        <label style={{ fontSize: '0.88rem' }}>
+                          {lang === 'vi'
+                            ? 'Mức lo âu bạn mong muốn giữ lại để duy trì sự cẩn thận (%): '
+                            : 'Target anxiety level you wish to keep (%): '}
+                          <input
+                            type="number"
+                            min={10}
+                            max={80}
+                            value={pasMagicDialTarget}
+                            onChange={(e) => setPasMagicDialTarget(Number((e.target as HTMLInputElement).value))}
+                            style={{ width: '60px', marginLeft: '6px', marginRight: '4px' }}
+                          />
+                          %
+                        </label>
+                      </article>
+                    )}
+
+                    {/* 4. DBT Opposite Action (4 steps with Justified Check) */}
+                    {(activeProtocolStep === 4 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '4. Hành Động Đối Lập DBT (Kiểm Tra Mối Nguy Hiểm Thực Tế)'
+                            : '4. DBT Opposite Action (with Objective Danger Gate)'}
+                        </h3>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.88rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={oaRealDanger}
+                            onChange={(e) => setOaRealDanger((e.target as HTMLInputElement).checked)}
+                          />{' '}
+                          {lang === 'vi'
+                            ? 'Bước 3 — KIỂM TRA MỐI NGUY: Tình huống có nguy cơ thực tế tới tính mạng, bạo lực hay sự an toàn của bạn không?'
+                            : 'Step 3 — DANGER CHECK: Is there real-world, objective danger or physical unsafety in this situation?'}
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <strong>{lang === 'vi' ? 'Kết quả định hướng: ' : 'Outcome: '}</strong>
+                          {renderClinicalBadge(oppositeActionEval.outcome, lang)}
+                        </div>
+                        <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
+                          {lang === 'vi' ? oppositeActionEval.directiveVi : oppositeActionEval.directiveEn}
+                        </p>
+                      </article>
+                    )}
+
+                    {/* 5. DBT Wise Mind (6 steps with Harsh Self-Critic Guard & "Nothing yet") */}
+                    {(activeProtocolStep === 5 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '5. Trí Tuệ Sáng Suốt Wise Mind (Bảo Vệ Khỏi Phán Xét Tiêu Cực)'
+                            : '5. DBT Wise Mind (with Self-Critic Guard)'}
+                        </h3>
+                        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
+                          {lang === 'vi'
+                            ? 'Bước 3 — Tiếng nói lý trí (Góc nhìn thực tế, công bằng với bản thân):'
+                            : 'Step 3 (Reasonable Mind — Realistic, balanced perspective):'}
+                          <input
+                            type="text"
+                            value={wmReasonableText}
+                            onChange={(e) => setWmReasonableText((e.target as HTMLInputElement).value)}
+                            className="sanctuary-input"
+                            placeholder={
+                              lang === 'vi'
+                                ? 'Ví dụ: Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì sức khỏe ổn định hơn...'
+                                : 'e.g., Taking more work will reduce sleep; declining keeps routine stable...'
+                            }
+                            style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                          />
+                        </label>
+                        {!wmReasonableText && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setWmReasonableText('Nếu nhận thêm việc lúc này sẽ thiếu thời gian ngủ; nếu từ chối thì giữ được nhịp sinh học ổn định.')
+                              }
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                border: `1px dashed ${theme.palette.border}`,
+                                backgroundColor: 'transparent',
+                                color: theme.palette.textSecondary,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '💡 Thử tiếng nói lý trí mẫu' : '💡 Try sample reasonable thought'}
+                            </button>
+                          </div>
+                        )}
+                        <p style={{ fontSize: '0.82rem', color: wiseMindEval.criticGuard.isSelfCriticDisguised ? '#e11d48' : theme.palette.primary }}>
+                          {lang === 'vi'
+                            ? wiseMindEval.criticGuard.reframePromptVi
+                            : wiseMindEval.criticGuard.reframePromptEn}
+                        </p>
+                        <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
+                          {lang === 'vi' ? wiseMindEval.closingSummaryVi : wiseMindEval.closingSummaryEn}
+                        </p>
+                      </article>
+                    )}
+
+                    {/* 6. DBT Chain Analysis (6 steps + Hard Stops for self-harm/victimization + Shame Protocol) */}
+                    {(activeProtocolStep === 6 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '6. Phân Tích Chuỗi Hành Vi DBT (Nhận Diện Tác Nhân & Phục Hồi)'
+                            : '6. DBT Behavioral Chain Analysis (Vulnerabilities, Links & Repair)'}
+                        </h3>
+                        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>
+                          {lang === 'vi'
+                            ? 'Bước 1 — Hành vi bạn muốn cùng Haven tìm hiểu và tháo gỡ:'
+                            : 'Step 1 — Target behavior to analyze with Haven:'}
+                          <input
+                            type="text"
+                            value={caTargetBehavior}
+                            onChange={(e) => setCaTargetBehavior((e.target as HTMLInputElement).value)}
+                            className="sanctuary-input"
+                            placeholder={
+                              lang === 'vi'
+                                ? 'Ví dụ: Thức khuya lướt điện thoại đến 2 giờ sáng, ăn đồ ngọt mất kiểm soát...'
+                                : 'e.g., Staying up late scrolling until 2am...'
+                            }
+                            style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
+                          />
+                        </label>
+                        {!caTargetBehavior && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCaTargetBehavior('Thức đến 2 giờ sáng lướt mạng và đặt mua đồ công nghệ không cần thiết')
+                              }
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                border: `1px dashed ${theme.palette.border}`,
+                                backgroundColor: 'transparent',
+                                color: theme.palette.textSecondary,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '💡 Thử hành vi mẫu: Thức khuya mua sắm' : '💡 Try sample behavior'}
+                            </button>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <strong>{lang === 'vi' ? 'Kết quả phân tích: ' : 'Outcome: '}</strong>
+                          {renderClinicalBadge(chainAnalysisEval.outcome, lang)}
+                        </div>
+                        <p style={{ fontSize: '0.88rem', margin: 0, lineHeight: 1.55 }}>
+                          {lang === 'vi' ? chainAnalysisEval.summaryVi : chainAnalysisEval.summaryEn}
+                        </p>
+                      </article>
+                    )}
+
+                    {/* 7. DBT DEAR MAN + TEAM-CBT EAR with Interactive AI Roleplay Rehearsal */}
+                    {(activeProtocolStep === 7 || activeProtocolStep === 'all') && (
+                      <article
+                        style={{
+                          padding: '16px',
+                          borderRadius: '16px',
+                          backgroundColor: theme.palette.surface,
+                          border: `1px solid ${theme.palette.border}`,
+                          gridColumn: '1 / -1',
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>
+                          {lang === 'vi'
+                            ? '7. Giao Tiếp Quyết Đoán DEAR MAN + 5 Bí Quyết EAR & Tập Dượt Cùng AI'
+                            : '7. DBT DEAR MAN + 5 EAR Communication Secrets & AI Roleplay'}
+                        </h3>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.88rem' }}>
+                            {lang === 'vi' ? 'Mức độ thử thách của người đối thoại trong kịch bản:' : 'Partner resistance level in roleplay:'}
+                          </span>
+                          {(['softer', 'moderate', 'harder'] as const).map((resLvl) => (
+                            <button
+                              key={resLvl}
+                              type="button"
+                              onClick={() => setDmResistance(resLvl)}
+                              style={{
+                                padding: '5px 12px',
+                                backgroundColor: dmResistance === resLvl ? theme.palette.primary : 'transparent',
+                                color: dmResistance === resLvl ? '#fff' : theme.palette.textPrimary,
+                                border: `1px solid ${theme.palette.border}`,
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.82rem',
+                              }}
+                            >
+                              {resLvl === 'softer'
+                                ? (lang === 'vi' ? 'DỊU DÀNG' : 'SOFTER')
+                                : resLvl === 'moderate'
+                                  ? (lang === 'vi' ? 'TIÊU CHUẨN' : 'MODERATE')
+                                  : (lang === 'vi' ? 'THỬ THÁCH' : 'FIRMER')}
+                            </button>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: '0.88rem' }}>
+                          <strong>{lang === 'vi' ? 'Kịch bản DEAR MAN hoàn chỉnh: ' : 'Assembled DEAR MAN Script: '}</strong> &ldquo;{dearManEval.assembledScript}&rdquo;
+                        </p>
+                        <p style={{ fontSize: '0.88rem', padding: '12px', backgroundColor: 'rgba(121, 114, 152, 0.08)', borderRadius: '8px', borderLeft: `3px solid ${theme.palette.primary}` }}>
+                          {lang === 'vi' ? dearManEval.roleplayPartnerReplyVi : dearManEval.roleplayPartnerReplyEn}
+                        </p>
+                        <p style={{ fontSize: '0.84rem' }}>
+                          <strong>{lang === 'vi' ? 'Góp ý sau phiên đóng vai: ' : 'Post-Roleplay Coaching: '}</strong>{' '}
+                          {lang === 'vi' ? `${dearManEval.coachingStrengthVi} | ${dearManEval.coachingTweakVi}` : `${dearManEval.coachingStrengthEn} | ${dearManEval.coachingTweakEn}`}
+                        </p>
+                      </article>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* 1. Interactive Self-Care Exercises Hub (Clean grid, no nested scroll, no dev jargon) */}
               {(activeToolkitSubTab === 'catalog-36' || activeToolkitSubTab === 'all') && (
