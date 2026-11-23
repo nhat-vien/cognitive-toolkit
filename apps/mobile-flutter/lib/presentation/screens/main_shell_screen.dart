@@ -27,6 +27,7 @@ import '../theme/adaptive_clinical_theme.dart';
 import 'ai_companion_biometrics_screen.dart';
 import 'assessment_runner_screen.dart';
 import 'bipolar_hub_screen.dart';
+import 'clinical_master_plan_screen.dart';
 import 'e2ee_clinician_qa_screen.dart';
 import 'mood_checkin_modal.dart';
 import 'session_player_screen.dart';
@@ -813,24 +814,28 @@ class _MainShellScreenState extends State<MainShellScreen> {
           child: const ExpansionTile(
             leading: Icon(Icons.menu_book_outlined, color: Color(0xFF4F7A65)),
             title: Text(
-              'Tìm hiểu nhanh: CBT, TEAM-CBT, DBT & tác dụng',
-              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+              'Tìm hiểu nhanh 7 phương pháp: CBT, TEAM-CBT, DBT, IPSRT, MBCT, Giáo dục Tâm lý & FFT',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
             subtitle: Text(
-              'Chạm để xem giới thiệu ngắn gọn và lợi ích của từng phương pháp',
+              'Chạm để xem giới thiệu ngắn gọn và tác dụng của từng phương pháp',
               style: TextStyle(fontSize: 12, color: Color(0xFF6B7982)),
             ),
             childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 14),
             children: [
               Text(
-                '• CBT (Nhận thức – Hành vi): Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan hơn.\n'
+                '• CBT (Nhận thức – Hành vi • 11 phác đồ): Nhận diện suy nghĩ tiêu cực hay tự trách để nhìn sự việc khách quan hơn.\n'
                 '  → Tác dụng: Giảm lo âu kéo dài, bớt trầm buồn & kiệt sức, cắt vòng lặp suy nghĩ tiêu cực và lấy lại động lực sống.\n\n'
-                '• TEAM-CBT (Gỡ rào cản dịu dàng): Lắng nghe thấu cảm trước khi thay đổi, tháo gỡ tâm lý ngại bắt đầu.\n'
-                '  → Tác dụng: Giảm áp lực phải hoàn hảo, vượt qua trì hoãn, bớt tự phán xét và thấy nhẹ nhàng hơn khi bắt đầu.\n\n'
-                '• DBT (Điều hòa Cảm xúc): Làm dịu cơn sóng cảm xúc mạnh, chấp nhận thực tại và giao tiếp rõ ràng hơn.\n'
+                '• TEAM-CBT (Gỡ rào cản dịu dàng • 7 phác đồ): Lắng nghe thấu cảm trước khi thay đổi, tháo gỡ tâm lý ngại bắt đầu.\n'
+                '  → Tác dụng: Giảm áp lực phải hoàn hảo, vượt qua trì hoãn, bớt tự phán xét.\n\n'
+                '• DBT (Điều hòa Cảm xúc • 19 kỹ năng qua 4 nhóm): Chánh niệm, Chịu đựng Căng thẳng, Điều hòa Cảm xúc & Hiệu quả Giao tiếp.\n'
                 '  → Tác dụng: Hạ nhiệt nhanh cơn hoảng loạn hoặc nóng giận, tránh hành động bốc đồng và giữ mối quan hệ lành mạnh.\n\n'
-                '• IPSRT (Nhịp sinh học): Giữ đều giờ thức – ngủ và sinh hoạt hằng ngày.\n'
-                '  → Tác dụng: Ổn định khí sắc, cải thiện chất lượng giấc ngủ và phòng ngừa dao động cảm xúc quá mức.',
+                '• IPSRT (Nhịp sinh học • 7 thành phần): Giữ đều 5 mốc thức – ngủ và sinh hoạt theo nền cá nhân.\n'
+                '  → Tác dụng: Ổn định khí sắc lưỡng cực và phân biệt mất ngủ với giảm nhu cầu ngủ.\n\n'
+                '• MBCT (Chánh niệm Nhận thức • Chuỗi 8 bài): Bước ra khỏi chế độ tự động, nhìn suy nghĩ chỉ là sự kiện tâm trí (có lựa chọn mở mắt tiếp đất).\n'
+                '  → Tác dụng: Ngăn cuốn vào dòng suy nghĩ tiêu cực và phòng ngừa tái phát trầm cảm.\n\n'
+                '• Giáo dục Tâm lý (10 chuyên đề) & FFT (Đồng hành Gia đình • 6 mô-đun):\n'
+                '  → Tác dụng: Cung cấp kiến thức y khoa có nguồn trích dẫn (NICE/WHO) và hỗ trợ gia đình giao tiếp lành mạnh với quyền riêng tư do bạn kiểm soát.',
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
@@ -838,6 +843,21 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+
+        _buildVisualToolBanner(
+          icon: Icons.verified_user_outlined,
+          title: '68 Phác đồ Lâm sàng Chuẩn & Kế hoạch An toàn 6 Mục',
+          subtitle: 'Đầy đủ 7 liệu pháp (CBT, TEAM-CBT, DBT, IPSRT, MBCT, Giáo dục Tâm lý, FFT), Thuốc, WHO-5 & Ẩn Báo cáo',
+          colors: const [Color(0xFF1F5C4B), Color(0xFF12382D)],
+          onTap: () => _pushToolScreen(
+            '68 Phác đồ Lâm sàng & Kế hoạch An toàn',
+            ClinicalMasterPlanScreen(
+              currentMoodPolarity: widget.moodPolarity,
+              currentEnergyLevel: widget.energyLevel,
+              onOpenEmergencySos: _openSosPortal,
+            ),
           ),
         ),
 

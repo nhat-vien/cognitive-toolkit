@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SleepMeditationPlayer } from './SleepMeditationPlayer.tsx';
+import { ClinicalMasterPlanHub } from './ClinicalMasterPlanHub.tsx';
 import {
   BREATHING_PATTERNS,
   DBT_STOP_STEPS,
@@ -117,6 +118,7 @@ import {
 
 export type ActiveHubTab =
   | 'session-player'
+  | 'clinical-master-plan'
   | 'anxiety-hub'
   | 'bipolar-ipsrt-hub'
   | 'assessments-report'
@@ -2410,6 +2412,7 @@ export function EquilibriaClinicalApp() {
               [
                 ['session-player', '🌿', lang === 'vi' ? 'Tâm sự' : 'Journal'],
                 ['tools-36-team-cbt', '🌱', lang === 'vi' ? 'Thực hành' : 'Practice'],
+                ['clinical-master-plan', '🛡️', lang === 'vi' ? 'Phác đồ & An toàn (68)' : 'Clinical Protocols & Safety'],
                 ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
                 ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Tâm trạng & Giấc ngủ' : 'Mood & Sleep'],
                 ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý AI' : 'AI Companion'],
@@ -2449,6 +2452,17 @@ export function EquilibriaClinicalApp() {
               );
             })}
           </nav>
+
+          {/* TAB: CLINICAL PROTOCOL MASTER PLAN HUB (68 Protocols, 7 Models, 6-Step Safety Plan, Meds, FFT, WHO-5, Redaction) */}
+          {activeTab === 'clinical-master-plan' && (
+            <ClinicalMasterPlanHub
+              lang={lang}
+              distressIntensity={distressIntensity}
+              moodPolarity={moodPolarity}
+              energyLevel={energyLevel}
+              onOpenEmergencySos={() => setSosOpen(true)}
+            />
+          )}
 
           {/* TAB 1: DBT-FIRST, CBT-SECOND INTERACTIVE SESSION PLAYER (Clean 1-Card-Per-View Layout) */}
           {activeTab === 'session-player' && (
@@ -2982,6 +2996,51 @@ export function EquilibriaClinicalApp() {
                 }
               />
 
+              {/* Direct 1-Click Banner to the Full 68-Protocol Clinical Master Plan & 6-Section Safety Plan */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: theme.palette.surface,
+                  border: `2px solid ${theme.palette.primary}`,
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '0.86rem', lineHeight: 1.5 }}>
+                  <strong>
+                    {lang === 'vi'
+                      ? '🛡️ Đã tích hợp đầy đủ CLINICAL_PROTOCOL_MASTER_PLAN (68 Phác đồ • 7 Liệu pháp: CBT, TEAM-CBT, DBT 4 nhóm, IPSRT, MBCT 8 bài, 10 bài Giáo dục Tâm lý & FFT Gia đình):'
+                      : '🛡️ Full 68-Protocol Clinical Master Plan (CBT, TEAM-CBT, DBT, IPSRT, MBCT, Psychoeducation & FFT):'}
+                  </strong>
+                  <div style={{ color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Bao gồm Kế hoạch An toàn 6 mục, Danh bạ Cấp cứu 115 ngoại tuyến, Hỗ trợ Thuốc tách biệt, Phân quyền Người thân, Thang WHO-5 & Kiểm duyệt ẩn thông tin Báo cáo.'
+                      : 'Includes 6-Section Personal Safety Plan, Offline Emergency Directory, Medication Boundary, Caregiver Consent, WHO-5, and Report Redaction.'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('clinical-master-plan')}
+                  style={{
+                    padding: '9px 15px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    backgroundColor: theme.palette.primary,
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? '🛡️ Mở 68 Phác đồ Chuẩn & Kế hoạch An toàn →' : '🛡️ Open 68 Protocols & Safety Plan →'}
+                </button>
+              </div>
+
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                 {(
                   [
@@ -3230,6 +3289,51 @@ export function EquilibriaClinicalApp() {
                     : 'Gently track your energy and sleep patterns, maintain daily rhythm anchors, and protect restful sleep.'
                 }
               />
+
+              {/* Direct 1-Click Banner to the Full 68-Protocol Clinical Master Plan & 6-Section Safety Plan */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: theme.palette.surface,
+                  border: `2px solid ${theme.palette.primary}`,
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '0.86rem', lineHeight: 1.5 }}>
+                  <strong>
+                    {lang === 'vi'
+                      ? '🛡️ Đã tích hợp đầy đủ CLINICAL_PROTOCOL_MASTER_PLAN (68 Phác đồ • 7 Liệu pháp: CBT, TEAM-CBT, DBT 4 nhóm, IPSRT, MBCT 8 bài, 10 bài Giáo dục Tâm lý & FFT Gia đình):'
+                      : '🛡️ Full 68-Protocol Clinical Master Plan (CBT, TEAM-CBT, DBT, IPSRT, MBCT, Psychoeducation & FFT):'}
+                  </strong>
+                  <div style={{ color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Bao gồm Kế hoạch An toàn 6 mục, Danh bạ Cấp cứu 115 ngoại tuyến, Hỗ trợ Thuốc tách biệt, Phân quyền Người thân, Thang WHO-5 & Kiểm duyệt ẩn thông tin Báo cáo.'
+                      : 'Includes 6-Section Personal Safety Plan, Offline Emergency Directory, Medication Boundary, Caregiver Consent, WHO-5, and Report Redaction.'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('clinical-master-plan')}
+                  style={{
+                    padding: '9px 15px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    backgroundColor: theme.palette.primary,
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? '🛡️ Mở 68 Phác đồ Chuẩn & Kế hoạch An toàn →' : '🛡️ Open 68 Protocols & Safety Plan →'}
+                </button>
+              </div>
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                 {(
@@ -4147,6 +4251,51 @@ export function EquilibriaClinicalApp() {
                     : 'All exercises unified in one clear space: follow the 7 core step-by-step protocols or browse 36 quick self-care tools.'
                 }
               />
+
+              {/* Direct 1-Click Banner to the Full 68-Protocol Clinical Master Plan & 6-Section Safety Plan */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: theme.palette.surface,
+                  border: `2px solid ${theme.palette.primary}`,
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '0.86rem', lineHeight: 1.5 }}>
+                  <strong>
+                    {lang === 'vi'
+                      ? '🛡️ Đã tích hợp đầy đủ CLINICAL_PROTOCOL_MASTER_PLAN (68 Phác đồ • 7 Liệu pháp: CBT, TEAM-CBT, DBT 4 nhóm, IPSRT, MBCT 8 bài, 10 bài Giáo dục Tâm lý & FFT Gia đình):'
+                      : '🛡️ Full 68-Protocol Clinical Master Plan (CBT, TEAM-CBT, DBT, IPSRT, MBCT, Psychoeducation & FFT):'}
+                  </strong>
+                  <div style={{ color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Bao gồm Kế hoạch An toàn 6 mục, Danh bạ Cấp cứu 115 ngoại tuyến, Hỗ trợ Thuốc tách biệt, Phân quyền Người thân, Thang WHO-5 & Kiểm duyệt ẩn thông tin Báo cáo.'
+                      : 'Includes 6-Section Personal Safety Plan, Offline Emergency Directory, Medication Boundary, Caregiver Consent, WHO-5, and Report Redaction.'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('clinical-master-plan')}
+                  style={{
+                    padding: '9px 15px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    backgroundColor: theme.palette.primary,
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? '🛡️ Mở 68 Phác đồ Chuẩn & Kế hoạch An toàn →' : '🛡️ Open 68 Protocols & Safety Plan →'}
+                </button>
+              </div>
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                 {(
@@ -5286,6 +5435,51 @@ export function EquilibriaClinicalApp() {
                     : 'A warm, judgment-free dialogue space that listens with empathy and gently guides you step by step.'
                 }
               />
+
+              {/* Direct 1-Click Banner to the Full 68-Protocol Clinical Master Plan & 6-Section Safety Plan */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  backgroundColor: theme.palette.surface,
+                  border: `2px solid ${theme.palette.primary}`,
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '0.86rem', lineHeight: 1.5 }}>
+                  <strong>
+                    {lang === 'vi'
+                      ? '🛡️ Đã tích hợp đầy đủ CLINICAL_PROTOCOL_MASTER_PLAN (68 Phác đồ • 7 Liệu pháp: CBT, TEAM-CBT, DBT 4 nhóm, IPSRT, MBCT 8 bài, 10 bài Giáo dục Tâm lý & FFT Gia đình):'
+                      : '🛡️ Full 68-Protocol Clinical Master Plan (CBT, TEAM-CBT, DBT, IPSRT, MBCT, Psychoeducation & FFT):'}
+                  </strong>
+                  <div style={{ color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Bao gồm Kế hoạch An toàn 6 mục, Danh bạ Cấp cứu 115 ngoại tuyến, Hỗ trợ Thuốc tách biệt, Phân quyền Người thân, Thang WHO-5 & Kiểm duyệt ẩn thông tin Báo cáo.'
+                      : 'Includes 6-Section Personal Safety Plan, Offline Emergency Directory, Medication Boundary, Caregiver Consent, WHO-5, and Report Redaction.'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('clinical-master-plan')}
+                  style={{
+                    padding: '9px 15px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    backgroundColor: theme.palette.primary,
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? '🛡️ Mở 68 Phác đồ Chuẩn & Kế hoạch An toàn →' : '🛡️ Open 68 Protocols & Safety Plan →'}
+                </button>
+              </div>
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                 {(
