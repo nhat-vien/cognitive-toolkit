@@ -351,20 +351,5 @@ export const DEFAULT_ULYSSES_CONTRACT: UlyssesContract = {
   autoActivateLowStimulusUIAtPole: 2,
   autoEnable48hImpulseVaultAtPole: 2,
   darkTherapyShutdownHour: '22:00',
-  trustedContacts: [
-    {
-      name: 'BS. Nguyễn Minh Tâm (Bác sĩ Tâm thần Điều trị)',
-      relationship: 'Psychiatrist',
-      phone: '090 123 4567',
-      notifyOnSafetyStop: true,
-      notifyOnSevereProdrome: true,
-    },
-    {
-      name: 'Trần Thu Hà (Người thân tin cậy — Ulysses Partner)',
-      relationship: 'Spouse / Family',
-      phone: '091 234 5678',
-      notifyOnSafetyStop: true,
-      notifyOnSevereProdrome: true,
-    },
-  ],
+  trustedContacts: [],
 };

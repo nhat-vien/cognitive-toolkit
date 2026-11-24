@@ -22,6 +22,10 @@ class MobileProtocolSummary {
   final String contraindicationVi;
   final String sourceVi;
   final String boundaryVi;
+  final int version;
+  final String reviewStatus; // 'draft' | 'clinical_review' | 'approved' | 'withdrawn'
+  final String publicationStatus; // 'unpublished' | 'published' | 'withdrawn'
+  final List<String> stepsVi;
 
   const MobileProtocolSummary({
     required this.id,
@@ -33,6 +37,15 @@ class MobileProtocolSummary {
     required this.contraindicationVi,
     required this.sourceVi,
     this.boundaryVi = 'Tự thực hành có hướng dẫn (Self-Guided)',
+    this.version = 1,
+    this.reviewStatus = 'draft',
+    this.publicationStatus = 'unpublished',
+    this.stepsVi = const <String>[
+      'Bước 1: Kiểm tra mức độ phù hợp & mục tiêu',
+      'Bước 2: Giải thích kỹ năng ngắn gọn & giới hạn áp dụng',
+      'Bước 3: Thực hành từng bước nhỏ (có thể tạm dừng/bỏ qua)',
+      'Bước 4: Ghi nhận trải nghiệm & kiểm tra lại sự an toàn',
+    ],
   });
 }
 
@@ -708,45 +721,35 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
   bool _mbctEyesOpenGrounding = true;
   String _selectedTapChip = 'Mình muốn đi từng bước thật nhỏ và chậm rãi';
 
-  // 3-Tier Onboarding & 4-Stage Phased Care Pathway State
+  // 3-Tier Onboarding & 4-Stage Phased Care Pathway State (T04 SAFE-01: Clean unanswered defaults!)
   int _onboardingStep = 1;
   bool _isCaregiverRole = false;
   bool _acuteRedFlag48h = false;
   bool _confirmedSafeAfterSos = false;
-  int _phq9Score = 8;
+  int _phq9Score = 0;
   int _phq9Item9Score = 0;
-  int _gad7Score = 9;
+  int _gad7Score = 0;
   bool _mdqBipolarPositive = false;
   String _emotionalStyle = 'A'; // 'A' -> CBT/TEAM-CBT, 'B' -> DBT Core
-  int _resistanceScore = 5; // >= 4 unlocks Stage 2 Gỡ rào cản
+  int _resistanceScore = 0; // >= 4 unlocks Stage 2 Gỡ rào cản
   final List<String> _worryBoxItems = <String>[];
 
-  // Safety Plan 6 Sections (§3.4)
-  final TextEditingController _sp1Ctrl = TextEditingController(
-    text: 'Mất ngủ liên tiếp, cảm giác trống rỗng nặng nề, muốn thu mình',
-  );
-  final TextEditingController _sp2Ctrl = TextEditingController(
-    text: 'Thở chậm 4-6 trong 2 phút, nghe Thiền Buông Thư 432Hz',
-  );
-  final TextEditingController _sp3Ctrl = TextEditingController(
-    text: 'Đi bộ nhẹ ở công viên gần nhà, ngồi nơi có ánh sáng ấm',
-  );
-  final TextEditingController _sp4NameCtrl = TextEditingController(text: 'Người thân tin cậy');
-  final TextEditingController _sp4PhoneCtrl = TextEditingController(text: '0901234567');
-  final TextEditingController _sp5Ctrl = TextEditingController(
-    text: 'Cấp cứu 115 / Viện Sức khỏe Tâm thần (1900 1267) / BV Tâm thần TP.HCM (028 3923 4675)',
-  );
-  final TextEditingController _sp6Ctrl = TextEditingController(
-    text: 'Cất giữ vật sắc nhọn và thuốc dự trữ ở nơi an toàn có người thân quản lý',
-  );
-  bool _spConsentContacts = true;
+  // Safety Plan 6 Sections (§3.4 — T04 SAFE-01: Empty unfabricated defaults!)
+  final TextEditingController _sp1Ctrl = TextEditingController();
+  final TextEditingController _sp2Ctrl = TextEditingController();
+  final TextEditingController _sp3Ctrl = TextEditingController();
+  final TextEditingController _sp4NameCtrl = TextEditingController();
+  final TextEditingController _sp4PhoneCtrl = TextEditingController();
+  final TextEditingController _sp5Ctrl = TextEditingController();
+  final TextEditingController _sp6Ctrl = TextEditingController();
+  bool _spConsentContacts = false;
   String _spSaveStatus = '';
 
-  // Medication (§7) & Multi-Signal Bipolar (§3.5)
-  final TextEditingController _medNameCtrl = TextEditingController(text: 'Thuốc theo toa bác sĩ');
-  final TextEditingController _medScheduleCtrl = TextEditingController(text: '20:00 hằng ngày');
+  // Medication (§7) & Multi-Signal Bipolar (§3.5) (T04 SAFE-01: Empty regimen & unanswered status!)
+  final TextEditingController _medNameCtrl = TextEditingController();
+  final TextEditingController _medScheduleCtrl = TextEditingController();
   final TextEditingController _medSideEffectCtrl = TextEditingController();
-  String _medIntakeStatus = 'Đã uống (Taken)';
+  String _medIntakeStatus = '';
   final List<String> _medLogEntries = <String>[];
 
   bool _sigReducedSleepNeed = false;
@@ -756,17 +759,17 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
   bool _sigImpulsivity = false;
   bool _sigRoutineDeviation = false;
 
-  // FFT Caregiver Granular Access Grant (§4.7)
-  bool _cgAllowEarlyWarning = true;
-  bool _cgAllowFftModules = true;
+  // FFT Caregiver Granular Access Grant (§4.7 — T04 SAFE-01: Default false until patient explicitly grants!)
+  bool _cgAllowEarlyWarning = false;
+  bool _cgAllowFftModules = false;
   bool _cgAllowRhythmSummary = false;
   bool _cgAllowPrivateJournals = false;
   bool _cgAllowSessionContent = false;
   bool _cgAllowAssessmentAnswers = false;
   bool _cgRevoked = false;
 
-  // WHO-5 (§6.2) & Report Redaction (§10.3)
-  final List<int> _who5Scores = <int>[3, 3, 3, 3, 3];
+  // WHO-5 (§6.2) & Report Redaction (§10.3) (T04 SAFE-01: Zero/Unanswered by default!)
+  final List<int> _who5Scores = <int>[0, 0, 0, 0, 0];
   bool _redactJournals = true;
   bool _redactSessions = true;
   bool _redactRawItems = true;

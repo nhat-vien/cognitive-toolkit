@@ -44,15 +44,21 @@ import {
   sortAndProcessWorryItem,
   QUICK_DEMO_PROFILES,
   SANCTUARY_NAVIGATION_ITEMS,
+  assignServerPrivilegedRole,
   getActiveAccountSession,
+  isAllowedAuthRedirectUrl,
   loginUserAccount,
   loginWithGoogleOAuth,
   loginWithQuickDemoProfile,
   parseOAuthHashParams,
+  previewGuestLocalDataForUpgrade,
   registerUserAccount,
+  saveGuestLocalDataCategory,
   signOutUserAccount,
   triggerAccountE2eeSyncNow,
   updateUserAccountProfile,
+  upgradeGuestToAccountWithConsent,
+  verifyServerSessionToken,
   type DailyMoodAndRhythmLog,
 } from '../src/clinical/index.ts';
 
@@ -1002,7 +1008,7 @@ test('10. Phase 4 (Sprint 7 & 8): Zero-Knowledge E2EE 24-Word Recovery Key & CRD
   assert.equal(securityAndWcag.criticalOrHighVulnerabilitiesCount, 0);
 });
 
-test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in Sanctuary Navigation', async () => {
+test('11. V2 Auth & Security Refactor (T02 & T03): Real Auth, Guest/Demo Isolation, Server Roles & AUTH-01..08', async () => {
   // 1. Verify Zero "Phase xx", "Sprint", or "Milestone" labels in sanctuary navigation items
   assert.equal(SANCTUARY_NAVIGATION_ITEMS.length, 6);
   for (const item of SANCTUARY_NAVIGATION_ITEMS) {
@@ -1016,99 +1022,154 @@ test('11. Patient-Centered Account Management, PBKDF2 Auth & Zero "Phase xx" in 
     assert.doesNotMatch(item.subtitleEn, /sprint/i);
   }
 
-  // 2. 1-Tap Quick Sanctuary Profiles (Anxiety, Depression, Bipolar, Local-Only Guest)
+  // 2. AUTH-01: Google unconfigured or cancelled -> No authenticated identity (Zero fake Google fallback!)
+  const googleUnconfigured = await loginWithGoogleOAuth({ lang: 'vi' });
+  assert.equal(googleUnconfigured.ok, false);
+  assert.equal(googleUnconfigured.session, null);
+  assert.equal(googleUnconfigured.providerNotEnabled, true);
+
+  const googleCancelled = await loginWithGoogleOAuth({ cancelledByUser: true, lang: 'vi' });
+  assert.equal(googleCancelled.ok, false);
+  assert.equal(googleCancelled.session, null);
+
+  // 3. AUTH-02: Redirect allowlist rejects external tampering
+  assert.equal(isAllowedAuthRedirectUrl('https://evil-attacker.example.com/callback'), false);
+  assert.equal(isAllowedAuthRedirectUrl('//evil.example.com'), false);
+  assert.equal(isAllowedAuthRedirectUrl('/auth/callback'), true);
+  assert.equal(isAllowedAuthRedirectUrl('http://localhost:3000/auth/callback'), true);
+
+  const googleTamperedRedirect = await loginWithGoogleOAuth({
+    redirectTo: 'https://evil-attacker.example.com/steal-token',
+  });
+  assert.equal(googleTamperedRedirect.ok, false);
+  assert.equal(googleTamperedRedirect.session, null);
+
+  // 4. AUTH-03: Guest & Demo profiles have isAuthenticated === false, empty accessToken, isolated namespace, and 403 on private sync
   assert.equal(QUICK_DEMO_PROFILES.length, 4);
   const demoDepression = loginWithQuickDemoProfile('depression-gentle', 'vi');
-  assert.equal(demoDepression.isAuthenticated, true);
-  assert.equal(demoDepression.user.disorderFocus, 'depression');
-  assert.equal(demoDepression.user.defaultMoodPolarity, -3);
-  assert.equal(demoDepression.user.preferredPushbackLevel, 'gentle');
+  assert.equal(demoDepression.isAuthenticated, false);
+  assert.equal(demoDepression.accessToken, '');
+  assert.equal(demoDepression.provider, 'demo-sandbox');
+  assert.equal(demoDepression.user.e2eeSyncEnabled, false);
+  assert.equal(demoDepression.user.emergencyContactPhone, ''); // SAFE-01: No fake phone numbers!
 
-  const activeSess = getActiveAccountSession();
-  assert.ok(activeSess);
-  assert.equal(activeSess?.user.userId, 'demo_depression-gentle');
+  const guestSession = loginWithQuickDemoProfile('guest-local-only', 'vi');
+  assert.equal(guestSession.isAuthenticated, false);
+  assert.equal(guestSession.accessToken, '');
+  assert.equal(guestSession.provider, 'guest-local');
+  assert.ok(guestSession.storageNamespace.startsWith('equilibria_guest_vault_'));
 
-  // 3. User Account Registration with PBKDF2-HMAC-SHA256
+  // Calling private sync from Guest mode is denied with 403 while local guest remains usable
+  const guestSyncAttempt = triggerAccountE2eeSyncNow();
+  assert.equal(guestSyncAttempt.ok, false);
+  assert.equal(guestSyncAttempt.statusCode, 403);
+  assert.equal(verifyServerSessionToken(guestSession.accessToken).valid, false);
+  assert.equal(verifyServerSessionToken('eq_sess_fake.HS256-LOCAL.sig').errorCode, 'legacy_token_rejected');
+
+  // 5. AUTH-06: Registering with `admin@...` or `quantri@...` email prefix does NOT grant admin role!
+  const adminPrefixReg = await registerUserAccount({
+    email: 'admin.forged@sanctuary.care',
+    password: 'SecurePassword123!',
+    displayName: 'Forged Admin',
+    disorderFocus: 'anxiety',
+  });
+  assert.equal(adminPrefixReg.ok, true);
+  assert.equal(adminPrefixReg.session?.user.role, 'patient'); // Strictly 'patient'!
+
+  // Client attempting to pass `role: 'admin'` to updateUserAccountProfile is blocked
+  const forgedUpdate = updateUserAccountProfile({
+    displayName: 'Thảo Vy',
+    role: 'admin',
+  });
+  assert.equal(forgedUpdate.ok, true);
+  assert.equal(forgedUpdate.roleEscalationBlocked, true);
+  assert.equal(forgedUpdate.session?.user.role, 'patient');
+
+  // Attempting to call assignServerPrivilegedRole without server secret fails
+  const unauthRoleAssign = assignServerPrivilegedRole({
+    targetUserId: adminPrefixReg.session!.user.userId,
+    role: 'admin',
+    privilegedServerSecret: 'wrong-secret',
+  });
+  assert.equal(unauthRoleAssign.ok, false);
+
+  // OAuth callback with `admin@...` email and `user_metadata.role = 'admin'` still resolves to `'patient'`
+  const fakePayload = Buffer.from(
+    JSON.stringify({
+      sub: 'usr_g123',
+      email: 'admin.oauth@gmail.com',
+      user_metadata: { full_name: 'Bác sĩ Tâm', role: 'admin' },
+    })
+  ).toString('base64');
+  const fakeHash = `#access_token=header.${fakePayload}.sig&token_type=bearer&expires_in=3600`;
+  const parsedOauth = parseOAuthHashParams(fakeHash);
+  assert.ok(parsedOauth);
+  assert.equal(parsedOauth?.user.role, 'patient');
+
+  // 6. AUTH-04: Guest upgrade to real account (decline -> zero upload; accept -> idempotent import, no duplicate on retry)
+  const guestId = guestSession.user.userId;
+  saveGuestLocalDataCategory(guestId, 'journals', [{ id: 'j1', note: 'Local guest journal' }]);
+  saveGuestLocalDataCategory(guestId, 'safety_plan', [{ id: 'sp1', step: 'Breathe 4-6' }]);
+
+  const preview = previewGuestLocalDataForUpgrade(guestId);
+  assert.equal(preview.totalItemsCount, 2);
+
+  // User A registers & logs in
   const regResult = await registerUserAccount({
     email: 'patient.test@sanctuary.care',
     password: 'SecurePassword123!',
     displayName: 'Thảo Vy',
     disorderFocus: 'anxiety',
     preferredPushbackLevel: 'gentle',
-    emergencyContactName: 'Bác sĩ Minh',
-    emergencyContactPhone: '0988-111-222',
   });
   assert.equal(regResult.ok, true);
-  assert.ok(regResult.session);
-  assert.equal(regResult.session?.user.displayName, 'Thảo Vy');
-  assert.equal(regResult.session?.user.authMode, 'email-password');
-  assert.equal(regResult.session?.user.e2eeSyncEnabled, true);
+  const userAToken = regResult.session!.accessToken;
+  assert.equal(verifyServerSessionToken(userAToken).valid, true);
 
-  // 4. User Account Login: correct password vs wrong password
-  const badLogin = await loginUserAccount({
-    email: 'patient.test@sanctuary.care',
-    password: 'WrongPassword!',
+  // Step 6a: Decline import -> no upload
+  const declinedImport = upgradeGuestToAccountWithConsent({
+    guestUserId: guestId,
+    targetAccountSessionToken: userAToken,
+    explicitConsentGranted: false,
+    consentedCategories: [],
+    idempotencyKey: 'imp-key-01',
   });
-  assert.equal(badLogin.ok, false);
-  assert.equal(badLogin.session, null);
+  assert.equal(declinedImport.status, 'declined_no_upload');
+  assert.equal(declinedImport.importedItemsCount, 0);
 
-  const goodLogin = await loginUserAccount({
-    email: 'patient.test@sanctuary.care',
-    password: 'SecurePassword123!',
+  // Step 6b: Accept import -> imports consented items
+  const acceptedImport = upgradeGuestToAccountWithConsent({
+    guestUserId: guestId,
+    targetAccountSessionToken: userAToken,
+    explicitConsentGranted: true,
+    consentedCategories: ['journals', 'safety_plan'],
+    idempotencyKey: 'imp-key-01',
   });
-  assert.equal(goodLogin.ok, true);
-  assert.ok(goodLogin.session);
-  assert.equal(goodLogin.session?.user.email, 'patient.test@sanctuary.care');
+  assert.equal(acceptedImport.status, 'imported');
+  assert.equal(acceptedImport.importedItemsCount, 2);
 
-  // 5. Update Profile (Display name & emergency contact & role)
-  assert.equal(goodLogin.session?.user.role, 'patient');
-  const updated = updateUserAccountProfile({
-    displayName: 'Thảo Vy (An Nhiên)',
-    emergencyContactPhone: '0999-888-777',
-    role: 'admin',
+  // Step 6c: Retry with same idempotencyKey -> no duplicate created
+  const retryImport = upgradeGuestToAccountWithConsent({
+    guestUserId: guestId,
+    targetAccountSessionToken: userAToken,
+    explicitConsentGranted: true,
+    consentedCategories: ['journals', 'safety_plan'],
+    idempotencyKey: 'imp-key-01',
   });
-  assert.equal(updated.ok, true);
-  assert.equal(updated.session?.user.displayName, 'Thảo Vy (An Nhiên)');
-  assert.equal(updated.session?.user.emergencyContactPhone, '0999-888-777');
-  assert.equal(updated.session?.user.role, 'admin');
+  assert.equal(retryImport.status, 'duplicate_idempotent_noop');
+  assert.equal(retryImport.importedItemsCount, 0);
 
-  // 6. Immediate E2EE Sync Trigger
+  // 7. Authenticated account sync succeeds (200)
   const syncRes = triggerAccountE2eeSyncNow();
   assert.equal(syncRes.ok, true);
-  assert.ok(syncRes.syncedAt);
+  assert.equal(syncRes.statusCode, 200);
 
-  // 7. Sign Out
-  const out = signOutUserAccount();
+  // 8. AUTH-05: Logout revokes server session token and clears active account session
+  const out = signOutUserAccount({ sessionTokenToRevoke: userAToken });
   assert.equal(out.signedOut, true);
+  assert.equal(out.preservedGuestVault, true);
   assert.equal(getActiveAccountSession(), null);
-
-  // 8. 1-Tap Google OAuth Sign-In & Zero-Friction E2EE Account Link
-  const googleRes = await loginWithGoogleOAuth({
-    googleEmail: 'minh.tam.sanctuary@gmail.com',
-    googleDisplayName: 'Minh Tâm',
-    lang: 'vi',
-  });
-  assert.equal(googleRes.ok, true);
-  assert.ok(googleRes.session);
-  assert.equal(googleRes.session?.user.email, 'minh.tam.sanctuary@gmail.com');
-  assert.equal(googleRes.session?.user.displayName, 'Minh Tâm');
-  assert.equal(googleRes.session?.user.authMode, 'google-oauth');
-  assert.equal(googleRes.session?.user.role, 'patient');
-  assert.equal(googleRes.session?.user.e2eeSyncEnabled, true);
-
-  // Clean sign-out after Google test
-  signOutUserAccount();
-  assert.equal(getActiveAccountSession(), null);
-
-  // 9. OAuth Hash Redirect Parsing (#access_token=...)
-  const fakePayload = Buffer.from(JSON.stringify({ sub: 'usr_g123', email: 'bacsi.tam@gmail.com', user_metadata: { full_name: 'Bác sĩ Tâm' } })).toString('base64');
-  const fakeHash = `#access_token=header.${fakePayload}.sig&token_type=bearer&expires_in=3600`;
-  const parsedOauth = parseOAuthHashParams(fakeHash);
-  assert.ok(parsedOauth);
-  assert.equal(parsedOauth?.user.email, 'bacsi.tam@gmail.com');
-  assert.equal(parsedOauth?.user.displayName, 'Bác sĩ Tâm');
-  assert.equal(parsedOauth?.provider, 'google-oauth');
-  signOutUserAccount();
+  assert.equal(verifyServerSessionToken(userAToken).valid, false);
 });
 
 import {
@@ -1152,8 +1213,44 @@ import {
   evaluateMasterPlanSafetySubsystem,
   scoreWho5WellBeing,
   createGranularCaregiverAccessGrant,
+  revokeCaregiverAccessGrant,
   buildUserControlledReportWithRedaction,
+  evaluateProtocolExecutionEligibility,
+  createCleanInitialClinicalDefaults,
+  V2_LIGHT_DESIGN_TOKENS,
+  V2_DARK_DESIGN_TOKENS,
+  V2_PRIMARY_4_TABS,
+  V2_PROPOSED_ROUTES,
+  V2_TODAY_NEED_CHIPS,
+  resolveV2RouteAndTabRedirect,
+  UNIFIED_PRACTICE_LIBRARY_CATALOG,
+  LEGACY_36_TOOLS_MIGRATION_TABLE,
+  resolveCanonicalPracticeId,
+  validateUnifiedPracticeItem,
+  evaluateUnifiedItemSelfGuidedEligibility,
+  queryUnifiedPracticeLibrary,
+  createPracticeSessionPreview,
+  startPracticeSession,
+  checkpointPracticeSessionStep,
+  transitionPracticeSessionLifecycle,
 } from '../src/clinical/index.ts';
+import { GET as syncGet, POST as syncPost } from '../src/app/api/v1/sync/route.ts';
+import { GET as memoryGet, POST as memoryPost, DELETE as memoryDelete } from '../src/app/api/v1/memory/route.ts';
+import { POST as sharePost, GET as shareGet } from '../src/app/api/v1/clinician/share/route.ts';
+import { GET as v2CatalogGet } from '../src/app/api/v2/catalog/route.ts';
+import { GET as v2SessionsGet, POST as v2SessionsPost } from '../src/app/api/v2/sessions/route.ts';
+import { GET as v2PlanItemsGet, POST as v2PlanItemsPost } from '../src/app/api/v2/plan-items/route.ts';
+import {
+  GET as v2SharingGrantsGet,
+  POST as v2SharingGrantsPost,
+  DELETE as v2SharingGrantsDelete,
+} from '../src/app/api/v2/sharing-grants/route.ts';
+import { POST as v2PrivacyExportPost } from '../src/app/api/v2/privacy/export/route.ts';
+import { POST as v2PrivacyDeletePost } from '../src/app/api/v2/privacy/delete/route.ts';
+import { GET as v2CatalogItemGet } from '../src/app/api/v2/catalog/[id]/route.ts';
+import { PATCH as v2SessionItemPatch } from '../src/app/api/v2/sessions/[id]/route.ts';
+import { GET as v2ImportGet, POST as v2ImportPost } from '../src/app/api/v2/import/route.ts';
+import { GET as v1AuthGet, PUT as v1AuthPut } from '../src/app/api/v1/auth/route.ts';
 
 test('13. CLINICAL_PROTOCOL_MASTER_PLAN.md Governance, 68-Protocol Catalog & Deterministic Safety Subsystem', () => {
   assert.equal(MASTER_PROTOCOL_CATALOG.length, 68);
@@ -1185,6 +1282,571 @@ test('13. CLINICAL_PROTOCOL_MASTER_PLAN.md Governance, 68-Protocol Catalog & Det
     assessments: [{ instrumentCode: 'GAD-7', date: '2026-11-23', totalScore: 4 }],
   });
   assert.equal(redacted.data?.containsAutomatedDiagnosisOrRiskLabels, false);
+});
+
+test('14. V2 Cross-User Isolation & Safety Release Blockers (AUTH-07, AUTH-08, SAFE-01..06)', async () => {
+  // Register two distinct users: User A and User B
+  const userAReg = await registerUserAccount({
+    email: 'user.a@equilibria.care',
+    password: 'PasswordA123!',
+    displayName: 'User A',
+  });
+  const tokenA = userAReg.session!.accessToken;
+  const userIdA = userAReg.session!.user.userId;
+
+  const userBReg = await registerUserAccount({
+    email: 'user.b@equilibria.care',
+    password: 'PasswordB123!',
+    displayName: 'User B',
+  });
+  const tokenB = userBReg.session!.accessToken;
+  const userIdB = userBReg.session!.user.userId;
+
+  // 1. AUTH-03: Unauthenticated Guest call to /api/v1/sync and /api/v1/memory returns 401/403
+  const unauthSyncRes = await syncGet(new Request('http://localhost:3000/api/v1/sync'));
+  assert.equal(unauthSyncRes.status, 401);
+
+  const guestTokenSyncRes = await syncGet(
+    new Request('http://localhost:3000/api/v1/sync', {
+      headers: { Authorization: 'Bearer guest_local_123' },
+    })
+  );
+  assert.equal(guestTokenSyncRes.status, 403);
+
+  // 2. AUTH-07: User A writes their own memory & sync blobs (200), then User B attempts to read/write/delete User A's data (403 Denied!)
+  const userAMemPost = await memoryPost(
+    new Request('http://localhost:3000/api/v1/memory', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userIdA, role: 'user', content: 'Nhật ký riêng tư của User A' }),
+    })
+  );
+  assert.equal(userAMemPost.status, 200);
+
+  const crossReadMem = await memoryGet(
+    new Request(`http://localhost:3000/api/v1/memory?userId=${encodeURIComponent(userIdA)}`, {
+      headers: { Authorization: `Bearer ${tokenB}` },
+    })
+  );
+  assert.equal(crossReadMem.status, 403);
+
+  const crossWriteMem = await memoryPost(
+    new Request('http://localhost:3000/api/v1/memory', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userIdA, role: 'user', content: 'Giả mạo ghi đè User A' }),
+    })
+  );
+  assert.equal(crossWriteMem.status, 403);
+
+  const crossDeleteMem = await memoryDelete(
+    new Request(`http://localhost:3000/api/v1/memory?userId=${encodeURIComponent(userIdA)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenB}` },
+    })
+  );
+  assert.equal(crossDeleteMem.status, 403);
+
+  const crossReadSync = await syncGet(
+    new Request(`http://localhost:3000/api/v1/sync?user_id=${encodeURIComponent(userIdA)}`, {
+      headers: { Authorization: `Bearer ${tokenB}` },
+    })
+  );
+  assert.equal(crossReadSync.status, 403);
+
+  const crossWriteSync = await syncPost(
+    new Request('http://localhost:3000/api/v1/sync', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        blobs: [
+          {
+            blobId: 'b-attack',
+            userId: userIdA,
+            recordType: 'cbt_dbt_session',
+            ciphertextB64: 'CIPHER',
+            ivB64: 'IV',
+            authTagB64: 'TAG',
+            keyId: 'k1',
+            clientUpdatedAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    })
+  );
+  assert.equal(crossWriteSync.status, 403);
+
+  // 3. AUTH-08: Even if User B is granted Server Admin role, Admin CANNOT read User A's private diary/memory!
+  const grantAdmin = assignServerPrivilegedRole({
+    targetUserId: userIdB,
+    role: 'admin',
+    privilegedServerSecret: 'server-privileged-role-admin-v2',
+  });
+  assert.equal(grantAdmin.ok, true);
+
+  const adminReadsPatientDiary = await memoryGet(
+    new Request(`http://localhost:3000/api/v1/memory?userId=${encodeURIComponent(userIdA)}`, {
+      headers: { Authorization: `Bearer ${tokenB}` },
+    })
+  );
+  assert.equal(adminReadsPatientDiary.status, 403);
+
+  // 4. SAFE-06 & AUTH-07: User A creates a Clinician Share link; User B cannot revoke it (403); User A revokes it (200) and future access is denied (410)
+  const shareToken = `share_v2_${Date.now()}`;
+  const createShareRes = await sharePost(
+    new Request('http://localhost:3000/api/v1/clinician/share', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        userId: userIdA,
+        snapshot: {
+          shareToken,
+          ciphertextB64: 'AES_GCM_CIPHERTEXT',
+          ivB64: 'IV_12B',
+          periodDays: 30,
+          ttlPreset: '24h',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          revoked: false,
+        },
+      }),
+    })
+  );
+  assert.equal(createShareRes.status, 200);
+
+  // User B tries to revoke User A's share link -> 403 Forbidden
+  const crossRevokeRes = await sharePost(
+    new Request('http://localhost:3000/api/v1/clinician/share', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'revoke', shareToken }),
+    })
+  );
+  assert.equal(crossRevokeRes.status, 403);
+
+  // User A revokes their share link -> 200 Revoked
+  const ownerRevokeRes = await sharePost(
+    new Request('http://localhost:3000/api/v1/clinician/share', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'revoke', shareToken }),
+    })
+  );
+  assert.equal(ownerRevokeRes.status, 200);
+
+  // Subsequent GET to the revoked share token returns 410 Gone
+  const getAfterRevoke = await shareGet(
+    new Request(`http://localhost:3000/api/v1/clinician/share?token=${encodeURIComponent(shareToken)}`)
+  );
+  assert.equal(getAfterRevoke.status, 410);
+
+  // 5. SAFE-01, SAFE-03, SAFE-04 verification on Web layer
+  const cleanDefaults = createCleanInitialClinicalDefaults();
+  assert.equal(cleanDefaults.phq9TotalScore, null);
+  assert.equal(cleanDefaults.medicationsList.length, 0);
+  assert.equal(cleanDefaults.trustedContactPhone, '');
+  assert.equal(cleanDefaults.explicitContactStorageConsent, false);
+
+  for (const proto of MASTER_PROTOCOL_CATALOG) {
+    const elig = evaluateProtocolExecutionEligibility({ protocol: proto, pathwayState: 'routine_support' });
+    assert.equal(elig.canStartSession, false); // Because all 68 protocols are currently 'draft' or 'clinician_assisted_required'
+  }
+
+  signOutUserAccount({ sessionTokenToRevoke: tokenA });
+  signOutUserAccount({ sessionTokenToRevoke: tokenB });
+});
+
+test('15. V2 Design Tokens, AppShell 4-Tab Navigation, Route Redirects & Today Screen Contract (T05 & T06 — UX-01..04)', () => {
+  // 1. UX-01 & UX-03: Verify exact V2 Design Tokens from UI_UX_V2_DESIGN_SPEC.md
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.primary, '#426B57');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.primaryContainer, '#DFEBE1');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.background, '#F7F6F2');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.surface, '#FFFFFF');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.text, '#263B33');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.caution, '#B58B51');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.emergency, '#A34C48');
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.bodyFontSizePx, 16);
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.bodyLineHeight, 1.5);
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.minTouchTargetDp, 48);
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.desktopSidebarWidthPx, 240);
+  assert.equal(V2_LIGHT_DESIGN_TOKENS.mainMaxWidthPx, 960);
+  assert.ok(V2_DARK_DESIGN_TOKENS.primary);
+
+  // Standard adaptive theme uses V2 tokens and disables streak pressure
+  const standardTheme = resolveAdaptiveTheme({ moodPolarity: 0 });
+  assert.equal(standardTheme.palette.primary, '#426B57');
+  assert.equal(standardTheme.palette.background, '#F7F6F2');
+  assert.equal(standardTheme.palette.textPrimary, '#263B33');
+  assert.equal(standardTheme.palette.sosBanner, '#A34C48');
+  assert.equal(standardTheme.showStreaks, false);
+
+  // 2. Verify V2 4-Tab Navigation Contract (Hôm nay, Thực hành, Kế hoạch, Tiến trình)
+  assert.equal(V2_PRIMARY_4_TABS.length, 4);
+  assert.deepEqual(
+    V2_PRIMARY_4_TABS.map((t) => t.id),
+    ['today', 'practice', 'plan', 'progress']
+  );
+  assert.deepEqual(
+    V2_PRIMARY_4_TABS.map((t) => t.labelVi),
+    ['Hôm nay', 'Thực hành', 'Kế hoạch', 'Tiến trình']
+  );
+
+  // 3. Verify Today Screen 4 Need Quick Chips ([Bình tâm] [Ngủ] [Suy nghĩ] [Cảm xúc])
+  assert.equal(V2_TODAY_NEED_CHIPS.length, 4);
+  assert.deepEqual(
+    V2_TODAY_NEED_CHIPS.map((c) => c.labelVi),
+    ['Bình tâm', 'Ngủ', 'Suy nghĩ', 'Cảm xúc']
+  );
+
+  // 4. Verify Legacy Hub to V2 Route & Tab Redirect Mapping (INFORMATION_ARCHITECTURE.md §Mapping hub cũ)
+  assert.equal(V2_PROPOSED_ROUTES.includes('/today'), true);
+  assert.equal(V2_PROPOSED_ROUTES.includes('/practice/library'), true);
+  assert.equal(V2_PROPOSED_ROUTES.includes('/plan/safety'), true);
+  assert.equal(V2_PROPOSED_ROUTES.includes('/help/urgent'), true);
+
+  assert.equal(resolveV2RouteAndTabRedirect('protocols-68').v2Tab, 'practice');
+  assert.equal(resolveV2RouteAndTabRedirect('protocols-68').v2Route, '/practice/library');
+  assert.equal(resolveV2RouteAndTabRedirect('safety-plan-directory').v2Tab, 'plan');
+  assert.equal(resolveV2RouteAndTabRedirect('safety-plan-directory').v2Route, '/plan/safety');
+  assert.equal(resolveV2RouteAndTabRedirect('fft-caregiver').v2Route, '/plan/support');
+  assert.equal(resolveV2RouteAndTabRedirect('who5-and-redaction').v2Tab, 'progress');
+  assert.equal(resolveV2RouteAndTabRedirect('/help/urgent').isGlobalOverlay, 'sos');
+});
+
+test('16. V2 Unified Practice Library Migration, Filter Engine & Session Player on Web (T07 & T08 — CAT-01..05, UX-05)', () => {
+  // 1. CAT-01: Verify every single one of the 36 WEB_36_CBT_TOOLS and 68 MASTER_PROTOCOL_CATALOG items resolves to a canonical V2 ID
+  assert.equal(UNIFIED_PRACTICE_LIBRARY_CATALOG.length, 110);
+  for (const webTool of WEB_36_CBT_TOOLS) {
+    const canonicalId = resolveCanonicalPracticeId(webTool.id);
+    assert.ok(canonicalId, `Web tool ${webTool.id} failed to resolve to a canonical V2 practice ID`);
+    const item = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === canonicalId);
+    assert.ok(item, `Canonical item ${canonicalId} not found in catalog`);
+  }
+
+  for (const row of LEGACY_36_TOOLS_MIGRATION_TABLE) {
+    assert.equal(resolveCanonicalPracticeId(row.legacyFlutterSlug), row.canonicalId);
+  }
+
+  // 2. CAT-02 & CAT-03: Public catalog query excludes all 68 unapproved draft protocols and the 1 clinician-assisted tool
+  const publicCatalog = queryUnifiedPracticeLibrary({});
+  assert.equal(publicCatalog.items.length, 41);
+  assert.equal(publicCatalog.inferredDiagnosis, null);
+  for (const item of publicCatalog.items) {
+    const elig = evaluateUnifiedItemSelfGuidedEligibility(item);
+    assert.equal(elig.canStartSelfGuided, true);
+  }
+
+  // 3. UX-05 & CAT-04: Session player state machine (preview -> start -> checkpoint -> stop)
+  const breathItem = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === 'prac-breath-01-paced-4-6')!;
+  const preview = createPracticeSessionPreview(breathItem);
+  assert.equal(preview.status, 'previewing');
+  assert.equal(preview.completedAt, null);
+
+  const started = startPracticeSession(preview, breathItem);
+  assert.equal(started.valid, true);
+  assert.equal(started.data!.status, 'in_progress');
+
+  const stopped = transitionPracticeSessionLifecycle(started.data!, 'stop');
+  assert.equal(stopped.valid, true);
+  assert.equal(stopped.data!.status, 'stopped');
+  assert.ok(stopped.data!.stoppedAt);
+});
+
+test('17. V2 API Endpoints: Idempotent Sessions/SafetyPlan Conflict (409), Scoped Sharing Grants (403/410) & Privacy Export/Delete (T09 & T10 — DATA-01..05, SAFE-06)', async () => {
+  const patientReg = await registerUserAccount({
+    email: 'patient.v2.t09@equilibria.care',
+    password: 'PatientPassword123!',
+    displayName: 'Patient V2',
+  });
+  const patientToken = patientReg.session!.accessToken;
+  const patientId = patientReg.session!.user.userId;
+
+  const caregiverReg = await registerUserAccount({
+    email: 'caregiver.v2.t10@equilibria.care',
+    password: 'CaregiverPassword123!',
+    displayName: 'Caregiver V2',
+  });
+  const caregiverToken = caregiverReg.session!.accessToken;
+  const caregiverId = caregiverReg.session!.user.userId;
+
+  // 1. GET /api/v2/catalog returns only eligible self-guided items and inferredDiagnosis === null
+  const catalogRes = await v2CatalogGet(
+    new Request('http://localhost:3000/api/v2/catalog?need=calm&maxDuration=5'),
+  );
+  assert.equal(catalogRes.status, 200);
+  const catalogJson = (await catalogRes.json()) as {
+    totalEligibleSelfGuidedCount: number;
+    inferredDiagnosis: null;
+    items: Array<{ reviewStatus: string; publicationStatus: string; delivery: string }>;
+  };
+  assert.equal(catalogJson.inferredDiagnosis, null);
+  assert.ok(catalogJson.items.length > 0);
+  for (const item of catalogJson.items) {
+    assert.equal(item.reviewStatus, 'approved');
+    assert.equal(item.publicationStatus, 'published');
+    assert.equal(item.delivery, 'self_guided');
+  }
+
+  // 2. DATA-02: POST /api/v2/sessions idempotent check-in & plan-items
+  const chk1 = await v2SessionsPost(
+    new Request('http://localhost:3000/api/v2/sessions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'checkin',
+        idempotencyKey: 'web-idem-chk-1',
+        payload: { id: 'chk-w1', moodPolarity: 0, distressIntensity: 2 },
+      }),
+    }),
+  );
+  assert.equal(chk1.status, 201);
+
+  const chk1Retry = await v2SessionsPost(
+    new Request('http://localhost:3000/api/v2/sessions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'checkin',
+        idempotencyKey: 'web-idem-chk-1',
+        payload: { id: 'chk-w1', moodPolarity: 0, distressIntensity: 2 },
+      }),
+    }),
+  );
+  assert.equal(chk1Retry.status, 200); // Idempotent replay!
+
+  const planPost = await v2PlanItemsPost(
+    new Request('http://localhost:3000/api/v2/plan-items', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 'plan-w1',
+        idempotencyKey: 'web-idem-plan-1',
+        practiceId: 'prac-breath-01-paced-4-6',
+        schedule: 'daily',
+        status: 'planned',
+      }),
+    }),
+  );
+  assert.equal(planPost.status, 201);
+
+  // 3. DATA-03: SafetyPlan revision conflict returns 409 CONFLICT
+  const spRev1 = await v2SessionsPost(
+    new Request('http://localhost:3000/api/v2/sessions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'safety_plan',
+        idempotencyKey: 'web-idem-sp-1',
+        payload: {
+          expectedRevision: 0,
+          section1WarningSigns: ['Căng thẳng kéo dài'],
+          section2InternalCoping: ['Thở 4-6'],
+          explicitContactStorageConsent: false,
+        },
+      }),
+    }),
+  );
+  assert.equal(spRev1.status, 201);
+
+  const spStaleConflict = await v2SessionsPost(
+    new Request('http://localhost:3000/api/v2/sessions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'safety_plan',
+        idempotencyKey: 'web-idem-sp-stale',
+        payload: {
+          expectedRevision: 0, // Stale! Server is already at revision 1
+          section1WarningSigns: ['Ghi đè lỗi'],
+          explicitContactStorageConsent: false,
+        },
+      }),
+    }),
+  );
+  assert.equal(spStaleConflict.status, 409);
+
+  // 4. SAFE-06 & AUTH-08: Scoped Sharing Grants via /api/v2/sharing-grants
+  const grantCreate = await v2SharingGrantsPost(
+    new Request('http://localhost:3000/api/v2/sharing-grants', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grantId: 'web-grant-01',
+        granteeUserId: caregiverId,
+        granteeRole: 'caregiver',
+        allowedScopes: ['plan_items'],
+      }),
+    }),
+  );
+  assert.equal(grantCreate.status, 201);
+
+  // Caregiver reads granted 'plan_items' -> 200
+  const cgReadAllowed = await v2SharingGrantsGet(
+    new Request('http://localhost:3000/api/v2/sharing-grants?grantId=web-grant-01&scope=plan_items', {
+      headers: { Authorization: `Bearer ${caregiverToken}` },
+    }),
+  );
+  assert.equal(cgReadAllowed.status, 200);
+
+  // Caregiver attempts to read ungranted 'safety_plan' -> 403
+  const cgReadDenied = await v2SharingGrantsGet(
+    new Request('http://localhost:3000/api/v2/sharing-grants?grantId=web-grant-01&scope=safety_plan', {
+      headers: { Authorization: `Bearer ${caregiverToken}` },
+    }),
+  );
+  assert.equal(cgReadDenied.status, 403);
+
+  // Caregiver attempts to revoke patient's grant -> 403
+  const cgIllegalRevoke = await v2SharingGrantsDelete(
+    new Request('http://localhost:3000/api/v2/sharing-grants?grantId=web-grant-01', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${caregiverToken}` },
+    }),
+  );
+  assert.equal(cgIllegalRevoke.status, 403);
+
+  // Patient revokes grant -> 200, and caregiver subsequent read returns 410 Gone
+  const patientRevoke = await v2SharingGrantsDelete(
+    new Request('http://localhost:3000/api/v2/sharing-grants?grantId=web-grant-01', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${patientToken}` },
+    }),
+  );
+  assert.equal(patientRevoke.status, 200);
+
+  const cgReadAfterRevoke = await v2SharingGrantsGet(
+    new Request('http://localhost:3000/api/v2/sharing-grants?grantId=web-grant-01&scope=plan_items', {
+      headers: { Authorization: `Bearer ${caregiverToken}` },
+    }),
+  );
+  assert.equal(cgReadAfterRevoke.status, 410);
+
+  // 5. DATA-04 & DATA-05: Privacy Export and Right-to-Erasure Delete
+  const exportRes = await v2PrivacyExportPost(
+    new Request('http://localhost:3000/api/v2/privacy/export', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: patientId }),
+    }),
+  );
+  assert.equal(exportRes.status, 200);
+  const exportJson = (await exportRes.json()) as {
+    bundle: { checkins: unknown[]; planItems: unknown[] };
+  };
+  assert.equal(exportJson.bundle.checkins.length, 1);
+  assert.equal(exportJson.bundle.planItems.length, 1);
+
+  const deleteRes = await v2PrivacyDeletePost(
+    new Request('http://localhost:3000/api/v2/privacy/delete', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: patientId, confirmDelete: true }),
+    }),
+  );
+  assert.equal(deleteRes.status, 200);
+
+  const afterDeleteGet = await v2PlanItemsGet(
+    new Request('http://localhost:3000/api/v2/plan-items', {
+      headers: { Authorization: `Bearer ${patientToken}` },
+    }),
+  );
+  const afterDeleteJson = (await afterDeleteGet.json()) as { planItems: unknown[] };
+  assert.equal(afterDeleteJson.planItems.length, 0);
+
+  // 6. Verify DEFAULT_ULYSSES_CONTRACT has empty trustedContacts (SAFE-01: Zero fabricated phone numbers!)
+  assert.equal(DEFAULT_ULYSSES_CONTRACT.trustedContacts.length, 0);
+
+  // 7. Verify GET /api/v2/catalog/:id (eligible self-guided vs. blocked draft/clinician-assisted)
+  const catalogEligibleRes = await v2CatalogItemGet(
+    new Request('http://localhost:3000/api/v2/catalog/thought-record-7-step'),
+    { params: { id: 'thought-record-7-step' } },
+  );
+  assert.equal(catalogEligibleRes.status, 200);
+
+  const catalogDraftRes = await v2CatalogItemGet(
+    new Request('http://localhost:3000/api/v2/catalog/CBT_THOUGHT_RECORD'),
+    { params: { id: 'CBT_THOUGHT_RECORD' } },
+  );
+  assert.equal(catalogDraftRes.status, 403);
+
+  // 8. Verify POST /api/v2/sessions + PATCH /api/v2/sessions/:id step checkpointing
+  const startSessRes = await v2SessionsPost(
+    new Request('http://localhost:3000/api/v2/sessions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entityType: 'practice_session',
+        idempotencyKey: 'web-idem-sess-start-1',
+        payload: { itemId: 'prac-breath-01-paced-4-6' },
+      }),
+    }),
+  );
+  assert.equal(startSessRes.status, 201);
+  const startedJson = (await startSessRes.json()) as {
+    record: { sessionId: string; stepsSnapshot: Array<{ id: string }> };
+  };
+  const sessId = startedJson.record.sessionId;
+  const firstStepId = startedJson.record.stepsSnapshot[0]!.id;
+
+  const patchSessRes = await v2SessionItemPatch(
+    new Request(`http://localhost:3000/api/v2/sessions/${sessId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idempotencyKey: 'web-idem-sess-patch-1',
+        stepCheckpoint: { stepId: firstStepId, outcome: 'completed' },
+        lifecycleTransition: 'pause',
+      }),
+    }),
+    { params: { id: sessId } },
+  );
+  assert.equal(patchSessRes.status, 200);
+  const patchedJson = (await patchSessRes.json()) as {
+    record: { status: string; checkpoints: unknown[] };
+  };
+  assert.equal(patchedJson.record.status, 'paused');
+  assert.equal(patchedJson.record.checkpoints.length, 1);
+
+  // 9. Verify /api/v2/import and /api/v1/auth PUT role escalation guard (403)
+  saveGuestLocalDataCategory('guest_review_1', 'journals', [{ text: 'Guest note' }]);
+  const importPreviewRes = await v2ImportGet(
+    new Request('http://localhost:3000/api/v2/import?guestUserId=guest_review_1'),
+  );
+  assert.equal(importPreviewRes.status, 200);
+
+  const importExecRes = await v2ImportPost(
+    new Request('http://localhost:3000/api/v2/import', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guestUserId: 'guest_review_1',
+        explicitConsentGranted: true,
+        consentedCategories: ['journals'],
+        idempotencyKey: 'web-idem-import-1',
+      }),
+    }),
+  );
+  assert.equal(importExecRes.status, 200);
+
+  const authGetRes = await v1AuthGet(
+    new Request('http://localhost:3000/api/v1/auth', {
+      headers: { Authorization: `Bearer ${patientToken}` },
+    }),
+  );
+  assert.equal(authGetRes.status, 200);
+
+  const authPutEscalationRes = await v1AuthPut(
+    new Request('http://localhost:3000/api/v1/auth', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${patientToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'admin', displayName: 'Attacker' }),
+    }),
+  );
+  assert.equal(authPutEscalationRes.status, 403);
+
+  signOutUserAccount({ sessionTokenToRevoke: patientToken });
+  signOutUserAccount({ sessionTokenToRevoke: caregiverToken });
 });
 
 

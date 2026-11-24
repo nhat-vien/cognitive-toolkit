@@ -82,6 +82,22 @@ import {
   revokeCaregiverAccessGrant,
   buildUserControlledReportWithRedaction,
   evaluateThreeTierOnboardingAndPathway,
+  evaluateProtocolExecutionEligibility,
+  createCleanInitialClinicalDefaults,
+  // V2 T07 & T08 Unified Practice Library (CAT-01..05, UX-05)
+  UNIFIED_PRACTICE_LIBRARY_CATALOG,
+  LEGACY_36_TOOLS_MIGRATION_TABLE,
+  resolveCanonicalPracticeId,
+  validateUnifiedPracticeItem,
+  evaluateUnifiedItemSelfGuidedEligibility,
+  queryUnifiedPracticeLibrary,
+  createPracticeSessionPreview,
+  startPracticeSession,
+  checkpointPracticeSessionStep,
+  transitionPracticeSessionLifecycle,
+  // V2 T09 & T10 Data Architecture, Idempotent Sync, Conflict Detection, Privacy & Reviewer Workflow (DATA-01..05, SAFE-06, AUTH-08)
+  V2ClinicalDataRepository,
+  transitionClinicalContentReviewLifecycle,
 } from '../src/index.ts';
 
 describe('1. Catalog Completeness & Schema Validation', () => {
@@ -1430,6 +1446,478 @@ describe('11. CLINICAL_PROTOCOL_MASTER_PLAN.md Full Governance, 68-Protocol Cata
     assert.equal(resistanceRoute.tier2PhasedCarePathway.stage2ResistanceModuleUnlocked, true);
     assert.equal(resistanceRoute.tier2PhasedCarePathway.recommendedStartingStage, 'stage_2_unblock_resistance');
     assert.equal(resistanceRoute.tier3OnDemandToolkit.length, 4);
+  });
+
+  it('enforces V2 T04 Safety Gates: SAFE-01 (Clean Initial Defaults), SAFE-03 (Draft/Withdrawn Blocked), SAFE-04 (Clinician-Assisted Blocked)', () => {
+    // SAFE-01: Fresh account or guest must have zero fabricated scores, meds, contacts, or caregiver consent
+    const defaults = createCleanInitialClinicalDefaults();
+    assert.equal(defaults.phq9TotalScore, null);
+    assert.equal(defaults.phq9Item9Score, null);
+    assert.equal(defaults.gad7TotalScore, null);
+    assert.deepEqual(defaults.who5ItemScores, [null, null, null, null, null]);
+    assert.equal(defaults.medicationsList.length, 0);
+    assert.equal(defaults.medicationIntakeStatus, null);
+    assert.equal(defaults.trustedContactName, '');
+    assert.equal(defaults.trustedContactPhone, '');
+    assert.equal(defaults.explicitContactStorageConsent, false);
+    assert.equal(defaults.caregiverAccessGrant, null);
+
+    // SAFE-03: Draft or deprecated/withdrawn protocol cannot be self-started
+    const draftProtocol = MASTER_PROTOCOL_CATALOG.find((p) => p.protocol_id === 'CBT_THOUGHT_RECORD')!;
+    const draftCheck = evaluateProtocolExecutionEligibility({
+      protocol: draftProtocol,
+      pathwayState: 'routine_support',
+    });
+    assert.equal(draftCheck.canStartSession, false);
+    assert.equal(draftCheck.blockedReasonCode, 'unapproved_or_withdrawn_content');
+
+    const withdrawnCheck = evaluateProtocolExecutionEligibility({
+      protocol: { ...draftProtocol, status: 'deprecated' },
+      pathwayState: 'routine_support',
+    });
+    assert.equal(withdrawnCheck.canStartSession, false);
+    assert.equal(withdrawnCheck.blockedReasonCode, 'unapproved_or_withdrawn_content');
+
+    // SAFE-04: Clinician-assisted protocol cannot be self-started even if approved
+    const interoceptive = MASTER_PROTOCOL_CATALOG.find((p) => p.protocol_id === 'CBT_INTEROCEPTIVE_EXPOSURE')!;
+    const approvedInteroceptive = {
+      ...interoceptive,
+      status: 'approved' as const,
+      clinical_approvals: [
+        {
+          reviewer_name: 'Dr. Nguyen Minh Tam',
+          reviewer_role: 'Psychiatrist',
+          approved_at: '2026-11-24T00:00:00Z',
+          scope: 'Adult Panic Disorder',
+        },
+      ],
+    };
+    const selfStartBlocked = evaluateProtocolExecutionEligibility({
+      protocol: approvedInteroceptive,
+      pathwayState: 'routine_support',
+      hasActiveClinicianAssistedGrant: false,
+    });
+    assert.equal(selfStartBlocked.canStartSession, false);
+    assert.equal(selfStartBlocked.blockedReasonCode, 'clinician_assisted_required');
+
+    // Allowed when approved + self-guided (or clinician grant present) + routine_support
+    const approvedSelfGuided = {
+      ...draftProtocol,
+      status: 'approved' as const,
+      clinical_approvals: [
+        {
+          reviewer_name: 'Dr. Nguyen Minh Tam',
+          reviewer_role: 'Psychiatrist',
+          approved_at: '2026-11-24T00:00:00Z',
+          scope: 'Adult CBT',
+        },
+      ],
+    };
+    const eligibleCheck = evaluateProtocolExecutionEligibility({
+      protocol: approvedSelfGuided,
+      pathwayState: 'routine_support',
+    });
+    assert.equal(eligibleCheck.canStartSession, true);
+    assert.equal(eligibleCheck.blockedReasonCode, null);
+  });
+});
+
+describe('12. V2 Unified Practice Library Schema, Cross-Platform Migration, Eligibility & Session Player (T07 & T08 — CAT-01..05, UX-05)', () => {
+  it('verifies CAT-01 inventory completeness (110 canonical items: 68 protocols + 36 tools + 3 sleep tracks + 3 breathing practices) and zero orphaned legacy IDs', () => {
+    assert.equal(UNIFIED_PRACTICE_LIBRARY_CATALOG.length, 110);
+    assert.equal(LEGACY_36_TOOLS_MIGRATION_TABLE.length, 36);
+
+    // Every single one of the 68 protocols in MASTER_PROTOCOL_CATALOG maps deterministically
+    for (const proto of MASTER_PROTOCOL_CATALOG) {
+      const canonical = resolveCanonicalPracticeId(proto.protocol_id);
+      assert.ok(canonical, `Missing canonical mapping for protocol ${proto.protocol_id}`);
+      const item = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === canonical);
+      assert.ok(item);
+      assert.equal(item.reviewStatus, 'draft');
+      assert.equal(item.publicationStatus, 'unpublished');
+    }
+
+    // Every single one of the 36 core CBT tools and legacy Web/Flutter slugs maps deterministically
+    for (const row of LEGACY_36_TOOLS_MIGRATION_TABLE) {
+      assert.equal(resolveCanonicalPracticeId(row.coreToolId), row.canonicalId);
+      assert.equal(resolveCanonicalPracticeId(row.legacyWebId), row.canonicalId);
+      assert.equal(resolveCanonicalPracticeId(row.legacyFlutterSlug), row.canonicalId);
+    }
+  });
+
+  it('enforces CAT-02 schema validation (fails closed on missing safety fields or reviewer metadata) and CAT-03 public eligibility', () => {
+    // All 110 items in canonical catalog must pass schema validation
+    for (const item of UNIFIED_PRACTICE_LIBRARY_CATALOG) {
+      const check = validateUnifiedPracticeItem(item);
+      assert.equal(check.valid, true, `Item ${item.id} failed schema validation: ${check.errors.join(', ')}`);
+    }
+
+    // Fail-closed test: item missing precautions or contraindications is rejected by validator and blocked from execution
+    const sampleApproved = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === 'prac-tool-01-thought-record')!;
+    const missingPrecautions = { ...sampleApproved, precautions: [] };
+    assert.equal(validateUnifiedPracticeItem(missingPrecautions).valid, false);
+    const failClosedElig = evaluateUnifiedItemSelfGuidedEligibility(missingPrecautions);
+    assert.equal(failClosedElig.canStartSelfGuided, false);
+    assert.equal(failClosedElig.blockReasonCode, 'SCHEMA_SAFETY_MISSING_FAIL_CLOSED');
+
+    // Approved/published item without clinician reviewer identity is rejected
+    const unreviewedPublished = { ...sampleApproved, reviewerId: undefined };
+    assert.equal(validateUnifiedPracticeItem(unreviewedPublished).valid, false);
+
+    // Public catalog query returns ONLY approved + published + self_guided items (35 self-guided tools + 3 audio + 3 breathing = 41 items)
+    const publicQuery = queryUnifiedPracticeLibrary({});
+    assert.equal(publicQuery.items.length, 41);
+    assert.equal(publicQuery.totalEligibleSelfGuidedCount, 41);
+    assert.equal(publicQuery.inferredDiagnosis, null); // CAT-05: Zero diagnostic inference
+    for (const item of publicQuery.items) {
+      assert.equal(item.reviewStatus, 'approved');
+      assert.equal(item.publicationStatus, 'published');
+      assert.equal(item.delivery, 'self_guided');
+    }
+
+    // Filtering by need ('sleep', 'calm') and maxDurationMinutes works accurately (CAT-05)
+    const sleepQuery = queryUnifiedPracticeLibrary({ need: 'sleep', maxDurationMinutes: 6 });
+    assert.ok(sleepQuery.items.length >= 4);
+    assert.equal(sleepQuery.inferredDiagnosis, null);
+    for (const item of sleepQuery.items) {
+      assert.equal(item.needs.includes('sleep'), true);
+      assert.ok(item.durationMinutes <= 6);
+    }
+  });
+
+  it('enforces CAT-04 version immutability and UX-05 Session Player lifecycle (preview -> start -> step checkpoint -> pause/resume/stop -> complete)', () => {
+    const itemV1 = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === 'prac-tool-01-thought-record')!;
+
+    // 1. Opening a session creates a preview (NEVER marks completed on open!)
+    const preview = createPracticeSessionPreview(itemV1, '2026-11-24T01:00:00.000Z');
+    assert.equal(preview.status, 'previewing');
+    assert.equal(preview.completedAt, null);
+    assert.equal(preview.itemVersion, 1);
+
+    // Attempting to start a draft protocol fails closed (CAT-03)
+    const draftProto = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === 'proto-cbt-thought-record')!;
+    const draftPreview = createPracticeSessionPreview(draftProto);
+    const blockedStart = startPracticeSession(draftPreview, draftProto);
+    assert.equal(blockedStart.valid, false);
+
+    // 2. Start eligible v1 session
+    const startedRes = startPracticeSession(preview, itemV1, '2026-11-24T01:01:00.000Z');
+    assert.equal(startedRes.valid, true);
+    let session = startedRes.data!;
+    assert.equal(session.status, 'in_progress');
+
+    // CAT-04: Even if catalog item upgrades to v2 while session is active, session retains v1 snapshot
+    const itemV2 = { ...itemV1, version: 2, title: 'Updated V2 Title' };
+    assert.equal(itemV2.version, 2);
+    assert.equal(session.itemVersion, 1);
+
+    // Cannot complete session before mandatory step 1 is checkpointed
+    const prematureComplete = transitionPracticeSessionLifecycle(session, 'complete');
+    assert.equal(prematureComplete.valid, false);
+
+    // Cannot skip mandatory step 1 (allowSkip === false)
+    const firstStepId = session.stepsSnapshot[0]!.id;
+    const illegalSkip = checkpointPracticeSessionStep(session, {
+      stepId: firstStepId,
+      outcome: 'skipped',
+    });
+    assert.equal(illegalSkip.valid, false);
+
+    // Checkpoint step 1 with a private note -> verify private note is stored locally on checkpoint but NEVER leaked into analyticsEvents (UX-05)
+    const step1Done = checkpointPracticeSessionStep(
+      session,
+      {
+        stepId: firstStepId,
+        outcome: 'completed',
+        privateNoteLocalOnly: 'Suy nghĩ riêng tư nhạy cảm không được đưa vào analytics',
+      },
+      '2026-11-24T01:02:00.000Z',
+    );
+    assert.equal(step1Done.valid, true);
+    session = step1Done.data!;
+    assert.equal(session.checkpoints.length, 1);
+    const serializedAnalytics = JSON.stringify(session.analyticsEvents);
+    assert.equal(serializedAnalytics.includes('nhạy cảm'), false);
+
+    // Pause -> Resume -> Complete
+    const paused = transitionPracticeSessionLifecycle(session, 'pause', '2026-11-24T01:03:00.000Z');
+    assert.equal(paused.valid, true);
+    assert.equal(paused.data!.status, 'paused');
+
+    const resumed = transitionPracticeSessionLifecycle(paused.data!, 'resume', '2026-11-24T01:04:00.000Z');
+    assert.equal(resumed.valid, true);
+    assert.equal(resumed.data!.status, 'in_progress');
+
+    const completed = transitionPracticeSessionLifecycle(resumed.data!, 'complete', '2026-11-24T01:05:00.000Z');
+    assert.equal(completed.valid, true);
+    assert.equal(completed.data!.status, 'completed');
+    assert.equal(completed.data!.itemVersion, 1);
+  });
+});
+
+describe('13. V2 Data Architecture, Idempotent Sync, SafetyPlan Conflict Detection, Privacy Export/Delete & Reviewer Gate (T09 & T10 — DATA-01..05, SAFE-06, AUTH-08)', () => {
+  it('enforces DATA-01 & DATA-02 idempotent writes (retrying with same idempotencyKey never duplicates check-ins, plan items, or sessions)', () => {
+    const repo = new V2ClinicalDataRepository();
+
+    const c1 = repo.saveCheckIn({
+      id: 'chk-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-chk-001',
+      moodPolarity: 0,
+      distressIntensity: 3,
+    });
+    assert.equal(c1.status, 'created');
+    assert.equal(c1.httpStatus, 201);
+
+    // Retry with identical idempotencyKey -> returns 200 idempotent_replay and count remains 1
+    const c1Retry = repo.saveCheckIn({
+      id: 'chk-1-retry',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-chk-001',
+      moodPolarity: 0,
+      distressIntensity: 3,
+    });
+    assert.equal(c1Retry.status, 'idempotent_replay');
+    assert.equal(c1Retry.httpStatus, 200);
+    assert.equal(repo.getCheckIns('user-v2-01').length, 1);
+
+    // Idempotent Plan Item creation & update
+    const p1 = repo.upsertPlanItem({
+      id: 'plan-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-plan-001',
+      practiceId: 'prac-tool-01-thought-record',
+      schedule: 'daily-20:00',
+      status: 'planned',
+    });
+    assert.equal(p1.status, 'created');
+    assert.equal(p1.record.revision, 1);
+
+    const p1Replay = repo.upsertPlanItem({
+      id: 'plan-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-plan-001',
+      practiceId: 'prac-tool-01-thought-record',
+      schedule: 'daily-20:00',
+      status: 'planned',
+    });
+    assert.equal(p1Replay.status, 'idempotent_replay');
+    assert.equal(repo.getPlanItems('user-v2-01').length, 1);
+  });
+
+  it('enforces DATA-03 SafetyPlan revision conflict detection (concurrent edits return 409 conflict without silent overwrite) and SAFE-06 contact consent', () => {
+    const repo = new V2ClinicalDataRepository();
+
+    // SAFE-06: Attempt to store trusted contact phone number without explicitContactStorageConsent === true -> 422 Rejected
+    const noConsentRes = repo.upsertSafetyPlan({
+      id: 'sp-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-sp-noconsent',
+      expectedRevision: 0,
+      section1WarningSigns: ['Mất ngủ'],
+      section2InternalCoping: ['Thở 4-6'],
+      section3SocialDistractions: ['Đi dạo công viên'],
+      section4TrustedContacts: [{ name: 'Chị Lan', phone: '0912000111', relationship: 'Chị gái' }],
+      section5ProfessionalContacts: [{ name: 'Cấp cứu 115', phone: '115' }],
+      section6EnvironmentSafety: ['Cất vật sắc nhọn'],
+      explicitContactStorageConsent: false,
+    });
+    assert.equal(noConsentRes.status, 'validation_error');
+    assert.equal(noConsentRes.httpStatus, 422);
+
+    // Create Revision 1 with explicit consent
+    const rev1 = repo.upsertSafetyPlan({
+      id: 'sp-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-sp-rev1',
+      expectedRevision: 0,
+      section1WarningSigns: ['Mất ngủ'],
+      section2InternalCoping: ['Thở 4-6'],
+      section3SocialDistractions: ['Đi dạo công viên'],
+      section4TrustedContacts: [{ name: 'Chị Lan', phone: '0912000111', relationship: 'Chị gái' }],
+      section5ProfessionalContacts: [{ name: 'Cấp cứu 115', phone: '115' }],
+      section6EnvironmentSafety: ['Cất vật sắc nhọn'],
+      explicitContactStorageConsent: true,
+    });
+    assert.equal(rev1.status, 'saved');
+    assert.equal(rev1.httpStatus, 201);
+    assert.equal(rev1.record?.revision, 1);
+
+    // Update to Revision 2 using expectedRevision: 1
+    const rev2 = repo.upsertSafetyPlan({
+      id: 'sp-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-sp-rev2',
+      expectedRevision: 1,
+      section1WarningSigns: ['Mất ngủ', 'Bồn chồn'],
+      section2InternalCoping: ['Thở 4-6'],
+      section3SocialDistractions: ['Đi dạo công viên'],
+      section4TrustedContacts: [{ name: 'Chị Lan', phone: '0912000111', relationship: 'Chị gái' }],
+      section5ProfessionalContacts: [{ name: 'Cấp cứu 115', phone: '115' }],
+      section6EnvironmentSafety: ['Cất vật sắc nhọn'],
+      explicitContactStorageConsent: true,
+    });
+    assert.equal(rev2.status, 'saved');
+    assert.equal(rev2.record?.revision, 2);
+
+    // DATA-03: Another tab/device with stale expectedRevision: 1 attempts to overwrite -> 409 CONFLICT!
+    const staleConflict = repo.upsertSafetyPlan({
+      id: 'sp-1',
+      userId: 'user-v2-01',
+      idempotencyKey: 'idem-sp-stale-tab',
+      expectedRevision: 1,
+      section1WarningSigns: ['Ghi đè từ thiết bị cũ'],
+      section2InternalCoping: [],
+      section3SocialDistractions: [],
+      section4TrustedContacts: [],
+      section5ProfessionalContacts: [],
+      section6EnvironmentSafety: [],
+      explicitContactStorageConsent: true,
+    });
+    assert.equal(staleConflict.status, 'conflict_detected');
+    assert.equal(staleConflict.httpStatus, 409);
+    assert.equal(staleConflict.conflict?.actualServerRevision, 2);
+    // Verify server record was NOT silently overwritten
+    assert.deepEqual(repo.getSafetyPlan('user-v2-01')?.section1WarningSigns, ['Mất ngủ', 'Bồn chồn']);
+  });
+
+  it('enforces offline queue isolation on logout, SAFE-06 scoped caregiver/clinician grants, DATA-04 export, DATA-05 delete, and clinical reviewer workflow gate', () => {
+    const repo = new V2ClinicalDataRepository();
+
+    // 1. Offline queue isolation on logout / account switch
+    repo.enqueueOfflineOperation({
+      queueItemId: 'q-1',
+      boundUserId: 'user-A',
+      idempotencyKey: 'idem-q-1',
+      entityType: 'checkin',
+      payload: { moodPolarity: -1 },
+      enqueuedAt: '2026-11-24T01:00:00.000Z',
+    });
+    // Switching to user-B without flushing must reject user-A's queued item
+    const crossFlush = repo.flushOfflineQueueForActiveAccount('user-B');
+    assert.equal(crossFlush.flushedCount, 0);
+    assert.equal(crossFlush.rejectedCrossAccountCount, 1);
+
+    // 2. SAFE-06 & AUTH-08: Scoped Sharing Grants & Instant Revocation
+    repo.upsertPlanItem({
+      id: 'plan-shared-1',
+      userId: 'patient-01',
+      idempotencyKey: 'idem-p-shared',
+      practiceId: 'prac-breath-01-paced-4-6',
+      schedule: 'daily',
+      status: 'planned',
+    });
+
+    const grantRes = repo.createSharingGrant({
+      grantId: 'grant-caregiver-01',
+      ownerUserId: 'patient-01',
+      granteeUserId: 'caregiver-01',
+      granteeRole: 'caregiver',
+      allowedScopes: ['plan_items'],
+      expiresAt: '2026-12-01T00:00:00.000Z',
+      nowIso: '2026-11-24T01:00:00.000Z',
+    });
+    assert.equal(grantRes.valid, true);
+
+    // Caregiver reads granted scope ('plan_items') online -> 200 Allowed
+    const allowedRead = repo.readSharedPatientDataWithGrant({
+      grantId: 'grant-caregiver-01',
+      granteeUserId: 'caregiver-01',
+      requestedScope: 'plan_items',
+      serverOnlineVerified: true,
+      nowIso: '2026-11-24T02:00:00.000Z',
+    });
+    assert.equal(allowedRead.allowed, true);
+    assert.equal(allowedRead.httpStatus, 200);
+
+    // Caregiver attempts to read ungranted scope ('safety_plan') -> 403 SCOPE_NOT_GRANTED
+    const ungrantedRead = repo.readSharedPatientDataWithGrant({
+      grantId: 'grant-caregiver-01',
+      granteeUserId: 'caregiver-01',
+      requestedScope: 'safety_plan',
+      serverOnlineVerified: true,
+      nowIso: '2026-11-24T02:00:00.000Z',
+    });
+    assert.equal(ungrantedRead.allowed, false);
+    assert.equal(ungrantedRead.httpStatus, 403);
+    assert.equal(ungrantedRead.reasonCode, 'SCOPE_NOT_GRANTED');
+
+    // Caregiver attempts to read private_journal_notes -> 403 PRIVATE_JOURNAL_ALWAYS_DENIED
+    const privateRead = repo.readSharedPatientDataWithGrant({
+      grantId: 'grant-caregiver-01',
+      granteeUserId: 'caregiver-01',
+      requestedScope: 'private_journal_notes',
+      serverOnlineVerified: true,
+      nowIso: '2026-11-24T02:00:00.000Z',
+    });
+    assert.equal(privateRead.allowed, false);
+    assert.equal(privateRead.reasonCode, 'PRIVATE_JOURNAL_ALWAYS_DENIED');
+
+    // Caregiver attempts offline cache access without server verification -> 403 OFFLINE_CACHE_BLOCKED_UNVERIFIED
+    const offlineRead = repo.readSharedPatientDataWithGrant({
+      grantId: 'grant-caregiver-01',
+      granteeUserId: 'caregiver-01',
+      requestedScope: 'plan_items',
+      serverOnlineVerified: false,
+    });
+    assert.equal(offlineRead.allowed, false);
+    assert.equal(offlineRead.reasonCode, 'OFFLINE_CACHE_BLOCKED_UNVERIFIED');
+
+    // Patient revokes grant -> immediate 410 GRANT_REVOKED on next caregiver read
+    const revoked = repo.revokeSharingGrant({
+      grantId: 'grant-caregiver-01',
+      actorUserId: 'patient-01',
+      nowIso: '2026-11-24T03:00:00.000Z',
+    });
+    assert.equal(revoked.valid, true);
+
+    const readAfterRevoke = repo.readSharedPatientDataWithGrant({
+      grantId: 'grant-caregiver-01',
+      granteeUserId: 'caregiver-01',
+      requestedScope: 'plan_items',
+      serverOnlineVerified: true,
+      nowIso: '2026-11-24T03:01:00.000Z',
+    });
+    assert.equal(readAfterRevoke.allowed, false);
+    assert.equal(readAfterRevoke.httpStatus, 410);
+    assert.equal(readAfterRevoke.reasonCode, 'GRANT_REVOKED');
+
+    // 3. DATA-04 Export & DATA-05 Right-to-Erasure Delete
+    const exported = repo.exportUserData('patient-01');
+    assert.equal(exported.userId, 'patient-01');
+    assert.equal(exported.planItems.length, 1);
+
+    const deleted = repo.deleteUserData('patient-01');
+    assert.equal(deleted.deleted, true);
+    assert.equal(deleted.purgedCounts.planItems, 1);
+    assert.equal(deleted.auditTrailPreserved, true);
+    assert.equal(repo.getPlanItems('patient-01').length, 0);
+
+    // 4. T10 Clinical Content Reviewer Gate: Technical admin CANNOT self-approve clinical content!
+    const draftProto = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === 'proto-cbt-thought-record')!;
+    const adminSelfApprove = transitionClinicalContentReviewLifecycle({
+      item: draftProto,
+      actorUserId: 'tech-admin-01',
+      actorRole: 'admin',
+      targetReviewStatus: 'approved',
+      targetPublicationStatus: 'published',
+      clinicalReviewNote: 'Admin trying to self-approve',
+    });
+    assert.equal(adminSelfApprove.valid, false);
+
+    // Qualified clinician CAN approve with substantive review note
+    const clinicianApprove = transitionClinicalContentReviewLifecycle({
+      item: draftProto,
+      actorUserId: 'clinician-dr-minh-tam',
+      actorRole: 'clinician',
+      targetReviewStatus: 'approved',
+      targetPublicationStatus: 'published',
+      clinicalReviewNote: 'Reviewed against NICE NG222 and approved for adult self-guided practice.',
+      nowIso: '2026-11-24T04:00:00.000Z',
+    });
+    assert.equal(clinicianApprove.valid, true);
+    assert.equal(clinicianApprove.data?.reviewStatus, 'approved');
+    assert.equal(clinicianApprove.data?.reviewerRole, 'clinician');
   });
 });
 

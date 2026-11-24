@@ -14,6 +14,8 @@ import {
   revokeCaregiverAccessGrant,
   buildUserControlledReportWithRedaction,
   evaluateThreeTierOnboardingAndPathway,
+  evaluateProtocolExecutionEligibility,
+  createCleanInitialClinicalDefaults,
   type ProtocolManifest,
   type TherapyModel,
   type PathwayWorkflowState,
@@ -156,18 +158,19 @@ export function ClinicalMasterPlanHub({
     | 'who5-and-redaction'
   >('three-tier-journey');
 
-  // 0. 3-Tier Architecture & 4-Screen Onboarding Routing State
+  // 0. 3-Tier Architecture & 4-Screen Onboarding Routing State (T04 SAFE-01: Clean unanswered defaults!)
+  const cleanDefaults = useMemo(() => createCleanInitialClinicalDefaults(), []);
   const [onboardingScreenStep, setOnboardingScreenStep] = useState<1 | 2 | 3 | 4>(1);
   const [ttUserRole, setTtUserRole] = useState<ThreeTierUserRole>('self');
   const [ttAcuteRedFlag48h, setTtAcuteRedFlag48h] = useState<boolean>(false);
   const [ttConfirmedSafeAfterSos, setTtConfirmedSafeAfterSos] = useState<boolean>(false);
-  const [ttPhq9Total, setTtPhq9Total] = useState<number>(8);
-  const [ttPhq9Item9, setTtPhq9Item9] = useState<number>(0);
-  const [ttGad7Total, setTtGad7Total] = useState<number>(9);
-  const [ttBipolarMdqPositive, setTtBipolarMdqPositive] = useState<boolean>(moodPolarity >= 2 || moodPolarity <= -3);
+  const [ttPhq9Total, setTtPhq9Total] = useState<number>(cleanDefaults.phq9TotalScore ?? 0);
+  const [ttPhq9Item9, setTtPhq9Item9] = useState<number>(cleanDefaults.phq9Item9Score ?? 0);
+  const [ttGad7Total, setTtGad7Total] = useState<number>(cleanDefaults.gad7TotalScore ?? 0);
+  const [ttBipolarMdqPositive, setTtBipolarMdqPositive] = useState<boolean>(false);
   const [ttReportedBipolarHistory, setTtReportedBipolarHistory] = useState<boolean>(false);
   const [ttEmotionalStyle, setTtEmotionalStyle] = useState<EmotionalStylePreference>('A_cognitive_rumination');
-  const [ttResistanceScore, setTtResistanceScore] = useState<number>(5);
+  const [ttResistanceScore, setTtResistanceScore] = useState<number>(0);
 
   const threeTierEval = useMemo(
     () =>
@@ -210,63 +213,49 @@ export function ClinicalMasterPlanHub({
   const [adverseExperienceReported, setAdverseExperienceReported] = useState<boolean>(false);
   const [mbctEyesOpenGrounding, setMbctEyesOpenGrounding] = useState<boolean>(true);
 
-  // 2. Personal Safety Plan (6 Sections — §3.4) & Emergency Directory State
+  // 2. Personal Safety Plan (6 Sections — §3.4) & Emergency Directory State (T04 SAFE-01: Empty unfabricated defaults!)
   const [countryCode, setCountryCode] = useState<'VN' | 'US'>('VN');
-  const [spWarningSigns, setSpWarningSigns] = useState<string>(
-    'Mất ngủ liên tiếp, cảm giác trống rỗng nặng nề, muốn thu mình không gặp ai',
-  );
-  const [spInternalCoping, setSpInternalCoping] = useState<string>(
-    'Thở chậm 4-6 trong 2 phút, nghe Thiền Buông Thư 432Hz, bước ra ban công hít thở',
-  );
-  const [spDistractionPlaces, setSpDistractionPlaces] = useState<string>(
-    'Đi bộ quanh công viên gần nhà, ngồi ở phòng khách có ánh sáng ấm',
-  );
-  const [spTrustedContactName, setSpTrustedContactName] = useState<string>('Người thân tin cậy');
-  const [spTrustedContactPhone, setSpTrustedContactPhone] = useState<string>('0901234567');
-  const [spProfessionalContact, setSpProfessionalContact] = useState<string>(
-    'Bác sĩ tâm thần điều trị / Viện Sức khỏe Tâm thần (1900 1267) / Cấp cứu 115',
-  );
-  const [spEnvironmentSafety, setSpEnvironmentSafety] = useState<string>(
-    'Cất giữ vật sắc nhọn và thuốc dự trữ ở nơi an toàn có người thân quản lý',
-  );
-  const [spExplicitContactConsent, setSpExplicitContactConsent] = useState<boolean>(true);
+  const [spWarningSigns, setSpWarningSigns] = useState<string>('');
+  const [spInternalCoping, setSpInternalCoping] = useState<string>('');
+  const [spDistractionPlaces, setSpDistractionPlaces] = useState<string>('');
+  const [spTrustedContactName, setSpTrustedContactName] = useState<string>(cleanDefaults.trustedContactName);
+  const [spTrustedContactPhone, setSpTrustedContactPhone] = useState<string>(cleanDefaults.trustedContactPhone);
+  const [spProfessionalContact, setSpProfessionalContact] = useState<string>('');
+  const [spEnvironmentSafety, setSpEnvironmentSafety] = useState<string>('');
+  const [spExplicitContactConsent, setSpExplicitContactConsent] = useState<boolean>(cleanDefaults.explicitContactStorageConsent);
   const [spSavedMessage, setSpSavedMessage] = useState<string>('');
 
-  // 3. Medication Support (§7) & Multi-Signal Bipolar (§3.5) State
-  const [medName, setMedName] = useState<string>('Lithium Carbonate (Theo toa bác sĩ)');
-  const [medSchedule, setMedSchedule] = useState<string>('20:00 hằng ngày sau bữa tối');
-  const [medIntakeStatus, setMedIntakeStatus] = useState<'taken' | 'missed' | 'uncertain'>('taken');
+  // 3. Medication Support (§7) & Multi-Signal Bipolar (§3.5) State (T04 SAFE-01: Empty regimen & unanswered status!)
+  const [medName, setMedName] = useState<string>('');
+  const [medSchedule, setMedSchedule] = useState<string>('');
+  const [medIntakeStatus, setMedIntakeStatus] = useState<'taken' | 'missed' | 'uncertain' | null>(cleanDefaults.medicationIntakeStatus);
   const [medSideEffectNote, setMedSideEffectNote] = useState<string>('');
   const [medLogs, setMedLogs] = useState<
     Array<{ id: string; name: string; status: 'taken' | 'missed' | 'uncertain'; note: string; time: string }>
   >([]);
-  const [sigReducedSleepNeed, setSigReducedSleepNeed] = useState<boolean>(moodPolarity >= 2);
-  const [sigElevatedIrritable, setSigElevatedIrritable] = useState<boolean>(moodPolarity >= 2);
-  const [sigIncreasedEnergy, setSigIncreasedEnergy] = useState<boolean>(energyLevel >= 2);
+  const [sigReducedSleepNeed, setSigReducedSleepNeed] = useState<boolean>(false);
+  const [sigElevatedIrritable, setSigElevatedIrritable] = useState<boolean>(false);
+  const [sigIncreasedEnergy, setSigIncreasedEnergy] = useState<boolean>(false);
   const [sigRacingThoughts, setSigRacingThoughts] = useState<boolean>(false);
   const [sigImpulsivity, setSigImpulsivity] = useState<boolean>(false);
   const [sigRoutineDeviation, setSigRoutineDeviation] = useState<boolean>(false);
 
-  // 4. FFT Caregiver Granular Consent (§4.7) State
-  const [caregiverName, setCaregiverName] = useState<string>('Người thân đồng hành (Gia đình)');
-  const [cgAllowEarlyWarning, setCgAllowEarlyWarning] = useState<boolean>(true);
-  const [cgAllowFftModules, setCgAllowFftModules] = useState<boolean>(true);
+  // 4. FFT Caregiver Granular Consent (§4.7) State (T04 SAFE-01: Default false / null until patient explicitly invites!)
+  const [caregiverName, setCaregiverName] = useState<string>('');
+  const [cgAllowEarlyWarning, setCgAllowEarlyWarning] = useState<boolean>(false);
+  const [cgAllowFftModules, setCgAllowFftModules] = useState<boolean>(false);
   const [cgAllowRhythmSummary, setCgAllowRhythmSummary] = useState<boolean>(false);
   const [cgAllowPrivateJournals, setCgAllowPrivateJournals] = useState<boolean>(false);
   const [cgAllowSessionContent, setCgAllowSessionContent] = useState<boolean>(false);
   const [cgAllowAssessmentAnswers, setCgAllowAssessmentAnswers] = useState<boolean>(false);
-  const [activeCaregiverGrant, setActiveCaregiverGrant] = useState<CaregiverAccessGrantRecord | null>(() => {
-    const init = createGranularCaregiverAccessGrant({
-      grantId: 'grant-demo-01',
-      patientUserId: 'patient-self',
-      caregiverUserId: 'caregiver-family-01',
-      patientInvitedCaregiver: true,
-    });
-    return init.data ?? null;
-  });
+  const [activeCaregiverGrant, setActiveCaregiverGrant] = useState<CaregiverAccessGrantRecord | null>(
+    cleanDefaults.caregiverAccessGrant,
+  );
 
-  // 5. WHO-5 Well-Being (§6.2) & Clinical Report Preview / Redaction (§10.3)
-  const [who5Items, setWho5Items] = useState<[number, number, number, number, number]>([3, 3, 3, 3, 3]);
+  // 5. WHO-5 Well-Being (§6.2) & Clinical Report Preview / Redaction (§10.3) (T04 SAFE-01: Unanswered by default!)
+  const [who5Items, setWho5Items] = useState<[number | null, number | null, number | null, number | null, number | null]>(
+    cleanDefaults.who5ItemScores,
+  );
   const [redactJournals, setRedactJournals] = useState<boolean>(true);
   const [redactSessions, setRedactSessions] = useState<boolean>(true);
   const [redactRawItems, setRedactRawItems] = useState<boolean>(true);
@@ -327,7 +316,20 @@ export function ClinicalMasterPlanHub({
     );
   }, [activeProtocolId, filteredProtocols]);
 
-  const who5Result = useMemo(() => scoreWho5WellBeing([...who5Items]), [who5Items]);
+  const activeProtocolEligibility = useMemo(
+    () =>
+      evaluateProtocolExecutionEligibility({
+        protocol: activeProtocol,
+        pathwayState: safetyEval.pathwayState,
+      }),
+    [activeProtocol, safetyEval.pathwayState],
+  );
+
+  const isWho5Complete = useMemo(() => who5Items.every((v) => v !== null), [who5Items]);
+  const who5Result = useMemo(
+    () => (isWho5Complete ? scoreWho5WellBeing(who5Items.map((v) => v ?? 0)) : null),
+    [isWho5Complete, who5Items],
+  );
 
   const reportPreview = useMemo(
     () =>
@@ -337,16 +339,14 @@ export function ClinicalMasterPlanHub({
         redactSessionTranscripts: redactSessions,
         redactRawAssessmentItems: redactRawItems,
         redactMedicationNotes: redactMedNotes,
-        selfReportedMoodSummary: `Khí sắc hiện tại: ${moodPolarity}, Năng lượng: ${energyLevel}, Mức căng thẳng: ${distressIntensity}/10, WHO-5: ${who5Result.percentageScore}/100.`,
+        selfReportedMoodSummary: `Khí sắc hiện tại: ${moodPolarity}, Năng lượng: ${energyLevel}, Mức căng thẳng: ${distressIntensity}/10${who5Result ? `, WHO-5: ${who5Result.percentageScore}/100` : ' (WHO-5: Chưa thực hiện)'}.`,
         clinicianEnteredNotesSummary: 'Chưa có ghi chú trực tiếp từ bác sĩ điều trị trong kỳ này.',
-        privateJournals: ['Nhật ký tâm sự cá nhân ngày 23/11: Cảm thấy áp lực công việc và muốn nghỉ ngơi.'],
-        assessments: [
-          { instrumentCode: 'WHO-5', date: '2026-11-23', totalScore: who5Result.percentageScore },
-          { instrumentCode: 'PHQ-9', date: '2026-11-23', totalScore: 6 },
-          { instrumentCode: 'GAD-7', date: '2026-11-23', totalScore: 5 },
-        ],
+        privateJournals: [],
+        assessments: who5Result
+          ? [{ instrumentCode: 'WHO-5', date: new Date().toISOString().slice(0, 10), totalScore: who5Result.percentageScore }]
+          : [],
       }),
-    [redactJournals, redactSessions, redactRawItems, redactMedNotes, moodPolarity, energyLevel, distressIntensity, who5Result.percentageScore],
+    [redactJournals, redactSessions, redactRawItems, redactMedNotes, moodPolarity, energyLevel, distressIntensity, who5Result],
   );
 
   const badgeStyle = WORKFLOW_STATE_BADGE[safetyEval.pathwayState];
@@ -1320,7 +1320,25 @@ export function ClinicalMasterPlanHub({
               </div>
             )}
 
-            {/* Distress-Aware Session Controls (§4.1 Minimum Session Structure & §10.2 Non-Writing / Pause / Skip / Stop) */}
+            {/* Distress-Aware Session Controls & V2 Publication / Delivery Boundary Gate (T04 SAFE-03, SAFE-04) */}
+            {!activeProtocolEligibility.canStartSession ? (
+              <div
+                style={{
+                  padding: '16px',
+                  borderRadius: '14px',
+                  backgroundColor: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  color: '#92400E',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 800, marginBottom: '6px' }}>
+                  🔒 Cổng An toàn & Kiểm duyệt Lâm sàng ({activeProtocolEligibility.blockedReasonCode}):
+                </div>
+                <div>{lang === 'vi' ? activeProtocolEligibility.noticeVi : activeProtocolEligibility.noticeEn}</div>
+              </div>
+            ) : (
             <div
               style={{
                 padding: '16px',
@@ -1606,6 +1624,7 @@ export function ClinicalMasterPlanHub({
                 })()
               )}
             </div>
+            )}
           </div>
         </div>
       )}
@@ -1893,11 +1912,13 @@ export function ClinicalMasterPlanHub({
 
             <button
               type="button"
+              disabled={!medName.trim() || !medIntakeStatus}
               onClick={() => {
+                if (!medName.trim() || !medIntakeStatus) return;
                 setMedLogs((prev) => [
                   {
                     id: `ml-${Date.now()}`,
-                    name: medName,
+                    name: medName.trim(),
                     status: medIntakeStatus,
                     note: medSideEffectNote,
                     time: new Date().toLocaleTimeString(),
@@ -1910,21 +1931,23 @@ export function ClinicalMasterPlanHub({
                 padding: '8px 14px',
                 borderRadius: '10px',
                 border: 'none',
-                backgroundColor: '#3E6359',
+                backgroundColor: !medName.trim() || !medIntakeStatus ? '#94A3B8' : '#3E6359',
                 color: '#FFFFFF',
                 fontWeight: 700,
                 fontSize: '0.84rem',
-                cursor: 'pointer',
+                cursor: !medName.trim() || !medIntakeStatus ? 'not-allowed' : 'pointer',
               }}
             >
               📝 Ghi nhận vào Nhật ký Thuốc
             </button>
 
             <div style={{ marginTop: '10px', fontSize: '0.82rem', color: '#334155' }}>
-              {evaluateMedicationSupportAction({
-                intakeStatus: medIntakeStatus,
-                possibleSideEffectNote: medSideEffectNote,
-              }).guidanceVi}
+              {medIntakeStatus
+                ? evaluateMedicationSupportAction({
+                    intakeStatus: medIntakeStatus,
+                    possibleSideEffectNote: medSideEffectNote,
+                  }).guidanceVi
+                : 'Chưa ghi nhận trạng thái uống thuốc hôm nay (Vui lòng nhập tên thuốc và chọn trạng thái).'}
             </div>
 
             {medLogs.length > 0 && (
@@ -2152,15 +2175,15 @@ export function ClinicalMasterPlanHub({
             ].map((qText, idx) => (
               <div key={qText} style={{ marginBottom: '10px' }}>
                 <div style={{ fontSize: '0.83rem', fontWeight: 600, color: '#1E293B', marginBottom: '4px' }}>
-                  {qText}: <strong>{who5Items[idx]}/5</strong>
+                  {qText}: <strong>{who5Items[idx] === null ? 'Chưa chọn' : `${who5Items[idx]}/5`}</strong>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={5}
-                  value={who5Items[idx]}
+                  value={who5Items[idx] ?? 0}
                   onChange={(e) => {
-                    const next = [...who5Items] as [number, number, number, number, number];
+                    const next = [...who5Items] as [number | null, number | null, number | null, number | null, number | null];
                     next[idx] = Number(e.target.value);
                     setWho5Items(next);
                   }}
@@ -2169,10 +2192,16 @@ export function ClinicalMasterPlanHub({
               </div>
             ))}
 
-            <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', fontSize: '0.84rem', color: '#166534' }}>
-              <strong>{who5Result.labelVi}</strong> (Điểm thô: {who5Result.rawScore}/25)
-              <div style={{ marginTop: '4px', fontSize: '0.8rem' }}>{who5Result.interpretationVi}</div>
-            </div>
+            {who5Result ? (
+              <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', fontSize: '0.84rem', color: '#166534' }}>
+                <strong>{who5Result.labelVi}</strong> (Điểm thô: {who5Result.rawScore}/25)
+                <div style={{ marginTop: '4px', fontSize: '0.8rem' }}>{who5Result.interpretationVi}</div>
+              </div>
+            ) : (
+              <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #CBD5E1', fontSize: '0.83rem', color: '#475569' }}>
+                Chưa có kết quả WHO-5 (Hãy trả lời đủ 5 câu hỏi ở trên nếu bạn muốn tự kiểm tra mức độ an vui).
+              </div>
+            )}
           </div>
 
           {/* User-Controlled Report Preview & Redaction (§10.3) */}

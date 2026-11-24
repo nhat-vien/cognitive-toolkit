@@ -12,3 +12,5 @@ export * from './phase4-sync-clinician-qa.ts';
 export * from './auth-account.ts';
 export * from './sleep-meditation.ts';
 export * from './master-plan-governance.ts';
+export * from './unified-practice-library.ts';
+export * from './v2-data-sync-and-grants.ts';

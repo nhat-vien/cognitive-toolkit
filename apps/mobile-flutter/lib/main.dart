@@ -109,52 +109,18 @@ class AppClinicalStateNotifier extends StateNotifier<AppClinicalState> {
             lastSleepDurationHours: 7.5,
             feltNeedForSleep: FeltNeedForSleep.normal,
             latestAsrmScore: 2,
-            moodLogs: _db.getDailyMoodLogs().isNotEmpty
-                ? _db.getDailyMoodLogs()
-                : [
-                    DailyMoodAndRhythmLog.createValidated(
-                      id: 'log-seed-1',
-                      userId: initialProfile?.userId ?? 'local-user',
-                      loggedAt: DateTime.now().subtract(const Duration(days: 1)),
-                      moodPolarity: 0,
-                      energyLevel: 0,
-                      irritabilityIntensity: 2,
-                      anxietyIntensity: 3,
-                      sleepDurationHours: 7.5,
-                      feltNeedForSleep: FeltNeedForSleep.normal,
-                      ipsrtAnchors: const IpsrtAnchors(
-                        outOfBedTime: '07:05',
-                        firstSocialContactTime: '08:15',
-                        workOrStudyStartTime: '09:00',
-                        dinnerTime: '19:00',
-                        bedTime: '23:00',
-                      ),
-                    ),
-                  ],
+            moodLogs: _db.getDailyMoodLogs(),
             sessions: _db.getSessions(),
             impulseVaultItems: _db.getImpulseVaultItems(),
             worryBoxItems: _db.getWorryBoxItems(),
             exposureSteps: _db.getExposureSteps(),
             assessments: _db.getAssessments(),
             ulyssesContract: UlyssesContract(
-              enabled: true,
+              enabled: false,
               createdAtWhileEuthymic: DateTime.utc(2026, 1, 15),
-              personalManiaProdromes: const [
-                'Ngủ dưới 5 giờ nhưng vẫn tràn trề năng lượng',
-                'Lên kế hoạch mua sắm hoặc dự án lớn lúc 2 giờ sáng',
-                'Nói nhanh, suy nghĩ nhảy vọt',
-              ],
-              personalDepressionProdromes: const [
-                'Không trả lời tin nhắn bạn bè trên 2 ngày',
-                'Ngủ dậy muộn sau 10:00 sáng',
-              ],
-              trustedContacts: const [
-                TrustedContact(
-                  name: 'Người thân Tin cậy (Gia đình)',
-                  relationship: 'Gia đình',
-                  phone: '',
-                ),
-              ],
+              personalManiaProdromes: const [],
+              personalDepressionProdromes: const [],
+              trustedContacts: const [],
             ),
           ),
         );

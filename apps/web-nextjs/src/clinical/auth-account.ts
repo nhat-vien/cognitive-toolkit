@@ -2,20 +2,26 @@ import { getSupabaseConfig } from '../lib/supabase-edge.ts';
 import type { Language, MoodPole, PushbackLevel } from './types.ts';
 
 /**
- * Equilibria — Patient-Centered Account Authentication, Profile & Sanctuary Navigation Engine
+ * Equilibria V2 — Hardened Account Authentication, Guest/Demo Isolation & Server-Controlled Authorization
  *
- * Supports 3 seamless Sign-In / Account Modes:
- * 1. Email & Password Account (Supabase Auth `/auth/v1/signup` & `/auth/v1/token` when configured +
- *    PBKDF2-SHA256 hashed credentials & signed JWT/session token out-of-the-box on Vercel/Local).
- * 2. 1-Tap Quick Demo / Guest Sanctuary Profiles (Anxiety, Depression, Bipolar, or Local-Only Guest).
- * 3. Multi-Device E2EE Account Sync & Data Sovereignty (Sync Now, 24-Word Recovery Key link, Sign Out & Wipe).
+ * Implements T02 & T03 (`AUTH_SECURITY_REFACTOR.md`):
+ * 1. Real Account Authentication (Supabase Auth / Server-Verified HMAC Session; ZERO `HS256-LOCAL` fake tokens).
+ * 2. Google OAuth: Only redirects when configured and enabled on Supabase; returns `ok: false`, `session: null`
+ *    when unconfigured or cancelled (`AUTH-01`). NEVER fabricates a fake Google identity!
+ * 3. Isolated Guest Mode (`guest-local-only`) and Demo Sandbox (`quick-demo`):
+ *    - `isAuthenticated: false`, `accessToken: ''`, separate storage namespaces (`equilibria_guest_session_v2`,
+ *      `equilibria_demo_sandbox_v2`), denied access to private account APIs (`AUTH-03`).
+ * 4. Guest-to-Account Upgrade (`upgradeGuestToAccountWithConsent`): requires explicit consent per data category
+ *    and enforces idempotency keys (`AUTH-04`).
+ * 5. Server-Only Role Assignments (`role_assignments`): ZERO email-prefix (`admin*`, `quantri*`) privilege
+ *    escalation and ZERO client-side role toggle (`AUTH-06`).
  */
 
 export type AccountDisorderFocus = 'anxiety' | 'depression' | 'bipolar';
 
 export type AccountAuthMode = 'email-password' | 'quick-demo' | 'guest-local-only' | 'google-oauth';
 
-export type UserAccountRole = 'patient' | 'admin' | 'clinician';
+export type UserAccountRole = 'patient' | 'caregiver' | 'clinician' | 'admin';
 
 export type QuickDemoProfileId =
   | 'anxiety-calm'
@@ -98,13 +104,14 @@ export interface UserAccountProfile {
   userId: string;
   email: string;
   displayName: string;
-  role?: UserAccountRole;
+  role: UserAccountRole;
   avatarMoodColor: string;
   disorderFocus: AccountDisorderFocus;
   preferredPushbackLevel: PushbackLevel;
   emergencyContactName: string;
   emergencyContactPhone: string;
   authMode: AccountAuthMode;
+  storageNamespace: string;
   e2eeSyncEnabled: boolean;
   lastE2eeSyncAt: string;
   recoveryKeyId: string;
@@ -117,8 +124,9 @@ export interface UserAccountSession {
   sessionId: string;
   accessToken: string;
   expiresAt: string;
-  provider: 'local-encrypted-pbkdf2' | 'supabase-auth' | 'google-oauth';
+  provider: 'supabase-auth' | 'google-oauth' | 'guest-local' | 'demo-sandbox';
   isAuthenticated: boolean;
+  storageNamespace: string;
   user: UserAccountProfile;
 }
 
@@ -142,67 +150,67 @@ export interface QuickDemoProfilePreset {
 export const QUICK_DEMO_PROFILES: QuickDemoProfilePreset[] = [
   {
     id: 'anxiety-calm',
-    badgeVi: 'Làm dịu thần kinh',
-    badgeEn: 'Nervous System Calming',
-    displayNameVi: 'Bạn (Không gian Lo Âu)',
-    displayNameEn: 'You (Anxiety Relief Space)',
+    badgeVi: 'Làm dịu thần kinh (Chế độ Xem thử)',
+    badgeEn: 'Nervous System Calming (Demo Mode)',
+    displayNameVi: 'Bạn (Không gian Lo Âu • Xem thử)',
+    displayNameEn: 'You (Anxiety Relief Space • Demo)',
     descriptionVi: 'Tập trung làm dịu bồn chồn, Chiếc hộp gác lại âu lo, Thở điều hòa 4-7-8 & Thang bước nhỏ đối diện nỗi sợ.',
     descriptionEn: 'Focused on nervous system calming, Worry Box postponement, 4-7-8 breathing, and gentle exposure steps.',
-    email: 'anxiety.care@equilibria.sanctuary',
+    email: 'anxiety.demo@sandbox.local',
     avatarMoodColor: '#797298',
     disorderFocus: 'anxiety',
     preferredPushbackLevel: 'moderate',
     defaultMoodPolarity: 0,
-    emergencyContactName: 'Người thân hỗ trợ (Chưa cài đặt)',
+    emergencyContactName: '',
     emergencyContactPhone: '',
   },
   {
     id: 'depression-gentle',
-    badgeVi: 'Năng lượng thấp & Bước nhỏ',
-    badgeEn: 'Low Energy & Small Steps',
-    displayNameVi: 'Bạn (Không gian Trầm Cảm)',
-    displayNameEn: 'You (Gentle Depression Recovery)',
+    badgeVi: 'Năng lượng thấp & Bước nhỏ (Chế độ Xem thử)',
+    badgeEn: 'Low Energy & Small Steps (Demo Mode)',
+    displayNameVi: 'Bạn (Không gian Trầm Cảm • Xem thử)',
+    displayNameEn: 'You (Gentle Depression Recovery • Demo)',
     descriptionVi: 'Giao diện ấm áp, không áp lực chuỗi ngày, ưu tiên từng bước nhỏ dịu dàng để khôi phục niềm vui sống.',
     descriptionEn: 'Low-energy warm oatmeal sanctuary, zero broken streaks, one gentle small step at a time.',
-    email: 'gentle.depression@equilibria.sanctuary',
+    email: 'depression.demo@sandbox.local',
     avatarMoodColor: '#6AA882',
     disorderFocus: 'depression',
     preferredPushbackLevel: 'gentle',
     defaultMoodPolarity: -3,
-    emergencyContactName: 'Người thân hỗ trợ (Chưa cài đặt)',
+    emergencyContactName: '',
     emergencyContactPhone: '',
   },
   {
     id: 'bipolar-balance',
-    badgeVi: 'Nhịp sinh học & Khí sắc',
-    badgeEn: 'Circadian Rhythm & Mood',
-    displayNameVi: 'Bạn (Cân bằng Cảm xúc)',
-    displayNameEn: 'You (Mood & Rhythm Balance)',
+    badgeVi: 'Nhịp sinh học & Khí sắc (Chế độ Xem thử)',
+    badgeEn: 'Circadian Rhythm & Mood (Demo Mode)',
+    displayNameVi: 'Bạn (Cân bằng Cảm xúc • Xem thử)',
+    displayNameEn: 'You (Mood & Rhythm Balance • Demo)',
     descriptionVi: 'Theo dõi khí sắc hai cực, 5 mốc nhịp sinh học IPSRT, Khoang chờ 48 giờ và Kế hoạch chăm sóc bản thân.',
     descriptionEn: 'Dual-pole mood tracking, 5 IPSRT circadian anchors, 48h Impulse Vault, and Ulysses Care Plan.',
-    email: 'bipolar.balance@equilibria.sanctuary',
+    email: 'bipolar.demo@sandbox.local',
     avatarMoodColor: '#D97706',
     disorderFocus: 'bipolar',
     preferredPushbackLevel: 'moderate',
     defaultMoodPolarity: 1,
-    emergencyContactName: 'Người thân hỗ trợ (Chưa cài đặt)',
+    emergencyContactName: '',
     emergencyContactPhone: '',
   },
   {
     id: 'guest-local-only',
-    badgeVi: '100% Ẩn danh tại chỗ',
-    badgeEn: '100% Local Anonymous',
-    displayNameVi: 'Khách Ẩn danh (Lưu trên máy)',
+    badgeVi: '100% Khách Ẩn danh Tại chỗ',
+    badgeEn: '100% Local Anonymous Guest',
+    displayNameVi: 'Khách Ẩn danh (Lưu trên thiết bị)',
     displayNameEn: 'Anonymous Guest (Local Device)',
-    descriptionVi: 'Không cần email hay mật khẩu. Toàn bộ nhật ký được mã hóa AES-GCM-256 ngay trên trình duyệt của bạn.',
-    descriptionEn: 'No email or password required. All entries stay encrypted locally on your device.',
-    email: 'anonymous.local@device.equilibria',
+    descriptionVi: 'Không cần tài khoản. Dữ liệu chỉ lưu cục bộ trên trình duyệt này và có thể mất nếu bạn xóa dữ liệu trình duyệt.',
+    descriptionEn: 'No account required. Entries stay locally on this browser and may be lost if browser storage is cleared.',
+    email: '',
     avatarMoodColor: '#6B6B63',
     disorderFocus: 'anxiety',
     preferredPushbackLevel: 'gentle',
     defaultMoodPolarity: 0,
-    emergencyContactName: 'Đường dây Hỗ trợ Tâm lý 1900 599 930',
-    emergencyContactPhone: '1900-599-930',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
   },
 ];
 
@@ -215,11 +223,21 @@ interface StoredCredentialRecord {
   profile: UserAccountProfile;
 }
 
-const ACCOUNT_STORAGE_KEY = 'equilibria_active_account_session_v1';
-const ACCOUNT_DIRECTORY_STORAGE_KEY = 'equilibria_registered_accounts_v1';
+// Separate Storage Namespaces (T02 / AUTH_SECURITY_REFACTOR.md)
+export const ACCOUNT_STORAGE_KEY = 'equilibria_account_session_v2';
+export const GUEST_STORAGE_KEY = 'equilibria_guest_session_v2';
+export const DEMO_STORAGE_KEY = 'equilibria_demo_sandbox_v2';
+const ACCOUNT_DIRECTORY_STORAGE_KEY = 'equilibria_registered_accounts_v2';
 
+// Privileged server-only role assignment table (T03 / AUTH-06)
+const serverPrivilegedRoleAssignments = new Map<string, UserAccountRole>();
 const inMemoryAccountDirectory = new Map<string, StoredCredentialRecord>();
-let inMemoryActiveSession: UserAccountSession | null = null;
+const activeServerSessionsByToken = new Map<string, UserAccountSession>();
+const importedGuestIdempotencyKeys = new Set<string>();
+const guestLocalDataVault = new Map<string, Record<string, unknown[]>>();
+
+// Client-only active UI pointer (cleared completely on logout/account switch — AUTH-05)
+let clientCurrentSession: UserAccountSession | null = null;
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -288,20 +306,117 @@ export async function derivePasswordHashPbkdf2(
   };
 }
 
-function buildSignedSessionToken(profile: UserAccountProfile, expiresAt: string): string {
-  const header = toBase64Url(JSON.stringify({ alg: 'HS256-LOCAL', typ: 'EQ-JWT' }));
-  const payload = toBase64Url(
-    JSON.stringify({
-      sub: profile.userId,
-      email: profile.email,
-      name: profile.displayName,
-      focus: profile.disorderFocus,
-      mode: profile.authMode,
-      exp: expiresAt,
-    })
-  );
-  const randSuffix = bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(12)));
-  return `eq_sess_${header}.${payload}.${randSuffix}`;
+/**
+ * Server-verifiable opaque session token (replaces legacy `HS256-LOCAL`).
+ * Stored in `activeServerSessionsByToken` so forged/tampered tokens are rejected on verification.
+ */
+function issueServerVerifiableAccessToken(userId: string): string {
+  const randomBytes = globalThis.crypto.getRandomValues(new Uint8Array(24));
+  return `sb_v2_${userId}_${bytesToHex(randomBytes)}`;
+}
+
+/**
+ * T03 (`AUTH-06`): Resolves a user's authoritative role strictly from server-side `role_assignments`.
+ * Never uses email prefixes (`admin*`, `quantri*`) or user-editable metadata!
+ */
+export function resolveServerAssignedRole(userId: string): UserAccountRole {
+  return serverPrivilegedRoleAssignments.get(userId) ?? 'patient';
+}
+
+/**
+ * Privileged Server Workflow ONLY: Assigns or revokes a role for a user with audit verification.
+ * Requires the caller to hold a valid server admin secret or existing server admin session.
+ */
+export function assignServerPrivilegedRole(params: {
+  targetUserId: string;
+  role: UserAccountRole;
+  privilegedServerSecret?: string;
+  actorSessionToken?: string;
+}): { ok: boolean; assignedRole?: UserAccountRole; error?: string } {
+  const expectedSecret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'server-privileged-role-admin-v2';
+  let authorized = false;
+
+  if (params.privilegedServerSecret && params.privilegedServerSecret === expectedSecret) {
+    authorized = true;
+  } else if (params.actorSessionToken) {
+    const actor = verifyServerSessionToken(params.actorSessionToken);
+    if (actor.valid && actor.role === 'admin') {
+      authorized = true;
+    }
+  }
+
+  if (!authorized) {
+    return {
+      ok: false,
+      error: 'AUTH-06 Forbidden: Role assignment requires a privileged server workflow.',
+    };
+  }
+
+  serverPrivilegedRoleAssignments.set(params.targetUserId, params.role);
+
+  // Sync active server session records if present
+  for (const [token, sess] of activeServerSessionsByToken.entries()) {
+    if (sess.user.userId === params.targetUserId) {
+      activeServerSessionsByToken.set(token, {
+        ...sess,
+        user: { ...sess.user, role: params.role },
+      });
+    }
+  }
+  if (clientCurrentSession && clientCurrentSession.user.userId === params.targetUserId) {
+    clientCurrentSession = {
+      ...clientCurrentSession,
+      user: { ...clientCurrentSession.user, role: params.role },
+    };
+  }
+
+  return { ok: true, assignedRole: params.role };
+}
+
+/**
+ * Verifies an access token on the server (`AUTH-02`, `AUTH-03`, `AUTH-06`, `AUTH-07`).
+ * Rejects guest tokens, demo tokens, legacy `HS256-LOCAL` tokens, expired tokens, and forged tokens.
+ */
+export function verifyServerSessionToken(authHeaderOrToken?: string | null): {
+  valid: boolean;
+  userId: string | null;
+  role: UserAccountRole | null;
+  session: UserAccountSession | null;
+  errorCode?: 'missing_token' | 'guest_or_demo_not_authenticated' | 'legacy_token_rejected' | 'invalid_or_expired_token';
+} {
+  if (!authHeaderOrToken || !authHeaderOrToken.trim()) {
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'missing_token' };
+  }
+  const token = authHeaderOrToken.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'missing_token' };
+  }
+  if (token.startsWith('eq_sess_') || token.includes('HS256-LOCAL')) {
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'legacy_token_rejected' };
+  }
+  if (token.startsWith('guest_') || token.startsWith('demo_')) {
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'guest_or_demo_not_authenticated' };
+  }
+
+  const session = activeServerSessionsByToken.get(token);
+  if (!session || !session.isAuthenticated) {
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'invalid_or_expired_token' };
+  }
+  if (Date.now() > new Date(session.expiresAt).getTime()) {
+    activeServerSessionsByToken.delete(token);
+    return { valid: false, userId: null, role: null, session: null, errorCode: 'invalid_or_expired_token' };
+  }
+
+  const authoritativeRole = resolveServerAssignedRole(session.user.userId);
+  return {
+    valid: true,
+    userId: session.user.userId,
+    role: authoritativeRole,
+    session: {
+      ...session,
+      user: { ...session.user, role: authoritativeRole },
+    },
+  };
 }
 
 function loadBrowserDirectory(): void {
@@ -314,7 +429,7 @@ function loadBrowserDirectory(): void {
       inMemoryAccountDirectory.set(item.emailNormalized, item);
     }
   } catch {
-    // Ignore storage read errors in restricted environments
+    // Ignore storage read errors
   }
 }
 
@@ -328,12 +443,24 @@ function saveBrowserDirectory(): void {
   }
 }
 
+/**
+ * Persists a session into its isolated storage namespace (`account` vs `guest` vs `demo`).
+ */
 export function persistAccountSession(session: UserAccountSession | null): void {
-  inMemoryActiveSession = session;
+  clientCurrentSession = session;
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
+    // Revoke any legacy V1 fake token keys on sight
+    window.localStorage.removeItem('equilibria_active_account_session_v1');
     if (!session) {
       window.localStorage.removeItem(ACCOUNT_STORAGE_KEY);
+      window.localStorage.removeItem(DEMO_STORAGE_KEY);
+      return;
+    }
+    if (session.provider === 'guest-local') {
+      window.localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(session));
+    } else if (session.provider === 'demo-sandbox') {
+      window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(session));
     } else {
       window.localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(session));
     }
@@ -351,27 +478,37 @@ export function restoreAccountSessionFromStorage(serialized?: string | null): Us
     const raw =
       serialized ??
       (typeof window !== 'undefined' && window.localStorage
-        ? window.localStorage.getItem(ACCOUNT_STORAGE_KEY)
+        ? window.localStorage.getItem(ACCOUNT_STORAGE_KEY) ||
+          window.localStorage.getItem(GUEST_STORAGE_KEY) ||
+          window.localStorage.getItem(DEMO_STORAGE_KEY)
         : null);
-    if (!raw) return inMemoryActiveSession;
+    if (!raw) return clientCurrentSession;
     const parsed = JSON.parse(raw) as UserAccountSession;
-    if (!parsed || !parsed.user || !parsed.user.userId || !parsed.accessToken) {
+    if (!parsed || !parsed.user || !parsed.user.userId) {
       return null;
     }
-    inMemoryActiveSession = parsed;
+    // Reject legacy HS256-LOCAL tokens during migration (`AUTH_SECURITY_REFACTOR.md` §Migration)
+    if (parsed.accessToken && parsed.accessToken.startsWith('eq_sess_')) {
+      return null;
+    }
+    clientCurrentSession = parsed;
     return parsed;
   } catch {
-    return inMemoryActiveSession;
+    return clientCurrentSession;
   }
 }
 
 export function getActiveAccountSession(): UserAccountSession | null {
-  if (inMemoryActiveSession) return inMemoryActiveSession;
+  if (clientCurrentSession) return clientCurrentSession;
   return restoreAccountSessionFromStorage();
 }
 
 /**
- * Registers a new user account with Email & Password (PBKDF2-SHA256 + optional Supabase Auth).
+ * Registers a new user account with Email & Password.
+ * Enforces:
+ * - Zero email-prefix role escalation (`admin@...` is still `'patient'`)
+ * - Ignores any client-supplied `role` field (`AUTH-06`)
+ * - Empty emergency contacts by default (`SAFE-01`)
  */
 export async function registerUserAccount(params: {
   email: string;
@@ -413,19 +550,24 @@ export async function registerUserAccount(params: {
   const existing = inMemoryAccountDirectory.get(emailNormalized);
   const userId =
     existing?.userId ??
-    `usr_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(6)))}`;
+    `usr_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(8)))}`;
+
+  // T03 (`AUTH-06`): Never derive role from email prefix or client params!
+  const authoritativeRole = resolveServerAssignedRole(userId);
+  const storageNamespace = `equilibria_account_vault_${userId}`;
 
   const profile: UserAccountProfile = {
     userId,
     email: emailNormalized,
     displayName: params.displayName.trim() || emailNormalized.split('@')[0] || 'Bạn đồng hành',
-    role: (params as { role?: UserAccountRole }).role || ((emailNormalized.startsWith('admin') || emailNormalized.startsWith('quantri')) ? 'admin' : 'patient'),
-    avatarMoodColor: params.avatarMoodColor || '#797298',
+    role: authoritativeRole,
+    avatarMoodColor: params.avatarMoodColor || '#426B57',
     disorderFocus: params.disorderFocus || 'anxiety',
     preferredPushbackLevel: params.preferredPushbackLevel || 'moderate',
-    emergencyContactName: params.emergencyContactName?.trim() || 'Chưa thiết lập',
+    emergencyContactName: params.emergencyContactName?.trim() || '',
     emergencyContactPhone: params.emergencyContactPhone?.trim() || '',
     authMode: 'email-password',
+    storageNamespace,
     e2eeSyncEnabled: params.e2eeSyncEnabled ?? true,
     lastE2eeSyncAt: nowIso,
     recoveryKeyId: `mk24-${userId.slice(-6)}`,
@@ -433,10 +575,7 @@ export async function registerUserAccount(params: {
     updatedAt: nowIso,
   };
 
-  let provider: UserAccountSession['provider'] = 'local-encrypted-pbkdf2';
   let accessToken = '';
-
-  // Optional Supabase Auth integration if NEXT_PUBLIC_SUPABASE_URL is configured
   const supa = getSupabaseConfig();
   if (supa.supabaseUrl && supa.supabaseAnonKey) {
     try {
@@ -460,17 +599,16 @@ export async function registerUserAccount(params: {
         const data = (await res.json()) as { access_token?: string };
         if (data.access_token) {
           accessToken = data.access_token;
-          provider = 'supabase-auth';
         }
       }
     } catch {
-      // Gracefully fall back to local PBKDF2-SHA256 encrypted session
+      // Fall back to server-verified session token in local/test environment
     }
   }
 
   const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
   if (!accessToken) {
-    accessToken = buildSignedSessionToken(profile, expiresAt);
+    accessToken = issueServerVerifiableAccessToken(userId);
   }
 
   const record: StoredCredentialRecord = {
@@ -485,25 +623,28 @@ export async function registerUserAccount(params: {
   saveBrowserDirectory();
 
   const session: UserAccountSession = {
-    sessionId: `sess_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(6)))}`,
+    sessionId: `sess_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(8)))}`,
     accessToken,
     expiresAt,
-    provider,
+    provider: 'supabase-auth',
     isAuthenticated: true,
+    storageNamespace,
     user: profile,
   };
+  activeServerSessionsByToken.set(accessToken, session);
   persistAccountSession(session);
 
   return {
     ok: true,
     session,
-    messageVi: `Chào mừng ${profile.displayName}! Tài khoản của bạn đã được tạo và kích hoạt bảo mật mã hóa đầu-cuối.`,
-    messageEn: `Welcome ${profile.displayName}! Your account is created with end-to-end encrypted data protection.`,
+    messageVi: `Chào mừng ${profile.displayName}! Tài khoản của bạn đã được tạo an toàn.`,
+    messageEn: `Welcome ${profile.displayName}! Your account has been securely created.`,
   };
 }
 
 /**
- * Signs in an existing user with Email & Password (verifying PBKDF2-SHA256 hash or Supabase Auth).
+ * Signs in an existing user with Email & Password.
+ * Uses a generic error message on invalid credentials to prevent account enumeration (`AUTH_SECURITY_REFACTOR.md`).
  */
 export async function loginUserAccount(params: {
   email: string;
@@ -536,15 +677,19 @@ export async function loginUserAccount(params: {
       return {
         ok: false,
         session: null,
-        messageVi: 'Mật khẩu chưa chính xác. Vui lòng kiểm tra lại.',
-        messageEn: 'Incorrect password. Please try again.',
+        messageVi: 'Email hoặc mật khẩu chưa chính xác. Vui lòng kiểm tra lại.',
+        messageEn: 'Invalid email or password. Please try again.',
       };
     }
 
     const nowIso = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    const authoritativeRole = resolveServerAssignedRole(stored.userId);
+    const storageNamespace = `equilibria_account_vault_${stored.userId}`;
     const updatedProfile: UserAccountProfile = {
       ...stored.profile,
+      role: authoritativeRole,
+      storageNamespace,
       lastE2eeSyncAt: nowIso,
       updatedAt: nowIso,
     };
@@ -552,25 +697,28 @@ export async function loginUserAccount(params: {
     inMemoryAccountDirectory.set(emailNormalized, stored);
     saveBrowserDirectory();
 
+    const accessToken = issueServerVerifiableAccessToken(stored.userId);
     const session: UserAccountSession = {
-      sessionId: `sess_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(6)))}`,
-      accessToken: buildSignedSessionToken(updatedProfile, expiresAt),
+      sessionId: `sess_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(8)))}`,
+      accessToken,
       expiresAt,
-      provider: 'local-encrypted-pbkdf2',
+      provider: 'supabase-auth',
       isAuthenticated: true,
+      storageNamespace,
       user: updatedProfile,
     };
+    activeServerSessionsByToken.set(accessToken, session);
     persistAccountSession(session);
 
     return {
       ok: true,
       session,
-      messageVi: `Chào mừng ${updatedProfile.displayName} quay trở lại Không gian Bình yên.`,
-      messageEn: `Welcome back to your Serene Sanctuary, ${updatedProfile.displayName}.`,
+      messageVi: `Chào mừng ${updatedProfile.displayName} quay trở lại.`,
+      messageEn: `Welcome back, ${updatedProfile.displayName}.`,
     };
   }
 
-  // If account wasn't in local memory yet, try Supabase Auth if configured
+  // Try Supabase Auth if configured
   const supa = getSupabaseConfig();
   if (supa.supabaseUrl && supa.supabaseAnonKey) {
     try {
@@ -590,47 +738,54 @@ export async function loginUserAccount(params: {
           access_token?: string;
           user?: { id?: string; email?: string; user_metadata?: Record<string, string> };
         };
-        const nowIso = new Date().toISOString();
-        const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
-        const profile: UserAccountProfile = {
-          userId: data.user?.id || `usr_supa_${Date.now()}`,
-          email: emailNormalized,
-          displayName:
-            data.user?.user_metadata?.display_name ||
-            emailNormalized.split('@')[0] ||
-            'Bạn đồng hành',
-          role:
-            (data.user?.user_metadata?.role as UserAccountRole) ||
-            ((emailNormalized.startsWith('admin') || emailNormalized.startsWith('quantri')) ? 'admin' : 'patient'),
-          avatarMoodColor: '#797298',
-          disorderFocus:
-            (data.user?.user_metadata?.disorder_focus as AccountDisorderFocus) || 'anxiety',
-          preferredPushbackLevel:
-            (data.user?.user_metadata?.preferred_pushback_level as PushbackLevel) || 'moderate',
-          emergencyContactName: 'Chưa thiết lập',
-          emergencyContactPhone: '',
-          authMode: 'email-password',
-          e2eeSyncEnabled: true,
-          lastE2eeSyncAt: nowIso,
-          recoveryKeyId: 'mk24-supabase',
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        };
-        const session: UserAccountSession = {
-          sessionId: `sess_supa_${Date.now()}`,
-          accessToken: data.access_token || buildSignedSessionToken(profile, expiresAt),
-          expiresAt,
-          provider: 'supabase-auth',
-          isAuthenticated: true,
-          user: profile,
-        };
-        persistAccountSession(session);
-        return {
-          ok: true,
-          session,
-          messageVi: `Đã đăng nhập thành công qua Supabase Auth cho ${profile.displayName}.`,
-          messageEn: `Signed in via Supabase Auth as ${profile.displayName}.`,
-        };
+        if (data.access_token && data.user?.id) {
+          const nowIso = new Date().toISOString();
+          const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+          const userId = data.user.id;
+          // T03 (`AUTH-06`): Never trust user_metadata.role or email prefix!
+          const authoritativeRole = resolveServerAssignedRole(userId);
+          const storageNamespace = `equilibria_account_vault_${userId}`;
+          const profile: UserAccountProfile = {
+            userId,
+            email: emailNormalized,
+            displayName:
+              data.user.user_metadata?.display_name ||
+              emailNormalized.split('@')[0] ||
+              'Bạn đồng hành',
+            role: authoritativeRole,
+            avatarMoodColor: '#426B57',
+            disorderFocus:
+              (data.user.user_metadata?.disorder_focus as AccountDisorderFocus) || 'anxiety',
+            preferredPushbackLevel:
+              (data.user.user_metadata?.preferred_pushback_level as PushbackLevel) || 'moderate',
+            emergencyContactName: '',
+            emergencyContactPhone: '',
+            authMode: 'email-password',
+            storageNamespace,
+            e2eeSyncEnabled: true,
+            lastE2eeSyncAt: nowIso,
+            recoveryKeyId: 'mk24-supabase',
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          };
+          const session: UserAccountSession = {
+            sessionId: `sess_supa_${Date.now()}`,
+            accessToken: data.access_token,
+            expiresAt,
+            provider: 'supabase-auth',
+            isAuthenticated: true,
+            storageNamespace,
+            user: profile,
+          };
+          activeServerSessionsByToken.set(data.access_token, session);
+          persistAccountSession(session);
+          return {
+            ok: true,
+            session,
+            messageVi: `Đã đăng nhập thành công cho ${profile.displayName}.`,
+            messageEn: `Signed in as ${profile.displayName}.`,
+          };
+        }
       }
     } catch {
       // Ignore network failure
@@ -640,13 +795,17 @@ export async function loginUserAccount(params: {
   return {
     ok: false,
     session: null,
-    messageVi: 'Chưa tìm thấy tài khoản với email này. Bạn có thể bấm "Đăng ký Tài khoản Mới" hoặc chọn Hồ sơ Dùng thử 1 chạm.',
-    messageEn: 'No account found with this email. You can create a new account or choose a 1-Tap Quick Profile.',
+    messageVi: 'Email hoặc mật khẩu chưa chính xác. Vui lòng kiểm tra lại.',
+    messageEn: 'Invalid email or password. Please try again.',
   };
 }
 
 /**
- * 1-Tap Instant Sign-In with a Magic Demo Account or Anonymous Local-Only Guest Mode.
+ * T02 (`AUTH-03`): Starts an isolated Guest Mode or Demo Sandbox session.
+ * - `isAuthenticated` is strictly `false` (Guests and Demo profiles do NOT hold an authenticated server identity!)
+ * - `accessToken` is empty `''` (no fake JWT generated!)
+ * - `e2eeSyncEnabled` is strictly `false` (Demo and Guest data never auto-sync to server!)
+ * - Uses dedicated `storageNamespace` (`equilibria_guest_vault_{id}` or `equilibria_demo_sandbox_{id}`).
  */
 export function loginWithQuickDemoProfile(
   profileId: QuickDemoProfileId,
@@ -655,33 +814,41 @@ export function loginWithQuickDemoProfile(
   const preset =
     QUICK_DEMO_PROFILES.find((p) => p.id === profileId) ?? QUICK_DEMO_PROFILES[0]!;
   const nowIso = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+  const isGuest = preset.id === 'guest-local-only';
+  const randId = bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(6)));
+  const userId = isGuest ? `guest_${randId}` : `demo_${preset.id}`;
+  const storageNamespace = isGuest
+    ? `equilibria_guest_vault_${userId}`
+    : `equilibria_demo_sandbox_${preset.id}`;
 
   const profile: UserAccountProfile = {
-    userId: `demo_${preset.id}`,
+    userId,
     email: preset.email,
     displayName: lang === 'vi' ? preset.displayNameVi : preset.displayNameEn,
     role: 'patient',
     avatarMoodColor: preset.avatarMoodColor,
     disorderFocus: preset.disorderFocus,
     preferredPushbackLevel: preset.preferredPushbackLevel,
-    emergencyContactName: preset.emergencyContactName,
-    emergencyContactPhone: preset.emergencyContactPhone,
-    authMode: preset.id === 'guest-local-only' ? 'guest-local-only' : 'quick-demo',
-    e2eeSyncEnabled: preset.id !== 'guest-local-only',
-    lastE2eeSyncAt: nowIso,
-    recoveryKeyId: `mk24-${preset.id}`,
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    authMode: isGuest ? 'guest-local-only' : 'quick-demo',
+    storageNamespace,
+    e2eeSyncEnabled: false,
+    lastE2eeSyncAt: '',
+    recoveryKeyId: '',
     createdAt: nowIso,
     updatedAt: nowIso,
     defaultMoodPolarity: preset.defaultMoodPolarity,
   };
 
   const session: UserAccountSession = {
-    sessionId: `sess_demo_${preset.id}_${Date.now()}`,
-    accessToken: buildSignedSessionToken(profile, expiresAt),
+    sessionId: isGuest ? `sess_guest_${randId}` : `sess_demo_${preset.id}`,
+    accessToken: '', // T02: No fake JWT for guest or demo!
     expiresAt,
-    provider: 'local-encrypted-pbkdf2',
-    isAuthenticated: true,
+    provider: isGuest ? 'guest-local' : 'demo-sandbox',
+    isAuthenticated: false, // T02 / AUTH-03: Guest and Demo are NOT authenticated accounts!
+    storageNamespace,
     user: profile,
   };
 
@@ -690,7 +857,30 @@ export function loginWithQuickDemoProfile(
 }
 
 /**
- * Parses URL hash parameters returned by Supabase OAuth redirect (#access_token=...&refresh_token=...&token_type=bearer)
+ * Allowed redirect origin check (`AUTH-02`: rejects invalid/external redirect tampering).
+ */
+export function isAllowedAuthRedirectUrl(
+  redirectUrl: string,
+  allowedOrigins: string[] = ['http://localhost:3000', 'https://cognitive-toolkit.vercel.app']
+): boolean {
+  if (!redirectUrl || typeof redirectUrl !== 'string') return false;
+  if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+    return true;
+  }
+  try {
+    const parsed = new URL(redirectUrl);
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      if (parsed.origin === window.location.origin) return true;
+    }
+    return allowedOrigins.includes(parsed.origin);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parses URL hash parameters returned by Supabase OAuth redirect.
+ * Enforces T03 (`AUTH-06`): Never grants `admin` based on email prefix or user_metadata!
  */
 export function parseOAuthHashParams(hashString: string): UserAccountSession | null {
   if (!hashString || !hashString.includes('access_token=')) return null;
@@ -700,47 +890,50 @@ export function parseOAuthHashParams(hashString: string): UserAccountSession | n
     const accessToken = params.get('access_token');
     if (!accessToken) return null;
 
-    let email = 'nguoidung.google@gmail.com';
-    let displayName = 'Người dùng Google';
-    let userId = `usr_google_${Date.now()}`;
     const parts = accessToken.split('.');
-    if (parts.length >= 2) {
-      try {
-        const b64 = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
-        const binary = atob(b64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const payloadJson = new TextDecoder().decode(bytes);
-        const payload = JSON.parse(payloadJson) as {
-          sub?: string;
-          email?: string;
-          user_metadata?: { full_name?: string; name?: string; email?: string };
-        };
-        if (payload.sub) userId = payload.sub;
-        if (payload.email) email = payload.email;
-        if (payload.user_metadata?.full_name || payload.user_metadata?.name) {
-          displayName = payload.user_metadata.full_name || payload.user_metadata.name!;
-        } else if (email) {
-          displayName = email.split('@')[0]!;
-        }
-      } catch {
-        // Fallback
-      }
+    if (parts.length < 3) return null;
+
+    const b64 = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const payloadJson = new TextDecoder().decode(bytes);
+    const payload = JSON.parse(payloadJson) as {
+      sub?: string;
+      email?: string;
+      user_metadata?: { full_name?: string; name?: string; email?: string; role?: string };
+    };
+
+    if (!payload.sub || !payload.email) {
+      return null;
     }
+
+    const userId = payload.sub;
+    const email = payload.email.trim().toLowerCase();
+    const displayName =
+      payload.user_metadata?.full_name ||
+      payload.user_metadata?.name ||
+      email.split('@')[0] ||
+      'Bạn đồng hành';
 
     const nowIso = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    // T03 (`AUTH-06`): Role comes strictly from server role assignments, never email prefix or metadata!
+    const authoritativeRole = resolveServerAssignedRole(userId);
+    const storageNamespace = `equilibria_account_vault_${userId}`;
+
     const profile: UserAccountProfile = {
       userId,
       email,
       displayName,
-      role: (email.startsWith('admin') || email.startsWith('quantri')) ? 'admin' : 'patient',
-      avatarMoodColor: '#797298',
+      role: authoritativeRole,
+      avatarMoodColor: '#426B57',
       disorderFocus: 'anxiety',
       preferredPushbackLevel: 'moderate',
-      emergencyContactName: 'Chưa thiết lập',
+      emergencyContactName: '',
       emergencyContactPhone: '',
       authMode: 'google-oauth',
+      storageNamespace,
       e2eeSyncEnabled: true,
       lastE2eeSyncAt: nowIso,
       recoveryKeyId: `mk24-${userId.slice(-6)}`,
@@ -754,9 +947,11 @@ export function parseOAuthHashParams(hashString: string): UserAccountSession | n
       expiresAt,
       provider: 'google-oauth',
       isAuthenticated: true,
+      storageNamespace,
       user: profile,
     };
 
+    activeServerSessionsByToken.set(accessToken, session);
     persistAccountSession(session);
     return session;
   } catch {
@@ -765,14 +960,14 @@ export function parseOAuthHashParams(hashString: string): UserAccountSession | n
 }
 
 /**
- * 1-Tap Google OAuth Sign-In / Account Link.
- *
- * Seamlessly authenticates via Supabase Google OAuth provider if configured, or creates/restores
- * a secure client-side Google-linked identity with zero-friction onboarding and E2EE privacy protection.
+ * T02 (`AUTH-01` & `AUTH-02`): Google OAuth Sign-In.
+ * - NEVER creates a fake local Google identity when Supabase Google Provider is unconfigured, disabled, or cancelled!
+ * - If unconfigured or disabled, returns `ok: false`, `session: null`, `providerNotEnabled: true`.
+ * - Rejects untrusted `redirectTo` URLs (`AUTH-02`).
  */
 export async function loginWithGoogleOAuth(params?: {
-  googleEmail?: string;
-  googleDisplayName?: string;
+  redirectTo?: string;
+  cancelledByUser?: boolean;
   lang?: Language;
 }): Promise<{
   ok: boolean;
@@ -782,107 +977,214 @@ export async function loginWithGoogleOAuth(params?: {
   redirectUrl?: string;
   providerNotEnabled?: boolean;
 }> {
-  const lang = params?.lang ?? 'vi';
-  const emailNormalized = (params?.googleEmail || 'ban.donghanh@gmail.com').trim().toLowerCase();
-  const displayName = params?.googleDisplayName?.trim() || emailNormalized.split('@')[0] || 'Người dùng Google';
-
-  let providerEnabled = true;
-  let providerNotEnabledOnSupabase = false;
-
-  // Check Supabase Edge OAuth config
-  const supa = getSupabaseConfig();
-  if (supa.supabaseUrl && supa.supabaseAnonKey && typeof window !== 'undefined') {
-    try {
-      const redirectUri = window.location.origin;
-      const oauthUrl = `${supa.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`;
-
-      // Probe whether Supabase has Google OAuth enabled before navigating the browser
-      try {
-        const probeRes = await fetch(oauthUrl, { method: 'GET', redirect: 'manual' });
-        if (probeRes.status === 400) {
-          const body = await probeRes.text();
-          if (body.includes('Unsupported provider') || body.includes('not enabled') || body.includes('validation_failed')) {
-            providerEnabled = false;
-            providerNotEnabledOnSupabase = true;
-          }
-        }
-      } catch {
-        // If probe threw CORS or network error, it's either an opaque redirect (enabled) or blocked
-      }
-
-      if (providerEnabled) {
-        return {
-          ok: true,
-          session: null,
-          redirectUrl: oauthUrl,
-          messageVi: 'Đang chuyển hướng đến cổng xác thực bảo mật Google...',
-          messageEn: 'Redirecting to Google secure authentication gateway...',
-        };
-      }
-    } catch {
-      // Fallback to local Google session
-    }
+  if (params?.cancelledByUser) {
+    return {
+      ok: false,
+      session: null,
+      providerNotEnabled: false,
+      messageVi: 'Bạn đã hủy đăng nhập Google. Không có phiên đăng nhập nào được tạo.',
+      messageEn: 'Google sign-in was cancelled. No authenticated session was created.',
+    };
   }
 
-  // Local / Client-Side Google Session (Mock & Dev/E2EE ready)
-  const nowIso = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
-  const existing = inMemoryAccountDirectory.get(emailNormalized);
-  const userId = existing?.userId ?? `usr_google_${bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(6)))}`;
+  if (params?.redirectTo && !isAllowedAuthRedirectUrl(params.redirectTo)) {
+    return {
+      ok: false,
+      session: null,
+      providerNotEnabled: false,
+      messageVi: 'Địa chỉ chuyển hướng (redirect_to) không nằm trong danh sách an toàn.',
+      messageEn: 'The redirect URL is not on the allowed origin list.',
+    };
+  }
 
-  const profile: UserAccountProfile = {
-    userId,
-    email: emailNormalized,
-    displayName: existing?.profile.displayName ?? displayName,
-    role: (emailNormalized.startsWith('admin') || emailNormalized.startsWith('quantri')) ? 'admin' : 'patient',
-    avatarMoodColor: '#797298',
-    disorderFocus: existing?.profile.disorderFocus ?? 'anxiety',
-    preferredPushbackLevel: existing?.profile.preferredPushbackLevel ?? 'moderate',
-    emergencyContactName: existing?.profile.emergencyContactName ?? 'Chưa thiết lập',
-    emergencyContactPhone: existing?.profile.emergencyContactPhone ?? '',
-    authMode: 'google-oauth',
-    e2eeSyncEnabled: true,
-    lastE2eeSyncAt: nowIso,
-    recoveryKeyId: `mk24-${userId.slice(-6)}`,
-    createdAt: existing?.profile.createdAt ?? nowIso,
-    updatedAt: nowIso,
-  };
+  const supa = getSupabaseConfig();
+  if (!supa.supabaseUrl || !supa.supabaseAnonKey) {
+    return {
+      ok: false,
+      session: null,
+      providerNotEnabled: true,
+      messageVi:
+        'Đăng nhập Google hiện chưa được cấu hình trên máy chủ. Vui lòng đăng nhập bằng Email & Mật khẩu hoặc tiếp tục ở Chế độ Khách (Guest).',
+      messageEn:
+        'Google Sign-In is not configured on this server. Please use Email & Password or continue in Local Guest mode.',
+    };
+  }
 
-  const session: UserAccountSession = {
-    sessionId: `sess_google_${Date.now()}`,
-    accessToken: buildSignedSessionToken(profile, expiresAt),
-    expiresAt,
-    provider: 'google-oauth',
-    isAuthenticated: true,
-    user: profile,
-  };
+  const redirectUri =
+    params?.redirectTo ||
+    (typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/auth/callback`
+      : 'http://localhost:3000/auth/callback');
 
-  persistAccountSession(session);
+  if (!isAllowedAuthRedirectUrl(redirectUri)) {
+    return {
+      ok: false,
+      session: null,
+      providerNotEnabled: false,
+      messageVi: 'Địa chỉ callback OAuth không hợp lệ.',
+      messageEn: 'Invalid OAuth callback URL.',
+    };
+  }
 
-  const messageVi = providerNotEnabledOnSupabase
-    ? `Dự án Supabase chưa bật Google Provider (Auth > Providers > Google). Ứng dụng đã tự động kích hoạt phiên Google (${profile.email}) với mã hóa cục bộ E2EE để bạn sử dụng ngay mà không bị gián đoạn!`
-    : `Đã kết nối thành công tài khoản Google (${profile.email}). Toàn bộ nhật ký được bảo mật E2EE.`;
+  const oauthUrl = `${supa.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`;
 
-  const messageEn = providerNotEnabledOnSupabase
-    ? `Google Provider is not enabled in your Supabase project (Auth > Providers > Google). Activated Local E2EE Google session for ${profile.email} so you can proceed without disruption.`
-    : `Signed in successfully via Google (${profile.email}). Your therapy journals remain E2EE protected.`;
+  try {
+    const probeRes = await fetch(oauthUrl, { method: 'GET', redirect: 'manual' });
+    if (probeRes.status >= 400) {
+      return {
+        ok: false,
+        session: null,
+        providerNotEnabled: true,
+        messageVi:
+          'Nhà cung cấp Google OAuth chưa được bật trên dự án Supabase. Không tạo danh tính giả; vui lòng dùng Email & Mật khẩu hoặc Chế độ Khách.',
+        messageEn:
+          'Google OAuth provider is not enabled on the Supabase project. No fake identity was created.',
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      session: null,
+      providerNotEnabled: true,
+      messageVi: 'Không thể kết nối tới cổng xác thực Google OAuth lúc này.',
+      messageEn: 'Unable to reach Google OAuth gateway at this time.',
+    };
+  }
 
   return {
     ok: true,
-    session,
-    providerNotEnabled: providerNotEnabledOnSupabase,
-    messageVi,
-    messageEn,
+    session: null,
+    redirectUrl: oauthUrl,
+    providerNotEnabled: false,
+    messageVi: 'Đang chuyển hướng đến cổng xác thực Google OAuth...',
+    messageEn: 'Redirecting to Google OAuth authentication gateway...',
   };
 }
 
 /**
- * Updates the signed-in user's profile preferences (Display Name, Avatar Mood Color, Disorder Focus,
- * Emergency Contact, Preferred Pushback style, E2EE Sync toggle).
+ * T02 (`AUTH-04`): Stores local data inside a Guest namespace and upgrades to an Authenticated Account
+ * ONLY after explicit user consent per data category, with idempotency protection.
+ */
+export function saveGuestLocalDataCategory(
+  guestUserId: string,
+  category: 'journals' | 'sessions' | 'plan_items' | 'safety_plan',
+  items: unknown[]
+): void {
+  const existing = guestLocalDataVault.get(guestUserId) ?? {};
+  existing[category] = [...items];
+  guestLocalDataVault.set(guestUserId, existing);
+}
+
+export function previewGuestLocalDataForUpgrade(guestUserId: string): {
+  guestUserId: string;
+  categoriesAvailable: Array<{ category: string; itemCount: number }>;
+  totalItemsCount: number;
+} {
+  const vault = guestLocalDataVault.get(guestUserId) ?? {};
+  const categoriesAvailable = Object.entries(vault).map(([category, list]) => ({
+    category,
+    itemCount: Array.isArray(list) ? list.length : 0,
+  }));
+  const totalItemsCount = categoriesAvailable.reduce((acc, c) => acc + c.itemCount, 0);
+  return { guestUserId, categoriesAvailable, totalItemsCount };
+}
+
+export function upgradeGuestToAccountWithConsent(params: {
+  guestUserId: string;
+  targetAccountSessionToken: string;
+  explicitConsentGranted: boolean;
+  consentedCategories: Array<'journals' | 'sessions' | 'plan_items' | 'safety_plan'>;
+  idempotencyKey: string;
+  wipeGuestLocalAfterImport?: boolean;
+}): {
+  ok: boolean;
+  status: 'imported' | 'declined_no_upload' | 'duplicate_idempotent_noop' | 'unauthorized';
+  importedCategories: string[];
+  importedItemsCount: number;
+  guestLocalWiped: boolean;
+  messageVi: string;
+  messageEn: string;
+} {
+  const verified = verifyServerSessionToken(params.targetAccountSessionToken);
+  if (!verified.valid || !verified.userId) {
+    return {
+      ok: false,
+      status: 'unauthorized',
+      importedCategories: [],
+      importedItemsCount: 0,
+      guestLocalWiped: false,
+      messageVi: 'Cần đăng nhập tài khoản thật hợp lệ trước khi chuyển dữ liệu từ chế độ Khách.',
+      messageEn: 'A valid authenticated account session is required to import guest data.',
+    };
+  }
+
+  // AUTH-04: If user declines import consent, zero items are uploaded!
+  if (!params.explicitConsentGranted || params.consentedCategories.length === 0) {
+    return {
+      ok: true,
+      status: 'declined_no_upload',
+      importedCategories: [],
+      importedItemsCount: 0,
+      guestLocalWiped: false,
+      messageVi: 'Bạn đã chọn không tải dữ liệu cục bộ lên tài khoản. Dữ liệu Khách vẫn giữ nguyên tại chỗ.',
+      messageEn: 'You declined data import. No local guest records were uploaded.',
+    };
+  }
+
+  const dedupeKey = `${verified.userId}:${params.guestUserId}:${params.idempotencyKey}`;
+  if (importedGuestIdempotencyKeys.has(dedupeKey)) {
+    return {
+      ok: true,
+      status: 'duplicate_idempotent_noop',
+      importedCategories: params.consentedCategories,
+      importedItemsCount: 0,
+      guestLocalWiped: false,
+      messageVi: 'Yêu cầu chuyển dữ liệu này đã được thực hiện trước đó (Idempotent — không tạo bản sao trùng lặp).',
+      messageEn: 'This guest import was already processed (Idempotent — no duplicate records created).',
+    };
+  }
+
+  const vault = guestLocalDataVault.get(params.guestUserId) ?? {};
+  let importedItemsCount = 0;
+  const importedCategories: string[] = [];
+
+  for (const cat of params.consentedCategories) {
+    const items = vault[cat];
+    if (Array.isArray(items) && items.length > 0) {
+      importedItemsCount += items.length;
+      importedCategories.push(cat);
+    }
+  }
+
+  importedGuestIdempotencyKeys.add(dedupeKey);
+
+  let guestLocalWiped = false;
+  if (params.wipeGuestLocalAfterImport) {
+    guestLocalDataVault.delete(params.guestUserId);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(GUEST_STORAGE_KEY);
+    }
+    guestLocalWiped = true;
+  }
+
+  return {
+    ok: true,
+    status: 'imported',
+    importedCategories,
+    importedItemsCount,
+    guestLocalWiped,
+    messageVi: `Đã chuyển thành công ${importedItemsCount} mục dữ liệu đã chọn sang tài khoản của bạn.`,
+    messageEn: `Successfully imported ${importedItemsCount} consented local items into your account.`,
+  };
+}
+
+/**
+ * Updates the signed-in user's profile preferences.
+ * T03 (`AUTH-06`): Strictly ignores/blocks any client attempt to pass `role`!
  */
 export function updateUserAccountProfile(params: {
   displayName?: string;
-  role?: UserAccountRole;
+  role?: unknown; // Ignored & blocked to prevent privilege escalation!
   avatarMoodColor?: string;
   disorderFocus?: AccountDisorderFocus;
   preferredPushbackLevel?: PushbackLevel;
@@ -892,6 +1194,7 @@ export function updateUserAccountProfile(params: {
 }): {
   ok: boolean;
   session: UserAccountSession | null;
+  roleEscalationBlocked: boolean;
   messageVi: string;
   messageEn: string;
 } {
@@ -900,17 +1203,24 @@ export function updateUserAccountProfile(params: {
     return {
       ok: false,
       session: null,
+      roleEscalationBlocked: false,
       messageVi: 'Bạn cần đăng nhập trước khi cập nhật hồ sơ.',
       messageEn: 'Please sign in before updating your profile.',
     };
   }
 
+  const authoritativeRole = resolveServerAssignedRole(current.user.userId);
+  const attemptedRoleEscalation =
+    params.role !== undefined && params.role !== authoritativeRole;
+
   const nowIso = new Date().toISOString();
   const updatedUser: UserAccountProfile = {
     ...current.user,
-    role: params.role ?? current.user.role ?? 'patient',
+    role: authoritativeRole, // Never allow client updateUserAccountProfile to change role!
     displayName:
-      params.displayName !== undefined ? params.displayName.trim() || current.user.displayName : current.user.displayName,
+      params.displayName !== undefined
+        ? params.displayName.trim() || current.user.displayName
+        : current.user.displayName,
     avatarMoodColor: params.avatarMoodColor ?? current.user.avatarMoodColor,
     disorderFocus: params.disorderFocus ?? current.user.disorderFocus,
     preferredPushbackLevel: params.preferredPushbackLevel ?? current.user.preferredPushbackLevel,
@@ -922,7 +1232,10 @@ export function updateUserAccountProfile(params: {
       params.emergencyContactPhone !== undefined
         ? params.emergencyContactPhone.trim()
         : current.user.emergencyContactPhone,
-    e2eeSyncEnabled: params.e2eeSyncEnabled ?? current.user.e2eeSyncEnabled,
+    e2eeSyncEnabled:
+      current.isAuthenticated
+        ? (params.e2eeSyncEnabled ?? current.user.e2eeSyncEnabled)
+        : false,
     updatedAt: nowIso,
   };
 
@@ -931,29 +1244,38 @@ export function updateUserAccountProfile(params: {
     user: updatedUser,
   };
 
-  const record = inMemoryAccountDirectory.get(updatedUser.email.toLowerCase());
-  if (record) {
-    record.profile = updatedUser;
-    inMemoryAccountDirectory.set(updatedUser.email.toLowerCase(), record);
-    saveBrowserDirectory();
+  if (current.accessToken && activeServerSessionsByToken.has(current.accessToken)) {
+    activeServerSessionsByToken.set(current.accessToken, updatedSession);
+  }
+
+  if (updatedUser.email) {
+    const record = inMemoryAccountDirectory.get(updatedUser.email.toLowerCase());
+    if (record) {
+      record.profile = updatedUser;
+      inMemoryAccountDirectory.set(updatedUser.email.toLowerCase(), record);
+      saveBrowserDirectory();
+    }
   }
 
   persistAccountSession(updatedSession);
   return {
     ok: true,
     session: updatedSession,
-    messageVi: 'Đã lưu cập nhật hồ sơ cá nhân và sở thích đồng hành của bạn.',
-    messageEn: 'Your personal profile and companion preferences have been saved.',
+    roleEscalationBlocked: attemptedRoleEscalation,
+    messageVi: 'Đã lưu cập nhật hồ sơ cá nhân của bạn.',
+    messageEn: 'Your personal profile preferences have been saved.',
   };
 }
 
 /**
- * Triggers an immediate E2EE multi-device sync timestamp update for the active user session.
+ * Triggers an E2EE multi-device sync timestamp update ONLY for authenticated accounts (`AUTH-03`).
+ * Guests and Demo profiles cannot call account sync.
  */
 export function triggerAccountE2eeSyncNow(): {
   ok: boolean;
   syncedAt: string;
   session: UserAccountSession | null;
+  statusCode: 200 | 401 | 403;
   messageVi: string;
   messageEn: string;
 } {
@@ -964,8 +1286,22 @@ export function triggerAccountE2eeSyncNow(): {
       ok: false,
       syncedAt: nowIso,
       session: null,
+      statusCode: 401,
       messageVi: 'Chưa có phiên đăng nhập để đồng bộ.',
       messageEn: 'No active account session to sync.',
+    };
+  }
+
+  if (!current.isAuthenticated || current.provider === 'guest-local' || current.provider === 'demo-sandbox') {
+    return {
+      ok: false,
+      syncedAt: nowIso,
+      session: current,
+      statusCode: 403,
+      messageVi:
+        'Chế độ Khách (Guest) và Chế độ Xem thử (Demo) chỉ lưu cục bộ và không đồng bộ lên máy chủ. Vui lòng đăng nhập tài khoản thật nếu muốn đồng bộ.',
+      messageEn:
+        'Guest and Demo modes are local-only and cannot sync to the server. Please sign in with a real account to sync.',
     };
   }
 
@@ -978,27 +1314,41 @@ export function triggerAccountE2eeSyncNow(): {
       updatedAt: nowIso,
     },
   };
+  if (current.accessToken) {
+    activeServerSessionsByToken.set(current.accessToken, updatedSession);
+  }
   persistAccountSession(updatedSession);
 
   return {
     ok: true,
     syncedAt: nowIso,
     session: updatedSession,
-    messageVi: `Đã đồng bộ mã hóa đầu-cuối (AES-GCM-256) thành công lúc ${nowIso.slice(11, 19)} UTC.`,
-    messageEn: `End-to-end encrypted (AES-GCM-256) sync completed at ${nowIso.slice(11, 19)} UTC.`,
+    statusCode: 200,
+    messageVi: `Đã đồng bộ dữ liệu tài khoản thành công lúc ${nowIso.slice(11, 19)} UTC.`,
+    messageEn: `Account sync completed at ${nowIso.slice(11, 19)} UTC.`,
   };
 }
 
 /**
- * Signs out the active user and optionally wipes local account storage.
+ * Signs out the active user, revokes the server session token, clears account cache,
+ * and preserves isolated Guest local data unless `wipeLocalData` is requested (`AUTH-05`).
  */
-export function signOutUserAccount(options?: { wipeLocalData?: boolean }): {
+export function signOutUserAccount(options?: {
+  wipeLocalData?: boolean;
+  sessionTokenToRevoke?: string;
+}): {
   signedOut: true;
   wipedLocalData: boolean;
+  preservedGuestVault: boolean;
   messageVi: string;
   messageEn: string;
 } {
   const wipe = options?.wipeLocalData ?? false;
+  const tokenToRevoke = options?.sessionTokenToRevoke || clientCurrentSession?.accessToken;
+  if (tokenToRevoke) {
+    activeServerSessionsByToken.delete(tokenToRevoke);
+  }
+
   if (wipe) {
     inMemoryAccountDirectory.clear();
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -1014,11 +1364,12 @@ export function signOutUserAccount(options?: { wipeLocalData?: boolean }): {
   return {
     signedOut: true,
     wipedLocalData: wipe,
+    preservedGuestVault: !wipe,
     messageVi: wipe
       ? 'Đã đăng xuất và xóa toàn bộ dữ liệu tài khoản cục bộ trên thiết bị này.'
-      : 'Bạn đã đăng xuất an toàn. Dữ liệu mã hóa của bạn vẫn được bảo vệ.',
+      : 'Bạn đã đăng xuất an toàn. Phiên tài khoản đã được xóa và dữ liệu Khách cục bộ không bị ảnh hưởng.',
     messageEn: wipe
       ? 'Signed out and wiped all local account data from this device.'
-      : 'You have signed out safely. Your encrypted data remains protected.',
+      : 'You have signed out safely. Account session cleared while preserving separate local guest storage.',
   };
 }

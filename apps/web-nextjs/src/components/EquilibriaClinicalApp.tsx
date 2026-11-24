@@ -39,6 +39,11 @@ import {
   queryClinicalCompanionWithFallback,
   recordExposureTrial,
   resolveAdaptiveTheme,
+  V2_LIGHT_DESIGN_TOKENS,
+  V2_PRIMARY_4_TABS,
+  V2_TODAY_NEED_CHIPS,
+  resolveV2RouteAndTabRedirect,
+  type V2PrimaryTabId,
   routeDbtFirstCbtSecond,
   runFourLayerSafetyGate,
   scoreClinicalAssessment,
@@ -114,6 +119,16 @@ import {
   type UserAccountProfile,
   type UserAccountRole,
   type UserAccountSession,
+  UNIFIED_PRACTICE_LIBRARY_CATALOG,
+  queryUnifiedPracticeLibrary,
+  evaluateUnifiedItemSelfGuidedEligibility,
+  createPracticeSessionPreview,
+  startPracticeSession,
+  checkpointPracticeSessionStep,
+  transitionPracticeSessionLifecycle,
+  type UnifiedNeedCategory,
+  type UnifiedPracticeItem,
+  type UnifiedPracticeSessionRecord,
 } from '../clinical/index.ts';
 
 export type ActiveHubTab =
@@ -270,11 +285,22 @@ function renderClinicalBadge(outcome: SessionOutcome, lang: Language) {
   );
 }
 
-export function EquilibriaClinicalApp() {
+export function EquilibriaClinicalApp(props?: { initialV2Tab?: V2PrimaryTabId; initialOpenSos?: boolean }) {
   // Global Bilingual & Clinical State
   const [lang, setLang] = useState<Language>('vi');
+  const [v2PrimaryTab, setV2PrimaryTab] = useState<V2PrimaryTabId>(props?.initialV2Tab ?? 'today');
+  const [todayCheckInSkipped, setTodayCheckInSkipped] = useState<boolean>(false);
+  const [todayCheckInCompleted, setTodayCheckInCompleted] = useState<boolean>(false);
+  const [unifiedNeedFilter, setUnifiedNeedFilter] = useState<UnifiedNeedCategory | undefined>(undefined);
+  const [unifiedModelFilter, setUnifiedModelFilter] = useState<string>('');
+  const [unifiedMaxDuration, setUnifiedMaxDuration] = useState<number | undefined>(undefined);
+  const [unifiedSearchQuery, setUnifiedSearchQuery] = useState<string>('');
+  const [showDraftReferenceItems, setShowDraftReferenceItems] = useState<boolean>(false);
+  const [activeUnifiedSession, setActiveUnifiedSession] = useState<UnifiedPracticeSessionRecord | null>(null);
+  const [activeUnifiedItem, setActiveUnifiedItem] = useState<UnifiedPracticeItem | null>(null);
+  const [unifiedSessionMessage, setUnifiedSessionMessage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<ActiveHubTab>('session-player');
-  const [sosOpen, setSosOpen] = useState<boolean>(false);
+  const [sosOpen, setSosOpen] = useState<boolean>(props?.initialOpenSos ?? false);
   const [activeProtocolStep, setActiveProtocolStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 'all'>(1);
   const [activeToolkitSubTab, setActiveToolkitSubTab] = useState<
     'practice-7' | 'catalog-36' | 'mp-sheet' | 'anti-procrastination' | 'downward-arrow' | 'abc-please' | 'cbti-sleep' | 'all'
@@ -418,26 +444,6 @@ export function EquilibriaClinicalApp() {
     if (res.ok && res.session) {
       setAccountSession(res.session);
       setAuthStatusMessage({ ok: true, text: lang === 'vi' ? res.messageVi : res.messageEn });
-    }
-  };
-
-  const handleToggleAdminRole = () => {
-    if (!accountSession) return;
-    const nextRole: UserAccountRole = accountSession.user.role === 'admin' ? 'patient' : 'admin';
-    const res = updateUserAccountProfile({ role: nextRole });
-    if (res.ok && res.session) {
-      setAccountSession(res.session);
-      setAuthStatusMessage({
-        ok: true,
-        text:
-          lang === 'vi'
-            ? nextRole === 'admin'
-              ? 'Đã kích hoạt Chế độ Quản trị viên (Admin Mode).'
-              : 'Đã chuyển về Chế độ Người dùng cá nhân (Patient).'
-            : nextRole === 'admin'
-              ? 'Administrator Mode enabled.'
-              : 'Switched to Personal Patient Mode.',
-      });
     }
   };
 
@@ -868,12 +874,12 @@ export function EquilibriaClinicalApp() {
     [predictionEntries]
   );
 
-  // 5. Bipolar & IPSRT Hub State
+  // 5. Bipolar & IPSRT Hub State (SAFE-01: Clean empty medication list by default — zero fabricated Lamotrigine/Lithium!)
   const currentBipolarLog: DailyMoodAndRhythmLog = useMemo(
     () => ({
       id: 'log-today',
-      userId: 'patient-01',
-      loggedAt: '2026-11-21T08:00:00.000Z',
+      userId: accountSession?.user.userId ?? 'guest-local',
+      loggedAt: new Date().toISOString(),
       moodPolarity,
       energyLevel,
       irritabilityIntensity: irritability,
@@ -889,19 +895,12 @@ export function EquilibriaClinicalApp() {
         dinnerTime: '19:15',
         bedTime: '22:40',
       },
-      medicationsTaken: [
-        {
-          medicationId: 'med-1',
-          name: 'Lamotrigine (Mood Stabilizer)',
-          dosage: '100mg',
-          takenAt: '08:00',
-        },
-      ],
+      medicationsTaken: [],
       mixedStateAlertTriggered: moodPolarity <= -2 && energyLevel >= 2,
       maniaProdromeAlertTriggered:
         moodPolarity >= 2 || (sleepHours < 5 && feltNeedForSleep !== 'exhausted'),
     }),
-    [moodPolarity, energyLevel, irritability, distressIntensity, sleepHours, feltNeedForSleep]
+    [accountSession?.user.userId, moodPolarity, energyLevel, irritability, distressIntensity, sleepHours, feltNeedForSleep]
   );
 
   const bipolarAnalysis = useMemo(
@@ -959,31 +958,13 @@ export function EquilibriaClinicalApp() {
   const [mdqCoOccurrenceInput, setMdqCoOccurrenceInput] = useState<boolean>(true);
   const [mdqImpairmentInput, setMdqImpairmentInput] = useState<boolean>(true);
 
-  const defaultAssessments: Record<AssessmentType, AssessmentResult> = useMemo(
-    () => ({
-      BMS: scoreClinicalAssessment({ type: 'BMS', itemScores: [6, 0, 7, 3, 12] }),
-      'PHQ-9': scoreClinicalAssessment({ type: 'PHQ-9', itemScores: [1, 1, 1, 1, 0, 1, 1, 0, 0] }),
-      'GAD-7': scoreClinicalAssessment({ type: 'GAD-7', itemScores: [2, 1, 2, 1, 1, 1, 1] }),
-      ASRM: scoreClinicalAssessment({ type: 'ASRM', itemScores: [1, 1, 0, 0, 0] }),
-      MDQ: scoreClinicalAssessment({
-        type: 'MDQ',
-        itemScores: [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-        mdqCoOccurrence: true,
-        mdqModerateSevereImpairment: true,
-      }),
-      ISI: scoreClinicalAssessment({
-        type: 'ISI',
-        itemScores: [1, 1, 1, 1, 1, 0, 0],
-        sleepFeltRestedDespiteShortSleep: feltNeedForSleep === 'no_need_at_all',
-      }),
-    }),
-    [feltNeedForSleep]
-  );
-
-  const assessments = useMemo<AssessmentResult[]>(() => {
+  // SAFE-01: Unanswered assessments remain null in userAssessmentResults until user explicitly completes each scale
+  const completedAssessmentsList = useMemo<AssessmentResult[]>(() => {
     const scaleTypes: AssessmentType[] = ['BMS', 'PHQ-9', 'GAD-7', 'ISI', 'ASRM', 'MDQ'];
-    return scaleTypes.map((type) => userAssessmentResults[type] ?? defaultAssessments[type]);
-  }, [userAssessmentResults, defaultAssessments]);
+    return scaleTypes
+      .map((type) => userAssessmentResults[type])
+      .filter((r): r is AssessmentResult => r !== undefined);
+  }, [userAssessmentResults]);
 
   const handleStartTakingScale = (type: AssessmentType) => {
     setActiveTakingScaleType(type);
@@ -1092,13 +1073,13 @@ export function EquilibriaClinicalApp() {
   const clinicianReport = useMemo(
     () =>
       buildClinicianSummaryReport({
-        patientAlias: 'BN-Equilibria-2026',
+        patientAlias: accountSession?.user.displayName || 'BN-Equilibria-2026',
         moodLogs: [currentBipolarLog],
-        assessments,
+        assessments: completedAssessmentsList,
         sessions: [sampleSession],
         ipsrtAverageStabilityPercent: ipsrtReport.stabilityScorePercent,
       }),
-    [currentBipolarLog, assessments, sampleSession, ipsrtReport.stabilityScorePercent]
+    [accountSession?.user.displayName, currentBipolarLog, completedAssessmentsList, sampleSession, ipsrtReport.stabilityScorePercent]
   );
 
   const handleTestWebCryptoEncryption = async () => {
@@ -2446,12 +2427,743 @@ export function EquilibriaClinicalApp() {
             </section>
           )}
 
-          {/* Main Clinical Module Sanctuary Navigation Tabs */}
+          {/* V2 APP SHELL: 4 PRIMARY TABS (Hôm nay | Thực hành | Kế hoạch | Tiến trình) — INFORMATION_ARCHITECTURE.md & UI_UX_V2_DESIGN_SPEC.md */}
           <nav
+            aria-label={lang === 'vi' ? 'Điều hướng chính 4 mục V2' : 'V2 Primary 4-Tab Navigation'}
             className="no-print"
             style={{
-              maxWidth: '1080px',
+              maxWidth: `${V2_LIGHT_DESIGN_TOKENS.mainMaxWidthPx}px`,
               margin: '14px auto 12px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: '8px',
+              padding: '0 16px',
+            }}
+          >
+            {V2_PRIMARY_4_TABS.map((tab) => {
+              const isSelected = v2PrimaryTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setV2PrimaryTab(tab.id);
+                    if (tab.id === 'today') {
+                      setActiveTab('session-player');
+                    } else if (tab.id === 'practice') {
+                      setActiveTab('tools-36-team-cbt');
+                    } else if (tab.id === 'plan') {
+                      setActiveTab('clinical-master-plan');
+                    } else if (tab.id === 'progress') {
+                      setActiveTab('assessments-report');
+                    }
+                  }}
+                  style={{
+                    minHeight: '48px',
+                    padding: '10px 12px',
+                    borderRadius: '14px',
+                    border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                    backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
+                    color: isSelected ? '#FFFFFF' : theme.palette.textPrimary,
+                    fontWeight: 700,
+                    fontSize: '0.94rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span aria-hidden="true">{tab.iconSymbol}</span>
+                  <span>{lang === 'vi' ? tab.labelVi : tab.labelEn}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* V2 SCREEN CONTRACT: HÔM NAY (/today) — Wireframe from UI_UX_V2_DESIGN_SPEC.md */}
+          {v2PrimaryTab === 'today' && (
+            <section
+              aria-label={lang === 'vi' ? 'Màn hình Hôm nay' : 'Today Screen'}
+              className="no-print"
+              style={{
+                maxWidth: `${V2_LIGHT_DESIGN_TOKENS.mainMaxWidthPx}px`,
+                margin: '0 auto 16px',
+                padding: '20px 24px',
+                borderRadius: '16px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              {/* 1. Neutral Greeting + Optional Skippable Check-In */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', color: theme.palette.textPrimary }}>
+                    {lang === 'vi'
+                      ? `Chào ${accountSession.user.displayName}, hôm nay bạn cảm thấy thế nào?`
+                      : `Hello ${accountSession.user.displayName}, how are you feeling today?`}
+                  </h2>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Check-in này hoàn toàn tự nguyện — bạn có thể bỏ qua bất cứ lúc nào.'
+                      : 'This check-in is completely optional — you can skip it anytime.'}
+                  </p>
+                </div>
+                {!todayCheckInSkipped && !todayCheckInCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => setTodayCheckInSkipped(true)}
+                    style={{
+                      minHeight: '44px',
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      border: `1px solid ${theme.palette.border}`,
+                      backgroundColor: 'transparent',
+                      color: theme.palette.textSecondary,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Bỏ qua' : 'Skip'}
+                  </button>
+                )}
+              </div>
+
+              {!todayCheckInSkipped && !todayCheckInCompleted ? (
+                <div
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '14px',
+                    backgroundColor: theme.palette.background,
+                    border: `1px solid ${theme.palette.border}`,
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                    <label style={{ flex: '1 1 220px', fontSize: '0.88rem', fontWeight: 600 }}>
+                      {lang === 'vi' ? `Mức độ căng thẳng hiện tại (${distressIntensity}/10):` : `Current Distress (${distressIntensity}/10):`}
+                      <input
+                        type="range"
+                        min={0}
+                        max={10}
+                        value={distressIntensity}
+                        onChange={(e) => setDistressIntensity(Number(e.target.value) as IntensityScore)}
+                        style={{ width: '100%', marginTop: '6px' }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setTodayCheckInCompleted(true)}
+                      style={{
+                        minHeight: '44px',
+                        padding: '8px 16px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: theme.palette.primary,
+                        color: '#FFFFFF',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {lang === 'vi' ? '✓ Ghi nhận Check-in' : '✓ Save Check-In'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '14px', fontSize: '0.85rem', color: theme.palette.textSecondary }}>
+                  {todayCheckInCompleted
+                    ? (lang === 'vi' ? '✓ Đã ghi nhận check-in hôm nay.' : '✓ Today check-in recorded.')
+                    : (lang === 'vi' ? 'Bạn đã bỏ qua check-in hôm nay.' : 'Check-in skipped for today.')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTodayCheckInSkipped(false);
+                      setTodayCheckInCompleted(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: theme.palette.primary,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Mở lại check-in' : 'Re-open check-in'}
+                  </button>
+                </div>
+              )}
+
+              {/* 2. One Eligible Suggestion Card ("Gợi ý dành cho bạn") */}
+              <div
+                style={{
+                  padding: '16px',
+                  borderRadius: '14px',
+                  backgroundColor: V2_LIGHT_DESIGN_TOKENS.primaryContainer,
+                  border: `1px solid ${theme.palette.border}`,
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: V2_LIGHT_DESIGN_TOKENS.primary, textTransform: 'uppercase' }}>
+                    {lang === 'vi' ? 'GỢI Ý DÀNH CHO BẠN' : 'SUGGESTED FOR YOU'}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '1.02rem', color: V2_LIGHT_DESIGN_TOKENS.text, marginTop: '2px' }}>
+                    {distressIntensity >= 7
+                      ? (lang === 'vi' ? 'Thở Điều Hòa Mũi – Miệng 4-6 & Hạ Nhiệt Sinh Lý • 3 phút' : '4-6 Nose-Mouth Paced Breathing & Cooling • 3 min')
+                      : (lang === 'vi' ? 'Nhật Ký Gỡ Rối Một Suy Nghĩ Tự Động • 5 phút' : 'Quick Automatic Thought Record • 5 min')}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (distressIntensity >= 7) {
+                      setSosOpen(true);
+                    } else {
+                      setV2PrimaryTab('practice');
+                      setActiveTab('session-player');
+                    }
+                  }}
+                  style={{
+                    minHeight: '48px',
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    backgroundColor: V2_LIGHT_DESIGN_TOKENS.primary,
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang === 'vi' ? 'Bắt đầu →' : 'Start →'}
+                </button>
+              </div>
+
+              {/* 3. "Bạn cần gì lúc này?" — 4 Need Quick Chips ([Bình tâm] [Ngủ] [Suy nghĩ] [Cảm xúc]) */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.94rem', marginBottom: '8px', color: theme.palette.textPrimary }}>
+                  {lang === 'vi' ? 'Bạn cần gì lúc này?' : 'What do you need right now?'}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                  {V2_TODAY_NEED_CHIPS.map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      onClick={() => {
+                        setV2PrimaryTab('practice');
+                        if (chip.id === 'calm') {
+                          setActiveTab('anxiety-hub');
+                        } else if (chip.id === 'sleep') {
+                          setActiveTab('bipolar-ipsrt-hub');
+                          setTab3SubView('sleep-meditation');
+                        } else if (chip.id === 'thoughts') {
+                          setActiveTab('session-player');
+                        } else {
+                          setActiveTab('tools-36-team-cbt');
+                        }
+                      }}
+                      style={{
+                        minHeight: '48px',
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        border: `1px solid ${theme.palette.border}`,
+                        backgroundColor: theme.palette.background,
+                        color: theme.palette.textPrimary,
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span aria-hidden="true">{chip.icon}</span>
+                      <span>{lang === 'vi' ? chip.labelVi : chip.labelEn}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. "Kế hoạch hôm nay" + Global Urgent Help Shortcut */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  paddingTop: '12px',
+                  borderTop: `1px solid ${theme.palette.border}`,
+                }}
+              >
+                <div style={{ fontSize: '0.88rem', color: theme.palette.textSecondary }}>
+                  <strong>{lang === 'vi' ? 'Kế hoạch hôm nay:' : 'Today Plan:'}</strong>{' '}
+                  {lang === 'vi' ? 'Bạn có thể chọn bài tập phù hợp hoặc xem Kế hoạch An toàn.' : 'Select an eligible practice or review your Safety Plan.'}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setV2PrimaryTab('plan');
+                      setActiveTab('clinical-master-plan');
+                    }}
+                    style={{
+                      minHeight: '44px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: `1px solid ${theme.palette.border}`,
+                      backgroundColor: theme.palette.surface,
+                      color: theme.palette.textPrimary,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? 'Mở Kế hoạch Cá nhân' : 'Open Personal Plan'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSosOpen(true)}
+                    style={{
+                      minHeight: '44px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: V2_LIGHT_DESIGN_TOKENS.emergency,
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'vi' ? '🚨 Hỗ trợ khẩn cấp' : '🚨 Urgent Help'}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* V2 UNIFIED PRACTICE LIBRARY & SESSION PLAYER (T07 & T08 — UNIFIED_PRACTICE_LIBRARY.md) */}
+          {v2PrimaryTab === 'practice' && (
+            <section
+              aria-label={lang === 'vi' ? 'Thư viện thực hành thống nhất V2' : 'V2 Unified Practice Library'}
+              className="no-print"
+              style={{
+                maxWidth: `${V2_LIGHT_DESIGN_TOKENS.mainMaxWidthPx}px`,
+                margin: '0 auto 16px',
+                padding: '20px 24px',
+                borderRadius: '16px',
+                backgroundColor: theme.palette.surface,
+                border: `1px solid ${theme.palette.border}`,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', color: theme.palette.textPrimary }}>
+                    {lang === 'vi'
+                      ? '🌿 Thư viện Thực hành Thống nhất (Theo Nhu cầu & Mô hình)'
+                      : '🌿 Unified Practice Library (By Functional Need & Model)'}
+                  </h2>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.86rem', color: theme.palette.textSecondary }}>
+                    {lang === 'vi'
+                      ? 'Mặc định chỉ hiển thị bài tự thực hành đã duyệt (Approved + Published + Self-Guided). Không suy diễn chẩn đoán từ bộ lọc.'
+                      : 'Shows only approved + published + self-guided items by default. Zero diagnostic inference from filters.'}
+                  </p>
+                </div>
+                <label style={{ fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={showDraftReferenceItems}
+                    onChange={(e) => setShowDraftReferenceItems(e.target.checked)}
+                  />
+                  {lang === 'vi' ? 'Hiển thị cả 68 phác đồ bản nháp tham khảo (Draft)' : 'Include 68 draft reference protocols'}
+                </label>
+              </div>
+
+              {/* Filter Bar: Need (6 categories), Duration, Search */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                {(
+                  [
+                    [undefined, lang === 'vi' ? 'Tất cả nhu cầu' : 'All Needs'],
+                    ['calm', lang === 'vi' ? '🍃 Bình tâm' : '🍃 Calm'],
+                    ['sleep', lang === 'vi' ? '🌙 Giấc ngủ' : '🌙 Sleep'],
+                    ['thoughts', lang === 'vi' ? '💭 Suy nghĩ' : '💭 Thoughts'],
+                    ['emotions', lang === 'vi' ? '💛 Cảm xúc' : '💛 Emotions'],
+                    ['relationships', lang === 'vi' ? '🤝 Quan hệ' : '🤝 Relationships'],
+                    ['rhythm', lang === 'vi' ? '⏱️ Nhịp sinh hoạt' : '⏱️ Daily Rhythm'],
+                  ] as const
+                ).map(([needKey, label]) => {
+                  const selected = unifiedNeedFilter === needKey;
+                  return (
+                    <button
+                      key={needKey ?? 'all'}
+                      type="button"
+                      onClick={() => setUnifiedNeedFilter(needKey)}
+                      style={{
+                        minHeight: '40px',
+                        padding: '6px 12px',
+                        borderRadius: '10px',
+                        border: selected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
+                        backgroundColor: selected ? V2_LIGHT_DESIGN_TOKENS.primaryContainer : theme.palette.background,
+                        color: theme.palette.textPrimary,
+                        fontWeight: selected ? 700 : 500,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                <input
+                  type="search"
+                  value={unifiedSearchQuery}
+                  onChange={(e) => setUnifiedSearchQuery(e.target.value)}
+                  placeholder={lang === 'vi' ? 'Tìm bài tập, thở, thiền...' : 'Search practice, breathing, audio...'}
+                  style={{
+                    flex: '1 1 180px',
+                    minHeight: '40px',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${theme.palette.border}`,
+                    backgroundColor: theme.palette.background,
+                    color: theme.palette.textPrimary,
+                  }}
+                />
+              </div>
+
+              {/* Active Session Player Drawer (Preview -> Eligibility -> Start -> Step -> Pause/Resume/Stop -> Complete) */}
+              {activeUnifiedSession && activeUnifiedItem && (
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: '14px',
+                    backgroundColor: V2_LIGHT_DESIGN_TOKENS.primaryContainer,
+                    border: `2px solid ${theme.palette.primary}`,
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 800, color: V2_LIGHT_DESIGN_TOKENS.primary, textTransform: 'uppercase' }}>
+                        {`SESSION PLAYER • v${activeUnifiedSession.itemVersion} • Trạng thái: ${activeUnifiedSession.status.toUpperCase()}`}
+                      </span>
+                      <h3 style={{ margin: '4px 0', fontSize: '1.05rem', color: V2_LIGHT_DESIGN_TOKENS.text }}>
+                        {activeUnifiedSession.itemTitleSnapshot}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveUnifiedSession(null);
+                        setActiveUnifiedItem(null);
+                        setUnifiedSessionMessage('');
+                      }}
+                      style={{
+                        minHeight: '38px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: `1px solid ${theme.palette.border}`,
+                        backgroundColor: theme.palette.surface,
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {lang === 'vi' ? 'Đóng khung' : 'Close Player'}
+                    </button>
+                  </div>
+
+                  {unifiedSessionMessage && (
+                    <div style={{ margin: '8px 0', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#FFFFFF', fontSize: '0.86rem', fontWeight: 600 }}>
+                      {unifiedSessionMessage}
+                    </div>
+                  )}
+
+                  {activeUnifiedSession.status === 'previewing' && (
+                    <div style={{ marginTop: '10px' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: '0.88rem' }}>
+                        <strong>{lang === 'vi' ? 'Mục tiêu:' : 'Goals:'}</strong> {activeUnifiedItem.goals.join(' • ')}
+                      </p>
+                      <p style={{ margin: '0 0 12px', fontSize: '0.84rem', color: theme.palette.textSecondary }}>
+                        <strong>{lang === 'vi' ? 'Lưu ý an toàn:' : 'Precautions:'}</strong> {activeUnifiedItem.precautions.join(' • ')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const started = startPracticeSession(activeUnifiedSession, activeUnifiedItem);
+                          if (!started.valid || !started.data) {
+                            setUnifiedSessionMessage(started.errors.join(' '));
+                          } else {
+                            setActiveUnifiedSession(started.data);
+                            setUnifiedSessionMessage(
+                              lang === 'vi'
+                                ? 'Phiên thực hành đã bắt đầu. Bạn có thể tạm dừng hoặc dừng bất cứ lúc nào.'
+                                : 'Session started. You can pause or stop anytime.',
+                            );
+                          }
+                        }}
+                        style={{
+                          minHeight: '44px',
+                          padding: '8px 16px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          backgroundColor: V2_LIGHT_DESIGN_TOKENS.primary,
+                          color: '#FFFFFF',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {lang === 'vi' ? '▶ Bắt đầu thực hành' : '▶ Start Practice Session'}
+                      </button>
+                    </div>
+                  )}
+
+                  {(activeUnifiedSession.status === 'in_progress' || activeUnifiedSession.status === 'paused') && (
+                    <div style={{ marginTop: '12px' }}>
+                      {(() => {
+                        const currentStep =
+                          activeUnifiedSession.stepsSnapshot[activeUnifiedSession.currentStepIndex] ??
+                          activeUnifiedSession.stepsSnapshot[0];
+                        return currentStep ? (
+                          <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#FFFFFF', marginBottom: '12px' }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.94rem' }}>
+                              {lang === 'vi' ? currentStep.titleVi : currentStep.titleEn}
+                            </div>
+                            <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: theme.palette.textSecondary }}>
+                              {lang === 'vi' ? currentStep.instructionVi : currentStep.instructionEn}
+                            </p>
+                          </div>
+                        ) : null;
+                      })()}
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {activeUnifiedSession.status === 'in_progress' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const stepRes = checkpointPracticeSessionStep(activeUnifiedSession, {
+                                  stepId: activeUnifiedSession.currentStepId,
+                                  outcome: 'completed',
+                                });
+                                if (stepRes.valid && stepRes.data) {
+                                  setActiveUnifiedSession(stepRes.data);
+                                  setUnifiedSessionMessage(
+                                    lang === 'vi'
+                                      ? `✓ Đã lưu checkpoint bước (${stepRes.data.checkpoints.length}/${stepRes.data.stepsSnapshot.length}).`
+                                      : `✓ Step checkpoint saved (${stepRes.data.checkpoints.length}/${stepRes.data.stepsSnapshot.length}).`,
+                                  );
+                                } else {
+                                  setUnifiedSessionMessage(stepRes.errors.join(' '));
+                                }
+                              }}
+                              style={{
+                                minHeight: '44px',
+                                padding: '8px 14px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                backgroundColor: V2_LIGHT_DESIGN_TOKENS.primary,
+                                color: '#FFFFFF',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '✓ Hoàn thành bước hiện tại' : '✓ Complete Current Step'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const paused = transitionPracticeSessionLifecycle(activeUnifiedSession, 'pause');
+                                if (paused.valid && paused.data) {
+                                  setActiveUnifiedSession(paused.data);
+                                  setUnifiedSessionMessage(lang === 'vi' ? '⏸ Đã tạm dừng phiên.' : '⏸ Session paused.');
+                                }
+                              }}
+                              style={{
+                                minHeight: '44px',
+                                padding: '8px 14px',
+                                borderRadius: '10px',
+                                border: `1px solid ${theme.palette.border}`,
+                                backgroundColor: '#FFFFFF',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '⏸ Tạm dừng' : '⏸ Pause'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const completed = transitionPracticeSessionLifecycle(activeUnifiedSession, 'complete');
+                                if (completed.valid && completed.data) {
+                                  setActiveUnifiedSession(completed.data);
+                                  setUnifiedSessionMessage(
+                                    lang === 'vi'
+                                      ? '🎉 Đã hoàn thành phiên thực hành! (Không tự động nâng cấp mức điều trị).'
+                                      : '🎉 Practice session completed!',
+                                  );
+                                } else {
+                                  setUnifiedSessionMessage(completed.errors.join(' '));
+                                }
+                              }}
+                              style={{
+                                minHeight: '44px',
+                                padding: '8px 14px',
+                                borderRadius: '10px',
+                                border: `1px solid ${V2_LIGHT_DESIGN_TOKENS.primary}`,
+                                backgroundColor: '#FFFFFF',
+                                color: V2_LIGHT_DESIGN_TOKENS.primary,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang === 'vi' ? '🏁 Kết thúc & Lưu hoàn thành' : '🏁 Finish Session'}
+                            </button>
+                          </>
+                        )}
+
+                        {activeUnifiedSession.status === 'paused' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const resumed = transitionPracticeSessionLifecycle(activeUnifiedSession, 'resume');
+                              if (resumed.valid && resumed.data) {
+                                setActiveUnifiedSession(resumed.data);
+                                setUnifiedSessionMessage(lang === 'vi' ? '▶ Đã tiếp tục phiên.' : '▶ Session resumed.');
+                              }
+                            }}
+                            style={{
+                              minHeight: '44px',
+                              padding: '8px 14px',
+                              borderRadius: '10px',
+                              border: 'none',
+                              backgroundColor: V2_LIGHT_DESIGN_TOKENS.primary,
+                              color: '#FFFFFF',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {lang === 'vi' ? '▶ Tiếp tục thực hành' : '▶ Resume'}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const stopped = transitionPracticeSessionLifecycle(activeUnifiedSession, 'stop');
+                            if (stopped.valid && stopped.data) {
+                              setActiveUnifiedSession(stopped.data);
+                              setUnifiedSessionMessage(
+                                lang === 'vi'
+                                  ? '⏹ Đã dừng phiên thực hành theo ý muốn của bạn.'
+                                  : '⏹ Session stopped at your request.',
+                              );
+                            }
+                          }}
+                          style={{
+                            minHeight: '44px',
+                            padding: '8px 14px',
+                            borderRadius: '10px',
+                            border: `1px solid ${V2_LIGHT_DESIGN_TOKENS.emergency}`,
+                            backgroundColor: '#FFFFFF',
+                            color: V2_LIGHT_DESIGN_TOKENS.emergency,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {lang === 'vi' ? '⏹ Dừng phiên' : '⏹ Stop'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Catalog Results List (Showing top 6 matching items for low cognitive load) */}
+              {(() => {
+                const catalogResult = queryUnifiedPracticeLibrary({
+                  need: unifiedNeedFilter,
+                  searchQuery: unifiedSearchQuery,
+                  includeDraftReferencePreview: showDraftReferenceItems,
+                });
+                const previewItems = catalogResult.items.slice(0, 6);
+                return (
+                  <div>
+                    <div style={{ fontSize: '0.82rem', color: theme.palette.textSecondary, marginBottom: '10px' }}>
+                      {lang === 'vi'
+                        ? `Tìm thấy ${catalogResult.totalEligibleSelfGuidedCount} mục đủ điều kiện tự thực hành (Tổng hiển thị: ${catalogResult.items.length} mục).`
+                        : `Found ${catalogResult.totalEligibleSelfGuidedCount} eligible self-guided practices (Showing ${catalogResult.items.length} total).`}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+                      {previewItems.map((item) => {
+                        const eligibility = evaluateUnifiedItemSelfGuidedEligibility(item);
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              padding: '14px',
+                              borderRadius: '12px',
+                              backgroundColor: theme.palette.background,
+                              border: `1px solid ${theme.palette.border}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: V2_LIGHT_DESIGN_TOKENS.primary }}>
+                                <span>{`${item.kind.toUpperCase()} • ${item.models.join('/')} • ${item.durationMinutes}p`}</span>
+                                <span>{`v${item.version}`}</span>
+                              </div>
+                              <div style={{ fontWeight: 700, fontSize: '0.94rem', marginTop: '4px', color: theme.palette.textPrimary }}>
+                                {lang === 'vi' ? item.title : item.titleEn}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveUnifiedItem(item);
+                                setActiveUnifiedSession(createPracticeSessionPreview(item));
+                                setUnifiedSessionMessage(eligibility.messageVi);
+                              }}
+                              style={{
+                                minHeight: '42px',
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                border: eligibility.canStartSelfGuided ? 'none' : `1px solid ${theme.palette.border}`,
+                                backgroundColor: eligibility.canStartSelfGuided ? V2_LIGHT_DESIGN_TOKENS.primary : theme.palette.surface,
+                                color: eligibility.canStartSelfGuided ? '#FFFFFF' : theme.palette.textSecondary,
+                                fontWeight: 700,
+                                fontSize: '0.84rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {eligibility.canStartSelfGuided
+                                ? (lang === 'vi' ? 'Xem trước & Thực hành →' : 'Preview & Start →')
+                                : (lang === 'vi' ? 'Xem bản nháp tham khảo (Khóa tự tập)' : 'View Draft Reference (Locked)')}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </section>
+          )}
+
+          {/* Contextual Secondary Switcher for Practice / Plan / Progress Modules (Zero loss of existing functionality!) */}
+          <nav
+            aria-label={lang === 'vi' ? 'Các công cụ chuyên sâu trong mục hiện tại' : 'Sub-modules in current tab'}
+            className="no-print"
+            style={{
+              maxWidth: `${V2_LIGHT_DESIGN_TOKENS.mainMaxWidthPx}px`,
+              margin: '0 auto 12px',
               display: 'flex',
               gap: '6px',
               flexWrap: 'wrap',
@@ -2461,16 +3173,16 @@ export function EquilibriaClinicalApp() {
           >
             {(
               [
-                ['session-player', '🌿', lang === 'vi' ? 'Tâm sự' : 'Journal'],
-                ['tools-36-team-cbt', '🌱', lang === 'vi' ? 'Thực hành' : 'Practice'],
-                ['clinical-master-plan', '🛡️', lang === 'vi' ? 'Phác đồ & An toàn (68)' : 'Clinical Protocols & Safety'],
-                ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief'],
-                ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Tâm trạng & Giấc ngủ' : 'Mood & Sleep'],
-                ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý AI' : 'AI Companion'],
-                ['assessments-report', '📋', lang === 'vi' ? 'Tự đánh giá' : 'Self-Checks'],
-                ['account-privacy-vault', '👤', lang === 'vi' ? 'Hồ sơ' : 'Profile'],
+                ['session-player', '🌿', lang === 'vi' ? 'Thực hành CBT/DBT' : 'Guided CBT/DBT', 'practice'],
+                ['tools-36-team-cbt', '🌱', lang === 'vi' ? '36 Công cụ Tự lực' : '36 Self-Care Tools', 'practice'],
+                ['anxiety-hub', '🌊', lang === 'vi' ? 'Làm dịu Lo âu' : 'Anxiety Relief', 'practice'],
+                ['clinical-master-plan', '🛡️', lang === 'vi' ? 'Thư viện 68 Phác đồ & Kế hoạch An toàn' : '68 Protocols & Safety Plan', 'plan'],
+                ['bipolar-ipsrt-hub', '🌙', lang === 'vi' ? 'Nhịp Sinh học & Giấc ngủ' : 'Rhythm & Sleep', 'plan'],
+                ['ai-companion-biometrics', '💬', lang === 'vi' ? 'Trợ lý AI Hỗ trợ' : 'AI Companion', 'today'],
+                ['assessments-report', '📋', lang === 'vi' ? 'Đánh giá & Báo cáo' : 'Assessments & Reports', 'progress'],
+                ['account-privacy-vault', '👤', lang === 'vi' ? 'Hồ sơ & Quyền riêng tư' : 'Profile & Privacy', 'progress'],
               ] as const
-            ).map(([tabId, icon, label]) => {
+            ).map(([tabId, icon, label, parentV2Tab]) => {
               const isSelected =
                 activeTab === tabId ||
                 (tabId === 'ai-companion-biometrics' && activeTab === 'phase3-ai-biometrics-voice') ||
@@ -2479,22 +3191,23 @@ export function EquilibriaClinicalApp() {
                 <button
                   key={tabId}
                   type="button"
-                  onClick={() => setActiveTab(tabId as ActiveHubTab)}
+                  onClick={() => {
+                    setV2PrimaryTab(parentV2Tab as V2PrimaryTabId);
+                    setActiveTab(tabId as ActiveHubTab);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '8px 13px',
-                    borderRadius: '13px',
+                    padding: '7px 12px',
+                    borderRadius: '12px',
                     border: isSelected ? `2px solid ${theme.palette.primary}` : `1px solid ${theme.palette.border}`,
-                    backgroundColor: isSelected ? theme.palette.primary : theme.palette.surface,
-                    color: isSelected ? '#ffffff' : theme.palette.textPrimary,
-                    fontWeight: 600,
-                    fontSize: '0.88rem',
+                    backgroundColor: isSelected ? V2_LIGHT_DESIGN_TOKENS.primaryContainer : theme.palette.surface,
+                    color: V2_LIGHT_DESIGN_TOKENS.text,
+                    fontWeight: isSelected ? 700 : 500,
+                    fontSize: '0.84rem',
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
-                    boxShadow: isSelected ? '0 4px 12px rgba(121, 114, 152, 0.2)' : 'none',
-                    transition: 'all 0.15s ease',
                   }}
                 >
                   <span>{icon}</span>
@@ -4069,34 +4782,35 @@ export function EquilibriaClinicalApp() {
                         : 'Choose a self-check below. Click to answer the interactive questionnaire and view your clinical assessment results.'}
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-                      {assessments
-                        .filter((a) => {
-                          const isBipolarScale = a.type === 'ASRM' || a.type === 'MDQ';
+                      {(['BMS', 'PHQ-9', 'GAD-7', 'ISI', 'ASRM', 'MDQ'] as const)
+                        .filter((scaleType) => {
+                          const isBipolarScale = scaleType === 'ASRM' || scaleType === 'MDQ';
                           if (isBipolarScale && !showAdvancedBipolarScales && accountSession?.user.disorderFocus !== 'bipolar') {
                             return false;
                           }
                           return true;
                         })
-                        .map((a) => {
-                          const isDone = Boolean(completedScaleIds[a.type] || completedScaleIds[a.id]);
-                          const scaleMeta = CLINICAL_SCALES_REGISTRY[a.type];
-                          const friendlyTitleVi = scaleMeta?.titleVi ?? a.type;
+                        .map((scaleType) => {
+                          const completedResult = userAssessmentResults[scaleType] ?? null;
+                          const isDone = completedResult !== null && Boolean(completedScaleIds[scaleType] || completedScaleIds[completedResult.id]);
+                          const scaleMeta = CLINICAL_SCALES_REGISTRY[scaleType];
+                          const friendlyTitleVi = scaleMeta?.titleVi ?? scaleType;
                           const friendlyIntroVi =
-                            a.type === 'BMS'
+                            scaleType === 'BMS'
                               ? 'Đánh giá nhanh cảm giác buồn, lo lắng, bực bội và mức độ tích cực ngay trong ngày hôm nay.'
-                              : a.type === 'PHQ-9'
+                              : scaleType === 'PHQ-9'
                                 ? '9 câu hỏi chuẩn quốc tế giúp nhận diện tình trạng mệt mỏi, giảm hứng thú và trầm lắng trong 2 tuần qua.'
-                                : a.type === 'GAD-7'
+                                : scaleType === 'GAD-7'
                                   ? '7 câu hỏi giúp đo lường mức độ bồn chồn, lo nghĩ quá mức và khó thư giãn.'
-                                  : a.type === 'ISI'
+                                  : scaleType === 'ISI'
                                     ? 'Đánh giá tình trạng khó vào giấc, thức giấc giữa đêm và cảm giác mệt mỏi sau khi ngủ dậy.'
-                                    : a.type === 'ASRM'
+                                    : scaleType === 'ASRM'
                                       ? '5 câu hỏi đo lường mức độ năng lượng hưng phấn cao và giảm nhu cầu ngủ.'
                                       : '13 câu hỏi khảo sát lịch sử dao động khí sắc hai cực trong cuộc sống.';
 
                           return (
                             <div
-                              key={a.type}
+                              key={scaleType}
                               style={{
                                 padding: '16px',
                                 borderRadius: '14px',
@@ -4112,7 +4826,7 @@ export function EquilibriaClinicalApp() {
                               <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
                                   <strong style={{ fontSize: '0.96rem', color: theme.palette.textPrimary }}>
-                                    {lang === 'vi' ? friendlyTitleVi : a.labelEn}
+                                    {lang === 'vi' ? friendlyTitleVi : (scaleMeta?.titleEn ?? scaleType)}
                                   </strong>
                                   <span
                                     style={{
@@ -4125,21 +4839,21 @@ export function EquilibriaClinicalApp() {
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
-                                    {isDone
-                                      ? (lang === 'vi' ? `✓ Đã xong (${a.totalScore}/${a.maxScore}đ)` : `✓ Done (${a.totalScore}/${a.maxScore})`)
-                                      : (lang === 'vi' ? 'Chưa thực hiện' : 'Not started')}
+                                    {isDone && completedResult
+                                      ? (lang === 'vi' ? `✓ Đã xong (${completedResult.totalScore}/${completedResult.maxScore}đ)` : `✓ Done (${completedResult.totalScore}/${completedResult.maxScore})`)
+                                      : (lang === 'vi' ? 'Chưa trả lời (null)' : 'Unanswered (null)')}
                                   </span>
                                 </div>
 
-                                {isDone ? (
+                                {isDone && completedResult ? (
                                   <div>
                                     <div style={{ fontWeight: 600, color: theme.palette.textPrimary, marginBottom: '4px', fontSize: '0.9rem' }}>
-                                      {lang === 'vi' ? a.labelVi : a.labelEn}
+                                      {lang === 'vi' ? completedResult.labelVi : completedResult.labelEn}
                                     </div>
                                     <p style={{ margin: 0, color: theme.palette.textSecondary, fontSize: '0.86rem', lineHeight: 1.5 }}>
-                                      {lang === 'vi' ? a.clinicalRecommendationVi : a.clinicalRecommendationEn}
+                                      {lang === 'vi' ? completedResult.clinicalRecommendationVi : completedResult.clinicalRecommendationEn}
                                     </p>
-                                    {a.triggersSafetyStop && (
+                                    {completedResult.triggersSafetyStop && (
                                       <div
                                         style={{
                                           marginTop: '10px',
@@ -4184,7 +4898,7 @@ export function EquilibriaClinicalApp() {
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => handleStartTakingScale(a.type)}
+                                  onClick={() => handleStartTakingScale(scaleType)}
                                   style={{
                                     padding: '8px 16px',
                                     borderRadius: '10px',
@@ -6159,31 +6873,13 @@ export function EquilibriaClinicalApp() {
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>
-                            {lang === 'vi' ? 'Vai trò tài khoản:' : 'Account Role:'}{' '}
+                            {lang === 'vi' ? 'Vai trò tài khoản (Phân quyền Máy chủ):' : 'Server-Assigned Role:'}{' '}
                             <strong style={{ color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent }}>
                               {accountSession?.user.role === 'admin'
-                                ? (lang === 'vi' ? '👑 Quản Trị Viên / Bác Sĩ (Admin)' : '👑 Administrator / Clinician')
+                                ? (lang === 'vi' ? '👑 Quản Trị Viên (Server-Verified)' : '👑 Administrator (Server-Verified)')
                                 : (lang === 'vi' ? '👤 Người Dùng Cá Nhân (Patient)' : '👤 Personal Patient')}
                             </strong>
                           </span>
-                          <button
-                            type="button"
-                            onClick={handleToggleAdminRole}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '8px',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              backgroundColor: 'transparent',
-                              border: `1px solid ${theme.palette.border}`,
-                              color: theme.palette.textPrimary,
-                            }}
-                          >
-                            {accountSession?.user.role === 'admin'
-                              ? (lang === 'vi' ? 'Chuyển về Người dùng cá nhân' : 'Switch to Personal User')
-                              : (lang === 'vi' ? 'Kích hoạt quyền Quản trị viên' : 'Enable Admin Privileges')}
-                          </button>
                         </div>
 
                         <strong style={{ fontSize: '0.84rem', display: 'block', marginBottom: '8px' }}>
@@ -6659,31 +7355,13 @@ export function EquilibriaClinicalApp() {
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                          {lang === 'vi' ? 'Quyền tài khoản hiện tại:' : 'Current Role:'}{' '}
+                          {lang === 'vi' ? 'Quyền tài khoản (Phân quyền Máy chủ):' : 'Server-Assigned Role:'}{' '}
                           <strong style={{ color: accountSession?.user.role === 'admin' ? theme.palette.sosBanner : theme.palette.accent }}>
                             {accountSession?.user.role === 'admin'
                               ? (lang === 'vi' ? 'Quản trị viên (Admin)' : 'Administrator')
                               : (lang === 'vi' ? 'Người dùng cá nhân (Patient)' : 'Personal User')}
                           </strong>
                         </span>
-                        <button
-                          type="button"
-                          onClick={handleToggleAdminRole}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            backgroundColor: 'transparent',
-                            border: `1px solid ${theme.palette.border}`,
-                            color: theme.palette.textPrimary,
-                          }}
-                        >
-                          {accountSession?.user.role === 'admin'
-                            ? (lang === 'vi' ? 'Chuyển về Người dùng cá nhân' : 'Switch to Personal User')
-                            : (lang === 'vi' ? 'Kích hoạt quyền Quản trị viên' : 'Enable Admin Role')}
-                        </button>
                       </div>
 
                       <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>

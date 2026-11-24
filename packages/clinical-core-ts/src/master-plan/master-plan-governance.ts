@@ -473,6 +473,146 @@ export function resolveInProgressSessionOnProtocolUpdate(input: {
   };
 }
 
+/**
+ * V2 T04 Gate (`SAFE-03`, `SAFE-04`, `UNIFIED_PRACTICE_LIBRARY.md`):
+ * Evaluates whether a protocol can be started by a user based on:
+ * 1. Publication/Review Status (`draft`, `deprecated`, `blocked`, `in_*_review` CANNOT be self-started unless in explicit reviewer preview).
+ * 2. Delivery Boundary (`clinician_assisted_required` CANNOT be self-started without an active clinician-approved grant).
+ * 3. Current Safety Pathway State (`emergency_guidance` / `urgent_human_support` suspends ordinary exercises).
+ */
+export interface ProtocolExecutionEligibilityResult {
+  canStartSession: boolean;
+  canViewReferenceOverview: boolean;
+  blockedReasonCode:
+    | null
+    | 'safety_escalation_active'
+    | 'unapproved_or_withdrawn_content'
+    | 'clinician_assisted_required'
+    | 'missing_safety_fields';
+  noticeVi: string;
+  noticeEn: string;
+}
+
+export function evaluateProtocolExecutionEligibility(input: {
+  protocol: Partial<ProtocolManifest> | null | undefined;
+  pathwayState?: PathwayWorkflowState;
+  hasActiveClinicianAssistedGrant?: boolean;
+  allowClinicalReviewerPreview?: boolean;
+}): ProtocolExecutionEligibilityResult {
+  const p = input.protocol;
+  // Fail closed if protocol is missing or lacks mandatory safety fields
+  if (
+    !p ||
+    !p.protocol_id ||
+    !p.status ||
+    !p.delivery_boundary ||
+    !Array.isArray(p.precautions) ||
+    p.precautions.length === 0 ||
+    !Array.isArray(p.contraindications) ||
+    p.contraindications.length === 0
+  ) {
+    return {
+      canStartSession: false,
+      canViewReferenceOverview: false,
+      blockedReasonCode: 'missing_safety_fields',
+      noticeVi: 'Nội dung thiếu trường an toàn bắt buộc nên đã bị khóa tự động (Fail Closed).',
+      noticeEn: 'Content is missing mandatory safety metadata and is blocked (Fail Closed).',
+    };
+  }
+
+  const pathway = input.pathwayState ?? 'routine_support';
+  if (pathway === 'emergency_guidance' || pathway === 'urgent_human_support') {
+    return {
+      canStartSession: false,
+      canViewReferenceOverview: true,
+      blockedReasonCode: 'safety_escalation_active',
+      noticeVi:
+        'Hệ thống đang ưu tiên an toàn khẩn cấp cho bạn. Các bài tập thông thường tạm dừng để hiển thị hỗ trợ con người và danh bạ cấp cứu.',
+      noticeEn:
+        'An urgent safety workflow is active. Ordinary exercises are suspended in favor of human and emergency support.',
+    };
+  }
+
+  if (p.delivery_boundary === 'clinician_assisted_required' && !input.hasActiveClinicianAssistedGrant) {
+    return {
+      canStartSession: false,
+      canViewReferenceOverview: true,
+      blockedReasonCode: 'clinician_assisted_required',
+      noticeVi:
+        'Phác đồ này yêu cầu chuyên gia lâm sàng đồng hành và sàng lọc y khoa (Clinician-Assisted Required). Bạn không thể tự bắt đầu phiên này nếu chưa có chỉ định của bác sĩ.',
+      noticeEn:
+        'This protocol requires clinician guidance and medical screening (Clinician-Assisted Required) and cannot be self-started.',
+    };
+  }
+
+  const isPublishedAndApproved =
+    (p.status === 'approved' || p.status === 'released') &&
+    Array.isArray(p.clinical_approvals) &&
+    p.clinical_approvals.length > 0;
+
+  if (!isPublishedAndApproved && !input.allowClinicalReviewerPreview) {
+    return {
+      canStartSession: false,
+      canViewReferenceOverview: true,
+      blockedReasonCode: 'unapproved_or_withdrawn_content',
+      noticeVi:
+        p.status === 'deprecated'
+          ? 'Phác đồ này đã ngưng lưu hành (Withdrawn/Deprecated) và không thể bắt đầu phiên mới.'
+          : `Phác đồ này đang ở trạng thái "${p.status}" (chờ chuyên gia lâm sàng phê duyệt). Bạn có thể xem mục tiêu, cảnh báo và nguồn tham khảo nhưng chưa thể bắt đầu phiên tự thực hành.`,
+      noticeEn:
+        p.status === 'deprecated'
+          ? 'This protocol has been withdrawn/deprecated and cannot be started.'
+          : `This protocol is currently in "${p.status}" status awaiting clinical approval and cannot be self-started.`,
+    };
+  }
+
+  return {
+    canStartSession: true,
+    canViewReferenceOverview: true,
+    blockedReasonCode: null,
+    noticeVi: 'Phác đồ đủ điều kiện thực hành an toàn.',
+    noticeEn: 'Protocol is eligible for safe practice.',
+  };
+}
+
+/**
+ * V2 T04 Gate (`SAFE-01`):
+ * Returns clean, empty, non-fabricated initial clinical state for any fresh Guest or Account.
+ */
+export interface CleanInitialClinicalDefaults {
+  phq9TotalScore: null;
+  phq9Item9Score: null;
+  gad7TotalScore: null;
+  who5ItemScores: [null, null, null, null, null];
+  asrmTotalScore: null;
+  mdqPositive: null;
+  reportedBipolarHistory: null;
+  medicationsList: [];
+  medicationIntakeStatus: null;
+  trustedContactName: '';
+  trustedContactPhone: '';
+  explicitContactStorageConsent: false;
+  caregiverAccessGrant: null;
+}
+
+export function createCleanInitialClinicalDefaults(): CleanInitialClinicalDefaults {
+  return {
+    phq9TotalScore: null,
+    phq9Item9Score: null,
+    gad7TotalScore: null,
+    who5ItemScores: [null, null, null, null, null],
+    asrmTotalScore: null,
+    mdqPositive: null,
+    reportedBipolarHistory: null,
+    medicationsList: [],
+    medicationIntakeStatus: null,
+    trustedContactName: '',
+    trustedContactPhone: '',
+    explicitContactStorageConsent: false,
+    caregiverAccessGrant: null,
+  };
+}
+
 // Helper to construct compliant draft protocol manifests across all 7 therapy models
 function buildDraftProtocolManifest(params: {
   protocol_id: string;

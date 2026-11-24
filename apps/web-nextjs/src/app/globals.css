@@ -1,15 +1,32 @@
 :root {
-  --bg-color: #FAF9F6;
-  --surface-color: #FFFFFF;
-  --primary-color: #797298;
-  --primary-pill-bg: #EEECF4;
-  --accent-color: #6AA882;
-  --accent-pill-bg: #EAF3ED;
-  --text-primary: #2F2F2B;
-  --text-secondary: #6B6B63;
-  --border-color: #E6E4DC;
-  --sos-color: #C56548;
-  --card-shadow: 0 4px 20px rgba(47, 47, 43, 0.05);
+  /* V2 Official Design Tokens (UI_UX_V2_DESIGN_SPEC.md) */
+  --v2-primary: #426B57;
+  --v2-primary-container: #DFEBE1;
+  --v2-background: #F7F6F2;
+  --v2-surface: #FFFFFF;
+  --v2-text: #263B33;
+  --v2-text-secondary: #4A6157;
+  --v2-caution: #B58B51;
+  --v2-emergency: #A34C48;
+  --v2-border: #DCE5DF;
+  --v2-radius-md: 12px;
+  --v2-radius-lg: 16px;
+  --v2-touch-target: 48px;
+  --v2-sidebar-width: 240px;
+  --v2-main-max-width: 960px;
+
+  /* Backward-compatible aliases */
+  --bg-color: var(--v2-background);
+  --surface-color: var(--v2-surface);
+  --primary-color: var(--v2-primary);
+  --primary-pill-bg: var(--v2-primary-container);
+  --accent-color: var(--v2-primary);
+  --accent-pill-bg: var(--v2-primary-container);
+  --text-primary: var(--v2-text);
+  --text-secondary: var(--v2-text-secondary);
+  --border-color: var(--v2-border);
+  --sos-color: var(--v2-emergency);
+  --card-shadow: 0 4px 16px rgba(38, 59, 51, 0.05);
 }
 
 * {
@@ -23,13 +40,103 @@ body {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-  line-height: 1.65;
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  background-color: var(--v2-background);
+  color: var(--v2-text);
+  line-height: 1.5;
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
+}
+
+/* V2 AppShell: Desktop Sidebar (240px) + Main Workspace (max-width 960px) & Mobile 4-Tab Bottom Nav */
+.v2-app-shell {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  max-width: 1280px;
+  margin: 0 auto;
+  gap: 24px;
+  padding: 16px 24px 88px;
+}
+
+.v2-desktop-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v2-main-container {
+  flex: 1;
+  max-width: 960px;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.v2-mobile-bottom-nav {
+  display: none;
+}
+
+.v2-touch-btn {
+  min-height: 48px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+
+.v2-touch-btn:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--v2-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1023px) {
+  .v2-app-shell {
+    flex-direction: column;
+    padding: 12px 16px 96px;
+  }
+
+  .v2-desktop-sidebar {
+    display: none;
+  }
+
+  .v2-mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    background-color: var(--v2-surface);
+    border-top: 1px solid var(--v2-border);
+    padding: 6px 8px;
+    justify-content: space-around;
+    box-shadow: 0 -4px 16px rgba(38, 59, 51, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 svg,

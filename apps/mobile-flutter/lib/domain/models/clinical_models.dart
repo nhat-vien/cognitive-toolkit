@@ -991,6 +991,21 @@ class WorryBoxItem {
         'nextSmallActionOrAcceptanceNote': nextSmallActionOrAcceptanceNote,
         'reviewed': reviewed,
       };
+
+  factory WorryBoxItem.fromJson(Map<String, dynamic> json) {
+    return WorryBoxItem(
+      id: json['id'] as String? ?? '',
+      worryText: json['worryText'] as String? ?? '',
+      capturedAt: DateTime.tryParse(json['capturedAt'] as String? ?? '') ??
+          DateTime.now().toUtc(),
+      scheduledReviewTime: json['scheduledReviewTime'] as String? ?? '17:30',
+      isProductiveActionableWorry:
+          json['isProductiveActionableWorry'] as bool? ?? false,
+      nextSmallActionOrAcceptanceNote:
+          json['nextSmallActionOrAcceptanceNote'] as String?,
+      reviewed: json['reviewed'] as bool? ?? false,
+    );
+  }
 }
 
 class ExposureStep {
@@ -1040,6 +1055,22 @@ class ExposureStep {
         'medicalScreeningCleared': medicalScreeningCleared,
         'completed': completed,
       };
+
+  factory ExposureStep.fromJson(Map<String, dynamic> json) {
+    return ExposureStep(
+      id: json['id'] as String? ?? '',
+      fearSituation: json['fearSituation'] as String? ?? '',
+      baselineSuds: (json['baselineSuds'] as num? ?? 40).toInt().clamp(0, 100),
+      postExposureSuds: (json['postExposureSuds'] as num?)?.toInt(),
+      safetyBehaviorsToDrop:
+          (json['safetyBehaviorsToDrop'] as List<dynamic>? ?? const [])
+              .map((e) => e.toString())
+              .toList(),
+      isInteroceptive: json['isInteroceptive'] as bool? ?? false,
+      medicalScreeningCleared: json['medicalScreeningCleared'] as bool? ?? true,
+      completed: json['completed'] as bool? ?? false,
+    );
+  }
 }
 
 class AssessmentRecord {

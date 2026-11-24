@@ -66,45 +66,47 @@ class AdaptiveClinicalTheme {
   }
 
   static ThemeData _buildStandardTheme() {
-    const primaryLavender = Color(0xFF797298);
-    const healingSage = Color(0xFF6AA882);
-    const warmTerracotta = Color(0xFFC56548);
-    const alabasterBg = Color(0xFFFAF9F6);
-    const softCharcoal = Color(0xFF2F2F2B);
+    // V2 Official Design Tokens (UI_UX_V2_DESIGN_SPEC.md)
+    const v2PrimarySage = Color(0xFF426B57);
+    const v2PrimaryContainer = Color(0xFFDFEBE1);
+    const v2Emergency = Color(0xFFA34C48);
+    const v2Background = Color(0xFFF7F6F2);
+    const v2Text = Color(0xFF263B33);
 
     final scheme = ColorScheme.fromSeed(
-      seedColor: primaryLavender,
+      seedColor: v2PrimarySage,
       brightness: Brightness.light,
-      primary: primaryLavender,
+      primary: v2PrimarySage,
       onPrimary: Colors.white,
-      secondary: healingSage,
-      tertiary: warmTerracotta,
-      surface: alabasterBg,
-      onSurface: softCharcoal,
+      primaryContainer: v2PrimaryContainer,
+      secondary: v2PrimarySage,
+      tertiary: v2Emergency,
+      surface: v2Background,
+      onSurface: v2Text,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: alabasterBg,
+      scaffoldBackgroundColor: v2Background,
       cardTheme: CardThemeData(
         elevation: 0,
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFFE6E4DC)),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFDCE5DF)),
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFFAF9F6),
-        foregroundColor: softCharcoal,
+        backgroundColor: v2Background,
+        foregroundColor: v2Text,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFEBE8F2),
+        indicatorColor: v2PrimaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,
@@ -112,8 +114,8 @@ class AdaptiveClinicalTheme {
                 ? FontWeight.w700
                 : FontWeight.w500,
             color: states.contains(WidgetState.selected)
-                ? primaryLavender
-                : const Color(0xFF6B6B63),
+                ? v2PrimarySage
+                : const Color(0xFF4A6157),
           ),
         ),
       ),

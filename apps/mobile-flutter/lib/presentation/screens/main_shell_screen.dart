@@ -359,11 +359,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   Widget _buildFloatingPillNavBar() {
+    // V2 4-Tab Navigation Contract (INFORMATION_ARCHITECTURE.md): Hôm nay | Thực hành | Kế hoạch | Tiến trình
     const items = [
-      (Icons.cloud_rounded, 'Cảm xúc'),
-      (Icons.self_improvement_rounded, 'Thiền/Thở'),
-      (Icons.psychology_alt_rounded, 'Công cụ'),
-      (Icons.history_rounded, 'Lịch sử'),
+      (Icons.wb_sunny_rounded, 'Hôm nay'),
+      (Icons.self_improvement_rounded, 'Thực hành'),
+      (Icons.explore_rounded, 'Kế hoạch'),
+      (Icons.insights_rounded, 'Tiến trình'),
     ];
 
     return Container(

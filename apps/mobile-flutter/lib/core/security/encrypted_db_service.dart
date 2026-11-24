@@ -196,6 +196,45 @@ class EncryptedDbService {
                 ),
           );
       }
+
+      final rawSessions = map['sessions'];
+      if (rawSessions is List) {
+        _sessions
+          ..clear()
+          ..addAll(
+            rawSessions.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => CognitiveToolkitSession.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
+
+      final rawWorries = map['worryBoxItems'];
+      if (rawWorries is List) {
+        _worryBoxItems
+          ..clear()
+          ..addAll(
+            rawWorries.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => WorryBoxItem.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
+
+      final rawExposures = map['exposureSteps'];
+      if (rawExposures is List) {
+        _exposureSteps
+          ..clear()
+          ..addAll(
+            rawExposures.whereType<Map<dynamic, dynamic>>().map(
+                  (e) => ExposureStep.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                ),
+          );
+      }
     } catch (_) {
       // Gracefully keep in-memory state if no secure storage backend
     }
@@ -208,6 +247,9 @@ class EncryptedDbService {
         'assessments': _assessments.take(60).map((e) => e.toJson()).toList(),
         'impulseVaultItems':
             _impulseVaultItems.take(40).map((e) => e.toJson()).toList(),
+        'sessions': _sessions.take(100).map((e) => e.toJson()).toList(),
+        'worryBoxItems': _worryBoxItems.take(80).map((e) => e.toJson()).toList(),
+        'exposureSteps': _exposureSteps.take(80).map((e) => e.toJson()).toList(),
       };
       await _secureStorage.write(
         key: _clinicalVaultStorageSlot,
@@ -258,6 +300,7 @@ class EncryptedDbService {
   Future<void> saveSession(CognitiveToolkitSession session) async {
     _sessions.removeWhere((item) => item.id == session.id);
     _sessions.insert(0, session);
+    unawaited(_persistVaultSnapshot());
   }
 
   List<CognitiveToolkitSession> getSessions() => List.unmodifiable(_sessions);
@@ -276,6 +319,7 @@ class EncryptedDbService {
   Future<void> saveWorryBoxItem(WorryBoxItem item) async {
     _worryBoxItems.removeWhere((e) => e.id == item.id);
     _worryBoxItems.insert(0, item);
+    unawaited(_persistVaultSnapshot());
   }
 
   List<WorryBoxItem> getWorryBoxItems() => List.unmodifiable(_worryBoxItems);
@@ -285,6 +329,7 @@ class EncryptedDbService {
     _exposureSteps.removeWhere((e) => e.id == step.id);
     _exposureSteps.add(step);
     _exposureSteps.sort((a, b) => a.baselineSuds.compareTo(b.baselineSuds));
+    unawaited(_persistVaultSnapshot());
   }
 
   List<ExposureStep> getExposureSteps() => List.unmodifiable(_exposureSteps);

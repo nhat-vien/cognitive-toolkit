@@ -61,6 +61,273 @@ export const FIVE_FAMILY_AFFECT_CARDS: AffectLabelCard[] = [
   },
 ];
 
+/**
+ * V2 Official Design Tokens & Information Architecture Contract (T05 & T06 — `UI_UX_V2_DESIGN_SPEC.md` & `INFORMATION_ARCHITECTURE.md`):
+ * - Light Tokens:
+ *   primary: #426B57 (WCAG AA compliant sage green)
+ *   primaryContainer: #DFEBE1
+ *   background: #F7F6F2
+ *   surface: #FFFFFF
+ *   text: #263B33
+ *   caution: #B58B51
+ *   emergency: #A34C48
+ * - Typography: Be Vietnam Pro / Inter, body 16px, line-height 1.5, headings 24/20/18px
+ * - Spacing: 4/8/12/16/24/32px, Radius: 12-16px, Touch Target: >= 48dp
+ * - Layout: Desktop sidebar 240px, main max-width 960px; Mobile 4-tab bottom navigation
+ */
+
+export interface V2DesignTokens {
+  primary: string;
+  primaryContainer: string;
+  background: string;
+  surface: string;
+  text: string;
+  textSecondary: string;
+  border: string;
+  caution: string;
+  emergency: string;
+  fontFamily: string;
+  bodyFontSizePx: 16;
+  bodyLineHeight: 1.5;
+  headingSizesPx: { h1: 24; h2: 20; h3: 18 };
+  spacingScalePx: readonly [4, 8, 12, 16, 24, 32];
+  radiusRangePx: readonly [12, 16];
+  minTouchTargetDp: 48;
+  desktopSidebarWidthPx: 240;
+  mainMaxWidthPx: 960;
+  breakpointsPx: { mobileMax: 600; desktopMin: 1024 };
+}
+
+export const V2_LIGHT_DESIGN_TOKENS: V2DesignTokens = {
+  primary: '#426B57',
+  primaryContainer: '#DFEBE1',
+  background: '#F7F6F2',
+  surface: '#FFFFFF',
+  text: '#263B33',
+  textSecondary: '#4A6157',
+  border: '#DCE5DF',
+  caution: '#B58B51',
+  emergency: '#A34C48',
+  fontFamily: "'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif",
+  bodyFontSizePx: 16,
+  bodyLineHeight: 1.5,
+  headingSizesPx: { h1: 24, h2: 20, h3: 18 },
+  spacingScalePx: [4, 8, 12, 16, 24, 32],
+  radiusRangePx: [12, 16],
+  minTouchTargetDp: 48,
+  desktopSidebarWidthPx: 240,
+  mainMaxWidthPx: 960,
+  breakpointsPx: { mobileMax: 600, desktopMin: 1024 },
+};
+
+export const V2_DARK_DESIGN_TOKENS: V2DesignTokens = {
+  ...V2_LIGHT_DESIGN_TOKENS,
+  primary: '#78A890',
+  primaryContainer: '#1E3329',
+  background: '#141A17',
+  surface: '#1C2420',
+  text: '#EBF2EE',
+  textSecondary: '#B5C7BD',
+  border: '#2E3D36',
+  caution: '#D4A86A',
+  emergency: '#E07A75',
+};
+
+export type V2PrimaryTabId = 'today' | 'practice' | 'plan' | 'progress';
+
+export interface V2PrimaryTabSpec {
+  id: V2PrimaryTabId;
+  routePath: '/today' | '/practice' | '/plan' | '/progress';
+  iconSymbol: string;
+  labelVi: string;
+  labelEn: string;
+  purposeVi: string;
+  purposeEn: string;
+  contentsVi: string;
+  contentsEn: string;
+}
+
+/**
+ * V2 4-Tab Navigation Contract (`INFORMATION_ARCHITECTURE.md`):
+ * 1. Hôm nay (/today)
+ * 2. Thực hành (/practice)
+ * 3. Kế hoạch (/plan)
+ * 4. Tiến trình (/progress)
+ * Note: SOS (/help/urgent) is a global action, NOT a tab. Avatar opens Profile/Privacy/Settings.
+ */
+export const V2_PRIMARY_4_TABS: readonly V2PrimaryTabSpec[] = [
+  {
+    id: 'today',
+    routePath: '/today',
+    iconSymbol: '☀️',
+    labelVi: 'Hôm nay',
+    labelEn: 'Today',
+    purposeVi: 'Việc phù hợp ngay lúc này',
+    purposeEn: 'What fits right now',
+    contentsVi: 'Check-in tùy chọn (có thể bỏ qua), một gợi ý đã duyệt, tiếp tục phiên, kế hoạch hôm nay',
+    contentsEn: 'Optional skippable check-in, one eligible suggestion, resume session, today plan',
+  },
+  {
+    id: 'practice',
+    routePath: '/practice',
+    iconSymbol: '🌿',
+    labelVi: 'Thực hành',
+    labelEn: 'Practice',
+    purposeVi: 'Tìm và thực hiện bài tập',
+    purposeEn: 'Discover and practice skills',
+    contentsVi: 'Theo nhu cầu (Bình tâm, Ngủ, Suy nghĩ, Cảm xúc), tìm kiếm, lọc, thiền, công cụ, thư viện chuyên sâu',
+    contentsEn: 'By need (Calm, Sleep, Thoughts, Emotions), search, filter, meditation, tools, protocol library',
+  },
+  {
+    id: 'plan',
+    routePath: '/plan',
+    iconSymbol: '🧭',
+    labelVi: 'Kế hoạch',
+    labelEn: 'Plan',
+    purposeVi: 'Mục tiêu cá nhân & An toàn',
+    purposeEn: 'Personal goals & safety plan',
+    contentsVi: 'Việc đã chọn, lịch nhắc thuốc/nhịp sinh học tùy chọn, kế hoạch an toàn 6 mục, người hỗ trợ',
+    contentsEn: 'Selected practices, optional schedule/rhythm, 6-section safety plan, consented supporters',
+  },
+  {
+    id: 'progress',
+    routePath: '/progress',
+    iconSymbol: '📊',
+    labelVi: 'Tiến trình',
+    labelEn: 'Progress',
+    purposeVi: 'Nhìn lại & Báo cáo',
+    purposeEn: 'Reflect & user-controlled reports',
+    contentsVi: 'Nhật ký, lịch sử phiên, đánh giá tự nguyện, xuất báo cáo có bước ẩn thông tin nhạy cảm',
+    contentsEn: 'Journal history, sessions, optional self-assessments, redacted report export',
+  },
+] as const;
+
+export const V2_PROPOSED_ROUTES = [
+  '/welcome',
+  '/auth/login',
+  '/auth/callback',
+  '/auth/reset',
+  '/help/urgent',
+  '/today',
+  '/practice',
+  '/practice/library',
+  '/practice/[id]',
+  '/session/[id]',
+  '/plan',
+  '/plan/safety',
+  '/plan/support',
+  '/progress',
+  '/settings/privacy',
+  '/clinician',
+  '/admin',
+] as const;
+
+export type V2NeedCategoryId = 'calm' | 'sleep' | 'thoughts' | 'emotions' | 'relationships' | 'rhythm';
+
+export interface V2NeedQuickChip {
+  id: V2NeedCategoryId;
+  labelVi: string;
+  labelEn: string;
+  icon: string;
+  targetRoute: string;
+  defaultSubView: string;
+}
+
+export const V2_TODAY_NEED_CHIPS: readonly V2NeedQuickChip[] = [
+  { id: 'calm', labelVi: 'Bình tâm', labelEn: 'Calm', icon: '🌊', targetRoute: '/practice?need=calm', defaultSubView: 'anxiety-hub' },
+  { id: 'sleep', labelVi: 'Ngủ', labelEn: 'Sleep', icon: '🌙', targetRoute: '/practice?need=sleep', defaultSubView: 'sleep-meditation' },
+  { id: 'thoughts', labelVi: 'Suy nghĩ', labelEn: 'Thoughts', icon: '📝', targetRoute: '/practice?need=thoughts', defaultSubView: 'session-player' },
+  { id: 'emotions', labelVi: 'Cảm xúc', labelEn: 'Emotions', icon: '🌱', targetRoute: '/practice?need=emotions', defaultSubView: 'tools-36-team-cbt' },
+] as const;
+
+/**
+ * Maps any legacy V1 tab/route identifier to its canonical V2 4-Tab & Route destination (`INFORMATION_ARCHITECTURE.md` §Mapping hub cũ).
+ */
+export function resolveV2RouteAndTabRedirect(legacyOrV2Identifier: string): {
+  v2Tab: V2PrimaryTabId;
+  v2Route: string;
+  mappedSubSection: string;
+  isGlobalOverlay?: 'sos' | 'account-privacy' | null;
+} {
+  const clean = legacyOrV2Identifier.trim().toLowerCase();
+  if (clean === 'sos' || clean === '/help/urgent' || clean === 'help/urgent') {
+    return { v2Tab: 'today', v2Route: '/help/urgent', mappedSubSection: 'sos-urgent', isGlobalOverlay: 'sos' };
+  }
+  if (
+    clean === 'account-privacy-vault' ||
+    clean === 'phase4-e2ee-clinician-qa' ||
+    clean === '/settings/privacy' ||
+    clean === 'settings/privacy'
+  ) {
+    return {
+      v2Tab: 'plan',
+      v2Route: '/settings/privacy',
+      mappedSubSection: 'account-privacy-vault',
+      isGlobalOverlay: 'account-privacy',
+    };
+  }
+  if (
+    clean === 'today' ||
+    clean === '/today' ||
+    clean === 'sanctuary-companion' ||
+    clean === 'ai-companion-biometrics' ||
+    clean === 'phase3-ai-biometrics-voice'
+  ) {
+    return { v2Tab: 'today', v2Route: '/today', mappedSubSection: 'today-home', isGlobalOverlay: null };
+  }
+  if (
+    clean === 'practice' ||
+    clean === '/practice' ||
+    clean === '/practice/library' ||
+    clean === 'session-player' ||
+    clean === 'tools-36-team-cbt' ||
+    clean === 'self-care-36-tools' ||
+    clean === 'anxiety-hub' ||
+    clean === 'anxiety-relief' ||
+    clean === 'protocols-68' ||
+    clean === 'clinical-master-plan'
+  ) {
+    return {
+      v2Tab: 'practice',
+      v2Route: clean.includes('library') || clean === 'protocols-68' || clean === 'clinical-master-plan'
+        ? '/practice/library'
+        : '/practice',
+      mappedSubSection: clean,
+      isGlobalOverlay: null,
+    };
+  }
+  if (
+    clean === 'plan' ||
+    clean === '/plan' ||
+    clean === '/plan/safety' ||
+    clean === '/plan/support' ||
+    clean === 'three-tier-journey' ||
+    clean === 'safety-plan-directory' ||
+    clean === 'meds-and-bipolar' ||
+    clean === 'fft-caregiver' ||
+    clean === 'bipolar-ipsrt-hub' ||
+    clean === 'mood-rhythm-journal'
+  ) {
+    const route =
+      clean === 'safety-plan-directory' || clean === '/plan/safety'
+        ? '/plan/safety'
+        : clean === 'fft-caregiver' || clean === '/plan/support'
+          ? '/plan/support'
+          : '/plan';
+    return { v2Tab: 'plan', v2Route: route, mappedSubSection: clean, isGlobalOverlay: null };
+  }
+  if (
+    clean === 'progress' ||
+    clean === '/progress' ||
+    clean === 'assessments-report' ||
+    clean === 'assessments-doctor-report' ||
+    clean === 'who5-and-redaction'
+  ) {
+    return { v2Tab: 'progress', v2Route: '/progress', mappedSubSection: clean, isGlobalOverlay: null };
+  }
+  return { v2Tab: 'today', v2Route: '/today', mappedSubSection: 'today-home', isGlobalOverlay: null };
+}
+
 export function resolveAdaptiveTheme(params: {
   moodPolarity: MoodPole;
   asrmScore?: number;
@@ -152,17 +419,17 @@ export function resolveAdaptiveTheme(params: {
     reasonEn:
       'Relax your shoulders and take a slow breath. You are in your safe, judgment-free sanctuary.',
     palette: {
-      background: '#FAF9F6',
+      background: '#F7F6F2',
       surface: '#FFFFFF',
-      primary: '#797298',
-      accent: '#6AA882',
-      textPrimary: '#2F2F2B',
-      textSecondary: '#6B6B63',
-      border: '#E6E4DC',
-      sosBanner: '#C56548',
+      primary: '#426B57',
+      accent: '#426B57',
+      textPrimary: '#263B33',
+      textSecondary: '#4A6157',
+      border: '#DCE5DF',
+      sosBanner: '#A34C48',
     },
     animationsEnabled: true,
-    showStreaks: true,
+    showStreaks: false, // V2 interaction rule: no streak pressure!
     simplifiedOneSmallStep: false,
     voiceBurstPrimary: false,
     showAffectLabelingCards: true,
