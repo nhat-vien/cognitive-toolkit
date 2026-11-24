@@ -33,6 +33,7 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
   // 1. 36 Tools Hub state
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
+  String _selectedCondition = 'ALL'; // 'ALL' | 'RLLA' | 'TC' | 'RLLC'
   String _selectedToolSlug = kFlutter36ClinicalTools.first.slug;
   final TextEditingController _toolInputCtrl = TextEditingController(
     text: 'Một lỗi nhỏ làm hỏng hết, tôi sợ mọi người sẽ đánh giá tôi thất bại.',
@@ -134,12 +135,14 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
     return kFlutter36ClinicalTools.where((tool) {
       final matchesCat =
           _selectedCategory == 'ALL' || tool.category == _selectedCategory;
+      final matchesCondition = _selectedCondition == 'ALL' ||
+          tool.applicableConditions.contains(_selectedCondition);
       final matchesQuery = q.isEmpty ||
           tool.titleVi.toLowerCase().contains(q) ||
           tool.titleEn.toLowerCase().contains(q) ||
           tool.slug.toLowerCase().contains(q) ||
           tool.clinicalSummaryVi.toLowerCase().contains(q);
-      return matchesCat && matchesQuery;
+      return matchesCat && matchesCondition && matchesQuery;
     }).toList();
   }
 
@@ -178,6 +181,13 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
       'Bipolar-IPSRT',
     ];
 
+    const conditionOptions = <Map<String, String>>[
+      {'code': 'ALL', 'label': 'Tất cả nhóm'},
+      {'code': 'RLLA', 'label': '[RLLA] Lo âu'},
+      {'code': 'TC', 'label': '[TC] Trầm cảm'},
+      {'code': 'RLLC', 'label': '[RLLC] Lưỡng cực'},
+    ];
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -198,6 +208,30 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
             const SizedBox(height: 8),
+            const Text(
+              'Lọc theo Nhóm bệnh chuẩn đoán:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: conditionOptions
+                  .map(
+                    (cond) => ChoiceChip(
+                      label: Text(cond['label']!),
+                      selected: _selectedCondition == cond['code'],
+                      onSelected: (_) => setState(() => _selectedCondition = cond['code']!),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Lọc theo Nhóm kỹ năng trị liệu:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
             Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -224,6 +258,7 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
                 itemBuilder: (context, idx) {
                   final tool = filtered[idx];
                   final selected = tool.slug == _selectedToolSlug;
+                  final conditionText = tool.applicableConditions.map((c) => '[$c]').join(' ');
                   return ListTile(
                     dense: true,
                     selected: selected,
@@ -241,7 +276,7 @@ class _Tools36AndTeamCbtScreenState extends State<Tools36AndTeamCbtScreen> {
                             selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
-                    subtitle: Text('${tool.modality} • ${tool.clinicalSummaryVi}'),
+                    subtitle: Text('$conditionText • ${tool.modality} • ${tool.clinicalSummaryVi}'),
                     onTap: () {
                       setState(() {
                         _selectedToolSlug = tool.slug;

@@ -201,6 +201,21 @@ export function processVoiceBurstAndPhase0(params: {
       ? 'expressive'
       : 'instrumental');
 
+  const isCalm = palette.dominantEmotion === 'Calm';
+  const isElevated = palette.dominantEmotion === 'Elevated';
+
+  const earEmpathyReplyVi = isCalm
+    ? 'Thật đáng quý khi hôm nay tâm trí bạn đang ở trạng thái bình ổn và nhẹ nhàng — đặc biệt nếu bạn đang duy trì đều đặn thuốc và nhịp sinh hoạt. Mình luôn ở đây đồng hành để cùng bạn gìn giữ sự cân bằng dễ chịu này.'
+    : isElevated
+      ? 'Mình cảm nhận rõ nguồn năng lượng tích cực, sự hứng khởi và nhiệt huyết trong chia sẻ của bạn! Hãy tận hưởng trọn vẹn niềm vui này một cách điều độ, đồng thời nhớ giữ vững khung giờ nghỉ ngơi và giấc ngủ tối để bảo vệ nguồn năng lượng bền vững nhé.'
+      : 'Mình nghe rất rõ sự nặng nề và áp lực trong từng lời bạn vừa chia sẻ. Hoàn toàn dễ hiểu khi bạn cảm thấy như vậy trước những gì đang diễn ra. Bạn không hề đơn độc — ở chế độ lắng nghe thấu cảm, mình luôn ở đây để đồng hành và chia sẻ cùng bạn.';
+
+  const earEmpathyReplyEn = isCalm
+    ? '[TEAM-CBT EAR Empathy — Euthymic Affirmation] It is wonderful to hear that your mind feels steady and calm today — especially when maintaining consistent routines and care. I am right here with you to help sustain this peaceful balance.'
+    : isElevated
+      ? '[TEAM-CBT EAR Empathy — Balanced Energy Reflection] I can feel the warmth, enthusiasm, and vibrant energy in your words! Savor this positive momentum mindfully while keeping your evening wind-down and sleep anchors steady.'
+      : '[TEAM-CBT EAR Empathy — Disarming + Feeling/Thought Empathy + Affirmation] I hear the weight and exhaustion in what you just shared. It makes complete sense that you feel this way given what you are carrying. In Expressive Mode, I am here simply to listen and validate without rushing to fix.';
+
   return {
     id: `vb-${Date.now()}`,
     recordedAt: new Date().toISOString(),
@@ -209,10 +224,8 @@ export function processVoiceBurstAndPhase0(params: {
     detectedMode: mode,
     detectedDistressIntensity: detectedIntensity,
     moodPalette: palette,
-    earEmpathyReplyVi:
-      'Mình nghe rất rõ sự nặng nề và áp lực trong từng lời bạn vừa chia sẻ. Hoàn toàn dễ hiểu khi bạn cảm thấy như vậy trước những gì đang diễn ra. Bạn không hề đơn độc — ở chế độ lắng nghe thấu cảm, mình luôn ở đây để đồng hành và chia sẻ cùng bạn.',
-    earEmpathyReplyEn:
-      '[TEAM-CBT EAR Empathy — Disarming + Feeling/Thought Empathy + Affirmation] I hear the weight and exhaustion in what you just shared. It makes complete sense that you feel this way given what you are carrying. In Expressive Mode, I am here simply to listen and validate without rushing to fix.',
+    earEmpathyReplyVi,
+    earEmpathyReplyEn,
     suggestedTechnique,
   };
 }

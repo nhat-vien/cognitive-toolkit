@@ -16,6 +16,8 @@ import {
   evaluateThreeTierOnboardingAndPathway,
   evaluateProtocolExecutionEligibility,
   createCleanInitialClinicalDefaults,
+  CLINICAL_CONDITION_BADGES,
+  resolveApplicableConditionCodes,
   type ProtocolManifest,
   type TherapyModel,
   type PathwayWorkflowState,
@@ -1162,10 +1164,14 @@ export function ClinicalMasterPlanHub({
             </div>
           )}
 
-          {/* Protocol Pills within the selected Therapy Model */}
+          {/* Protocol Pills within the selected Therapy Model (with RLLA / TC / RLLC Suitability Badges) */}
+          <div style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '8px' }}>
+            💡 <strong>Chú thích nhóm phù hợp tham khảo:</strong> <code>[RLLA]</code> Rối loạn Lo âu • <code>[TC]</code> Trầm cảm • <code>[RLLC]</code> Rối loạn Lưỡng cực
+          </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
             {filteredProtocols.map((p) => {
               const isSelected = p.protocol_id === activeProtocol.protocol_id;
+              const conds = resolveApplicableConditionCodes(p.protocol_id);
               return (
                 <button
                   key={p.protocol_id}
@@ -1184,9 +1190,24 @@ export function ClinicalMasterPlanHub({
                     fontWeight: 600,
                     fontSize: '0.83rem',
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {lang === 'vi' ? p.title_vi : p.title}
+                  <span>{lang === 'vi' ? p.title_vi : p.title}</span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '1px 6px',
+                      borderRadius: '6px',
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#EDF4F0',
+                      color: isSelected ? '#FFFFFF' : '#23533D',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {conds.join('·')}
+                  </span>
                 </button>
               );
             })}
@@ -1204,9 +1225,31 @@ export function ClinicalMasterPlanHub({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4F7A65', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {activeProtocol.therapy_model}
-                  {activeProtocol.dbt_domain ? ` • ${activeProtocol.dbt_domain}` : ''} • ID: <code>{activeProtocol.protocol_id}</code> • v{activeProtocol.version}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.78rem', fontWeight: 700, color: '#4F7A65', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span>
+                    {activeProtocol.therapy_model}
+                    {activeProtocol.dbt_domain ? ` • ${activeProtocol.dbt_domain}` : ''} • ID: <code>{activeProtocol.protocol_id}</code> • v{activeProtocol.version}
+                  </span>
+                  {resolveApplicableConditionCodes(activeProtocol.protocol_id).map((c) => {
+                    const spec = CLINICAL_CONDITION_BADGES[c];
+                    return (
+                      <span
+                        key={c}
+                        title={spec.fullLabelVi}
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          backgroundColor: spec.bgHex,
+                          color: spec.textHex,
+                          border: `1px solid ${spec.borderHex}`,
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {spec.shortLabelVi}
+                      </span>
+                    );
+                  })}
                 </div>
                 <h3 style={{ margin: '4px 0 0', fontSize: '1.15rem', color: '#1A272D' }}>
                   {lang === 'vi' ? activeProtocol.title_vi : activeProtocol.title}

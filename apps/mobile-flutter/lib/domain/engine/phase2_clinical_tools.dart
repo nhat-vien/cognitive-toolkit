@@ -22,6 +22,7 @@ class FlutterClinicalToolDescriptor {
   final String clinicalSummaryVi;
   final String promptHintVi;
   final String reframeTemplateVi;
+  final List<String> applicableConditions; // ['RLLA', 'TC', 'RLLC']
 
   const FlutterClinicalToolDescriptor({
     required this.number,
@@ -33,6 +34,7 @@ class FlutterClinicalToolDescriptor {
     required this.clinicalSummaryVi,
     required this.promptHintVi,
     required this.reframeTemplateVi,
+    this.applicableConditions = const ['RLLA', 'TC', 'RLLC'],
   });
 }
 

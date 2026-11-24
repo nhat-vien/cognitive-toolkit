@@ -25,6 +25,7 @@ class MobileProtocolSummary {
   final int version;
   final String reviewStatus; // 'draft' | 'clinical_review' | 'approved' | 'withdrawn'
   final String publicationStatus; // 'unpublished' | 'published' | 'withdrawn'
+  final List<String> applicableConditions; // ['RLLA', 'TC', 'RLLC']
   final List<String> stepsVi;
 
   const MobileProtocolSummary({
@@ -40,6 +41,7 @@ class MobileProtocolSummary {
     this.version = 1,
     this.reviewStatus = 'draft',
     this.publicationStatus = 'unpublished',
+    this.applicableConditions = const ['RLLA', 'TC', 'RLLC'],
     this.stepsVi = const <String>[
       'Bước 1: Kiểm tra mức độ phù hợp & mục tiêu',
       'Bước 2: Giải thích kỹ năng ngắn gọn & giới hạn áp dụng',
@@ -716,6 +718,7 @@ class ClinicalMasterPlanScreen extends StatefulWidget {
 class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
   int _activeSectionIndex = 0; // 0: Lộ trình 3 Tầng, 1: 68 Phác đồ, 2: An toàn & 115, 3: Thuốc & FFT, 4: WHO-5 & Báo cáo
   String _selectedModel = 'CBT';
+  String _selectedCondition = 'ALL'; // 'ALL' | 'RLLA' | 'TC' | 'RLLC'
   String _highlightedProtocolHint = '';
   bool _nonWritingTapMode = false;
   bool _mbctEyesOpenGrounding = true;
@@ -1412,7 +1415,19 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
       {'id': 'FFT', 'label': '🤝 Gia đình FFT (6)'},
     ];
 
-    final filtered = kMasterPlanMobileProtocols.where((p) => p.model == _selectedModel).toList();
+    final filtered = kMasterPlanMobileProtocols.where((p) {
+      final matchesModel = p.model == _selectedModel;
+      final matchesCond = _selectedCondition == 'ALL' ||
+          p.applicableConditions.contains(_selectedCondition);
+      return matchesModel && matchesCond;
+    }).toList();
+
+    const conditionOptions = <Map<String, String>>[
+      {'code': 'ALL', 'label': 'Tất cả nhóm'},
+      {'code': 'RLLA', 'label': '[RLLA] Lo âu'},
+      {'code': 'TC', 'label': '[TC] Trầm cảm'},
+      {'code': 'RLLC', 'label': '[RLLC] Lưỡng cực'},
+    ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1439,6 +1454,31 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
               ],
             ),
           ),
+        const Text(
+          'Lọc theo Nhóm bệnh chuẩn đoán [RLLA • TC • RLLC]:',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F2C33)),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: conditionOptions.map((cond) {
+            final code = cond['code']!;
+            final selected = _selectedCondition == code;
+            return ChoiceChip(
+              label: Text(cond['label']!),
+              selected: selected,
+              selectedColor: const Color(0xFF1E3A8A),
+              labelStyle: TextStyle(
+                color: selected ? Colors.white : const Color(0xFF1F2C33),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+              onSelected: (_) => setState(() => _selectedCondition = code),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
         const Text(
           'Chọn 1 trong 7 Hệ thống Phác đồ Lâm sàng (§4.1–§4.7):',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2C33)),
@@ -1528,7 +1568,7 @@ class _ClinicalMasterPlanScreenState extends State<ClinicalMasterPlanScreen> {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '${p.id} • v0.1.0-draft • Trạng thái: draft (Chờ duyệt)${p.domain.isNotEmpty ? ' • ${p.domain}' : ''}',
+                  '${p.applicableConditions.map((c) => '[$c]').join(' ')} • ${p.id} • v0.1.0-draft • Trạng thái: draft (Chờ duyệt)${p.domain.isNotEmpty ? ' • ${p.domain}' : ''}',
                   style: const TextStyle(fontSize: 11.5, color: Color(0xFF4F7A65), fontWeight: FontWeight.w600),
                 ),
               ),

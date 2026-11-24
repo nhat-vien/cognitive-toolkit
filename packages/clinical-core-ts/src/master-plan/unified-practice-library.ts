@@ -51,6 +51,61 @@ export type UnifiedPublicationStatus =
   | 'published'
   | 'withdrawn';
 
+/**
+ * Reference Suitability Tags for clinical symptom clusters / known diagnoses (Non-diagnostic metadata):
+ * - RLLA: Rối loạn Lo âu & Căng thẳng (Anxiety Disorders, Panic, Social Anxiety, OCD)
+ * - TC: Trầm cảm & Kiệt sức (Depressive Disorders & Burnout)
+ * - RLLC: Rối loạn Lưỡng cực & Khí sắc chu kỳ (Bipolar Spectrum & IPSRT Rhythm)
+ */
+export type ClinicalConditionCode = 'RLLA' | 'TC' | 'RLLC';
+
+export interface ClinicalConditionBadgeSpec {
+  code: ClinicalConditionCode;
+  shortLabelVi: string;
+  fullLabelVi: string;
+  fullLabelEn: string;
+  bgHex: string;
+  textHex: string;
+  borderHex: string;
+}
+
+export const CLINICAL_CONDITION_BADGES: Readonly<Record<ClinicalConditionCode, ClinicalConditionBadgeSpec>> = {
+  RLLA: {
+    code: 'RLLA',
+    shortLabelVi: 'RLLA',
+    fullLabelVi: 'Rối loạn Lo âu & Căng thẳng',
+    fullLabelEn: 'Anxiety & Stress Disorders (RLLA)',
+    bgHex: '#E3F1F8',
+    textHex: '#1A4B66',
+    borderHex: '#B6D9EA',
+  },
+  TC: {
+    code: 'TC',
+    shortLabelVi: 'TC',
+    fullLabelVi: 'Trầm cảm & Phục hồi Năng lượng',
+    fullLabelEn: 'Depression & Energy Recovery (TC)',
+    bgHex: '#DFEBE1',
+    textHex: '#23533D',
+    borderHex: '#B7D4BE',
+  },
+  RLLC: {
+    code: 'RLLC',
+    shortLabelVi: 'RLLC',
+    fullLabelVi: 'Rối loạn Lưỡng cực & Nhịp Sinh học',
+    fullLabelEn: 'Bipolar Spectrum & Circadian Rhythm (RLLC)',
+    bgHex: '#F9EFE0',
+    textHex: '#6E4715',
+    borderHex: '#E6CFA8',
+  },
+};
+
+export function disorderFocusToConditionCode(focus?: string | null): ClinicalConditionCode {
+  const f = (focus ?? '').toLowerCase();
+  if (f.includes('bipolar') || f.includes('cyclothymia') || f === 'rllc') return 'RLLC';
+  if (f.includes('depress') || f === 'tc') return 'TC';
+  return 'RLLA';
+}
+
 export interface UnifiedPracticeStep {
   id: string;
   titleVi: string;
@@ -85,6 +140,7 @@ export interface UnifiedPracticeItem {
   titleEn: string;
   models: TherapyModel[];
   needs: UnifiedNeedCategory[];
+  applicableConditions: ClinicalConditionCode[];
   durationMinutes: number;
   delivery: UnifiedDeliveryMode;
   reviewStatus: UnifiedReviewStatus;
@@ -527,6 +583,65 @@ function inferNeedsForProtocol(p: ProtocolManifest): UnifiedNeedCategory[] {
   return Array.from(needs);
 }
 
+function inferApplicableConditionsForProtocol(p: ProtocolManifest): ClinicalConditionCode[] {
+  const id = p.protocol_id.toUpperCase();
+  const codes = new Set<ClinicalConditionCode>();
+
+  if (
+    p.therapy_model === 'IPSRT' ||
+    p.therapy_model === 'FFT' ||
+    id.includes('BIPOLAR') ||
+    id.includes('MANIA') ||
+    id.includes('HYPOMANIA') ||
+    id.includes('PRODROME') ||
+    id.includes('RHYTHM') ||
+    id.includes('DARK') ||
+    id.includes('ULYSSES')
+  ) {
+    codes.add('RLLC');
+  }
+  if (
+    id.includes('WORRY') ||
+    id.includes('PANIC') ||
+    id.includes('EXPOSURE') ||
+    id.includes('UNCERTAINTY') ||
+    id.includes('SOCIAL_ANXIETY') ||
+    id.includes('TIPP') ||
+    id.includes('STOP') ||
+    id.includes('GROUND') ||
+    p.therapy_model === 'MBCT'
+  ) {
+    codes.add('RLLA');
+  }
+  if (
+    id.includes('ACTIVATION') ||
+    id.includes('PROBLEM_SOLVING') ||
+    id.includes('THOUGHT_RECORD') ||
+    id.includes('REAPPRAISAL') ||
+    id.includes('SHAME') ||
+    id.includes('PLEASE') ||
+    p.therapy_model === 'TEAM-CBT'
+  ) {
+    codes.add('TC');
+  }
+
+  if (codes.size === 0) {
+    if (p.therapy_model === 'CBT') {
+      codes.add('RLLA');
+      codes.add('TC');
+    } else if (p.therapy_model === 'DBT') {
+      codes.add('RLLA');
+      codes.add('TC');
+      codes.add('RLLC');
+    } else {
+      codes.add('RLLA');
+      codes.add('TC');
+      codes.add('RLLC');
+    }
+  }
+  return Array.from(codes);
+}
+
 function mapProtocolToUnifiedItem(p: ProtocolManifest): UnifiedPracticeItem {
   const isEducation = p.therapy_model === 'Psychoeducation' || p.intended_use.includes('education');
   const delivery: UnifiedDeliveryMode =
@@ -544,6 +659,7 @@ function mapProtocolToUnifiedItem(p: ProtocolManifest): UnifiedPracticeItem {
     titleEn: p.title,
     models: [p.therapy_model],
     needs: inferNeedsForProtocol(p),
+    applicableConditions: inferApplicableConditionsForProtocol(p),
     durationMinutes: 10,
     delivery,
     reviewStatus: p.status === 'approved' ? 'approved' : 'draft',
@@ -612,6 +728,27 @@ function inferModelForTool(tool: Cbt36ToolDefinition): TherapyModel {
   return 'CBT';
 }
 
+function inferApplicableConditionsForTool(tool: Cbt36ToolDefinition): ClinicalConditionCode[] {
+  const codes = new Set<ClinicalConditionCode>();
+  if (tool.conditionFocus === 'anxiety' || tool.category === 'anxiety-erp') codes.add('RLLA');
+  if (tool.conditionFocus === 'depression' || tool.category === 'depression-team-cbt') codes.add('TC');
+  if (tool.conditionFocus === 'bipolar' || tool.category === 'bipolar-ipsrt') codes.add('RLLC');
+  if (tool.category === 'work-burnout') {
+    codes.add('RLLA');
+    codes.add('TC');
+  }
+  if (tool.category === 'dbt-regulation') {
+    codes.add('RLLA');
+    codes.add('TC');
+    codes.add('RLLC');
+  }
+  if (tool.conditionFocus === 'universal' || codes.size === 0) {
+    codes.add('RLLA');
+    codes.add('TC');
+  }
+  return Array.from(codes);
+}
+
 function mapCbt36ToolToUnifiedItem(tool: Cbt36ToolDefinition): UnifiedPracticeItem {
   const migrationRow = LEGACY_36_TOOLS_MIGRATION_TABLE.find((r) => r.toolNumber === tool.number)!;
   const requiresClinician = tool.slug.includes('interoceptive');
@@ -625,6 +762,7 @@ function mapCbt36ToolToUnifiedItem(tool: Cbt36ToolDefinition): UnifiedPracticeIt
     titleEn: tool.titleEn,
     models: [inferModelForTool(tool)],
     needs: inferNeedsForTool(tool),
+    applicableConditions: inferApplicableConditionsForTool(tool),
     durationMinutes: 5,
     delivery: requiresClinician ? 'clinician_assisted' : 'self_guided',
     reviewStatus: requiresClinician ? 'draft' : 'approved',
@@ -694,6 +832,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: 'Sleep Body-Scan Meditation by the Cool Forest Brook',
     models: ['MBCT'],
     needs: ['sleep', 'calm'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 5,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -758,6 +897,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: 'Haven Guided Sleep Relaxation — Washing Away Daily Worries',
     models: ['MBCT'],
     needs: ['sleep', 'calm'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 6,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -811,6 +951,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: 'Deep Sleep Body-Scan Relaxation — Embracing Peace',
     models: ['MBCT'],
     needs: ['sleep', 'calm'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 6,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -864,6 +1005,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: 'DBT TIPP Paced Breathing (Inhale 4s — Exhale 6s)',
     models: ['DBT'],
     needs: ['calm', 'emotions'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 3,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -918,6 +1060,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: '4-7-8 Deep Parasympathetic Breathing (4s — 7s — 8s)',
     models: ['DBT', 'MBCT'],
     needs: ['calm', 'sleep'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 3,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -972,6 +1115,7 @@ const UNIFIED_AUDIO_AND_BREATHING_ITEMS: UnifiedPracticeItem[] = [
     titleEn: '5-4-3-2-1 Five-Senses Present-Moment Grounding',
     models: ['DBT', 'CBT'],
     needs: ['calm', 'emotions'],
+    applicableConditions: ['RLLA', 'TC', 'RLLC'],
     durationMinutes: 4,
     delivery: 'self_guided',
     reviewStatus: 'approved',
@@ -1126,6 +1270,7 @@ export function validateUnifiedPracticeItem(
 
 export interface UnifiedCatalogFilterQuery {
   need?: UnifiedNeedCategory;
+  conditionCode?: ClinicalConditionCode;
   therapyModel?: TherapyModel;
   maxDurationMinutes?: number;
   delivery?: UnifiedDeliveryMode;
@@ -1252,6 +1397,10 @@ export function queryUnifiedPracticeLibrary(
     }
 
     if (query.need && !item.needs.includes(query.need)) {
+      return false;
+    }
+
+    if (query.conditionCode && !item.applicableConditions.includes(query.conditionCode)) {
       return false;
     }
 
@@ -1625,5 +1774,395 @@ export function transitionPracticeSessionLifecycle(
         },
       ],
     },
+  };
+}
+
+// =============================================================================
+// 7. CONDITION BADGE RESOLVER & SEQUENTIAL STEP-BY-STEP PATHWAY ENGINE
+// =============================================================================
+
+/**
+ * Resolves applicable condition codes (`RLLA`, `TC`, `RLLC`) for any canonical ID,
+ * legacy Web 36-tool ID, Flutter slug, 68-protocol ID, or category string.
+ */
+export function resolveApplicableConditionCodes(idOrCategory: string): ClinicalConditionCode[] {
+  const canonicalId = resolveCanonicalPracticeId(idOrCategory);
+  if (canonicalId) {
+    const found = UNIFIED_PRACTICE_LIBRARY_CATALOG.find((i) => i.id === canonicalId);
+    if (found && found.applicableConditions.length > 0) {
+      return [...found.applicableConditions];
+    }
+  }
+  const lower = (idOrCategory ?? '').toLowerCase();
+  if (lower.includes('bipolar') || lower.includes('ipsrt') || lower.includes('rllc')) {
+    return ['RLLC'];
+  }
+  if (lower.includes('anxiety') || lower.includes('erp') || lower.includes('rlla')) {
+    return ['RLLA'];
+  }
+  if (lower.includes('depression') || lower.includes('team-cbt') || lower === 'tc') {
+    return ['TC'];
+  }
+  if (lower.includes('dbt')) {
+    return ['RLLA', 'TC', 'RLLC'];
+  }
+  return ['RLLA', 'TC'];
+}
+
+export interface ConditionProgressiveStepSpec {
+  stepNumber: 1 | 2 | 3 | 4;
+  canonicalPracticeId: string;
+  legacyWebToolId: string;
+  legacyFlutterSlug: string;
+  coreProtocolStepNumber?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  stageLabelVi: string;
+  stageLabelEn: string;
+  titleVi: string;
+  titleEn: string;
+  rationaleVi: string;
+  rationaleEn: string;
+  microPromptVi: string;
+  microPromptEn: string;
+  durationMinutes: number;
+}
+
+export interface ConditionProgressivePathway {
+  conditionCode: ClinicalConditionCode;
+  titleVi: string;
+  titleEn: string;
+  subtitleVi: string;
+  subtitleEn: string;
+  steps: readonly [
+    ConditionProgressiveStepSpec,
+    ConditionProgressiveStepSpec,
+    ConditionProgressiveStepSpec,
+    ConditionProgressiveStepSpec,
+  ];
+}
+
+/**
+ * Sequential 4-Step Guided Care Pathways per Condition (`RLLA`, `TC`, `RLLC`).
+ * - Every step maps strictly to an `approved + published + self_guided` canonical practice item (`CAT-03`).
+ * - Enforces progressive 1-step-at-a-time mastery: Step 2 unlocks after Step 1, Step 3 after Step 2, Step 4 after Step 3.
+ */
+export const PROGRESSIVE_CONDITION_PATHWAYS: Readonly<
+  Record<ClinicalConditionCode, ConditionProgressivePathway>
+> = {
+  RLLA: {
+    conditionCode: 'RLLA',
+    titleVi: 'Lộ trình 4 Bước Làm Dịu Rối Loạn Lo Âu (RLLA)',
+    titleEn: '4-Step Guided Pathway for Anxiety Relief (RLLA)',
+    subtitleVi:
+      'Đi từng bước nhỏ theo trình tự sinh lý thần kinh: Hạ nhiệt cơ thể trước ➔ Cất gọn lo âu ➔ Gỡ bẫy suy nghĩ ➔ Tập đối diện an toàn.',
+    subtitleEn:
+      'Follow one calm step at a time: Physiological cooling first ➔ Worry containment ➔ Thought reappraisal ➔ Gentle exposure.',
+    steps: [
+      {
+        stepNumber: 1,
+        canonicalPracticeId: 'prac-breath-01-paced-4-6',
+        legacyWebToolId: 'dbt-tipp-medical-safe',
+        legacyFlutterSlug: 'dbt-tipp-stop-medical-gate',
+        coreProtocolStepNumber: 5,
+        stageLabelVi: 'Bước 1 • Hạ nhiệt Hệ thần kinh',
+        stageLabelEn: 'Step 1 • Calm Your Nervous System',
+        titleVi: 'Thở Dẫn Nhịp Mũi – Miệng 4-6 (DBT TIPP)',
+        titleEn: '4-6 Paced Breathing (DBT TIPP)',
+        rationaleVi:
+          'Khi đang lo âu, vỏ não phân tích dễ bị quá tải. Thở ra chậm 6 giây kích hoạt dây thần kinh phế vị giúp nhịp tim dịu xuống trước tiên.',
+        rationaleEn:
+          'Slowing your exhale to 6 seconds activates parasympathetic calming before cognitive work.',
+        microPromptVi: 'Thực hiện 3–6 nhịp hít mũi 4s – thở miệng 6s và ghi lại cảm giác cơ thể sau khi thở:',
+        microPromptEn: 'Complete 3–6 cycles of 4s inhale / 6s exhale and note how your shoulders feel:',
+        durationMinutes: 3,
+      },
+      {
+        stepNumber: 2,
+        canonicalPracticeId: 'prac-tool-09-worry-box-postponement',
+        legacyWebToolId: 'worry-box-postponement',
+        legacyFlutterSlug: 'worry-box-postponement',
+        stageLabelVi: 'Bước 2 • Khoanh vùng Vòng lặp Lo nghĩ',
+        stageLabelEn: 'Step 2 • Contain Repetitive Worry',
+        titleVi: 'Chiếc Hộp Gác Lại Âu Lo (Worry Box)',
+        titleEn: '15-Minute Scheduled Worry Box',
+        rationaleVi:
+          'Tách câu hỏi giả định "Nhỡ đâu..." khỏi việc hiện tại bằng cách cất vào khung giờ cố định, giúp tâm trí được nghỉ ngơi.',
+        rationaleEn:
+          'Separates hypothetical "What if..." worries from present tasks using stimulus control.',
+        microPromptVi: 'Viết 1 nỗi lo đang lặp lại để cất vào Hộp Lo Âu (phân loại: Giải quyết ngay được hay Giả định):',
+        microPromptEn: 'Write 1 recurring worry to place into your Worry Box:',
+        durationMinutes: 4,
+      },
+      {
+        stepNumber: 3,
+        canonicalPracticeId: 'prac-tool-01-thought-record',
+        legacyWebToolId: 'thought-record-7-step',
+        legacyFlutterSlug: 'thought-record-7-step',
+        coreProtocolStepNumber: 1,
+        stageLabelVi: 'Bước 3 • Kiểm chứng Kịch bản Sợ hãi',
+        stageLabelEn: 'Step 3 • Examine Anxious Predictions',
+        titleVi: 'Nhật Ký Gỡ Rối Suy Nghĩ & Kiểm Tra Sự Thật (CBT)',
+        titleEn: 'Structured Thought Record & Accuracy Check',
+        rationaleVi:
+          'Khi cơ thể đã dịu, cùng soi chiếu bằng chứng khách quan để không bị kịch bản thảm họa hóa đánh lừa.',
+        rationaleEn:
+          'Once calm, weigh objective facts against catastrophic predictions without toxic positivity.',
+        microPromptVi: 'Ghi lại suy nghĩ lo sợ nhất và 1 dữ kiện thực tế chứng minh bạn vẫn có cách ứng phó:',
+        microPromptEn: 'Write your hot anxious thought and 1 factual piece of evidence that you can cope:',
+        durationMinutes: 5,
+      },
+      {
+        stepNumber: 4,
+        canonicalPracticeId: 'prac-tool-07-exposure-hierarchy-erp',
+        legacyWebToolId: 'erp-exposure-hierarchy',
+        legacyFlutterSlug: 'exposure-hierarchy-suds-builder',
+        stageLabelVi: 'Bước 4 • Mở rộng Vùng An toàn',
+        stageLabelEn: 'Step 4 • Gentle Approach Step',
+        titleVi: 'Thang Tiếp Xúc Bước Nhỏ & Bỏ Hành Vi An Toàn Ngầm (ERP)',
+        titleEn: 'Gentle Exposure Step (SUDS 25–40)',
+        rationaleVi:
+          'Chọn 1 hành động nhỏ vừa sức (SUDS thấp) không dùng "nạng chống ngầm" để não học lại rằng bạn thực sự an toàn.',
+        rationaleEn:
+          'Practice one small, manageable approach step (low SUDS) to build lasting confidence.',
+        microPromptVi: 'Chọn 1 tình huống nhỏ mức độ dễ (SUDS 25–40/100) bạn có thể tập đối diện nhẹ nhàng:',
+        microPromptEn: 'Pick 1 gentle situation (SUDS 25–40/100) you can approach safely:',
+        durationMinutes: 6,
+      },
+    ],
+  },
+  TC: {
+    conditionCode: 'TC',
+    titleVi: 'Lộ trình 4 Bước Vượt Qua Trầm Cảm & Phục Hồi Năng Lượng (TC)',
+    titleEn: '4-Step Gentle Pathway for Depression Recovery (TC)',
+    subtitleVi:
+      'Không ép buộc tích cực: Tôn trọng nghỉ ngơi sinh học trước ➔ Khởi động siêu nhỏ 5 phút ➔ Đánh thức niềm vui ➔ Nuôi dưỡng tự trắc ẩn.',
+    subtitleEn:
+      'Zero pressure: Honor biological rest first ➔ 5-minute micro-start ➔ Reawaken pleasure ➔ Cultivate self-compassion.',
+    steps: [
+      {
+        stepNumber: 1,
+        canonicalPracticeId: 'prac-tool-18-burnout-and-rest-check',
+        legacyWebToolId: 'behavioral-activation-rest-check',
+        legacyFlutterSlug: 'behavioral-activation-rest-check',
+        coreProtocolStepNumber: 2,
+        stageLabelVi: 'Bước 1 • Cổng Kiểm tra Năng lượng & Nghỉ ngơi',
+        stageLabelEn: 'Step 1 • Guilt-Free Rest & Energy Check',
+        titleVi: 'Phân Biệt Kiệt Sức Sinh Học & Nghỉ Ngơi Không Áy Náy',
+        titleEn: 'Biological Exhaustion vs. Depressive Withdrawal Check',
+        rationaleVi:
+          'Trước khi làm bất cứ việc gì, hãy kiểm tra xem cơ thể bạn cần nghỉ ngơi phục hồi không áy náy hay sẵn sàng cho 1 bước nhỏ 2 phút.',
+        rationaleEn:
+          'Checks whether your body needs guilt-free restorative rest first or a tiny 2-minute micro-step.',
+        microPromptVi: 'Hôm nay cơ thể bạn đang cần nghỉ ngơi phục hồi (không áy náy) hay thử 1 việc siêu nhỏ 2 phút?',
+        microPromptEn: 'Does your body need guilt-free rest right now, or a tiny 2-minute gentle step?',
+        durationMinutes: 4,
+      },
+      {
+        stepNumber: 2,
+        canonicalPracticeId: 'prac-tool-25-anti-procrastination-5min-starter',
+        legacyWebToolId: 'anti-procrastination-5-min',
+        legacyFlutterSlug: 'anti-procrastination-sheet',
+        stageLabelVi: 'Bước 2 • Khởi động Vi mô Không Áp lực',
+        stageLabelEn: 'Step 2 • Zero-Pressure 5-Minute Micro-Start',
+        titleVi: 'Bảng Khởi Động 5 Phút (Hành Động Đi Trước, Động Lực Theo Sau)',
+        titleEn: '5-Minute Anti-Procrastination Micro-Step',
+        rationaleVi:
+          'Khi trầm lắng, chờ có động lực mới làm sẽ khiến ta kẹt lại. Chỉ cam kết làm đúng 5 phút đầu tiên rồi được phép dừng.',
+        rationaleEn:
+          'Breaks inertia by committing to just 5 minutes of a tiny action with full permission to stop after.',
+        microPromptVi: 'Chọn 1 việc siêu nhỏ chỉ mất 5 phút (VD: uống 1 cốc nước ấm, mở rèm cửa, gấp 2 chiếc áo):',
+        microPromptEn: 'Name one tiny 5-minute action (e.g., drink warm water, open curtains):',
+        durationMinutes: 5,
+      },
+      {
+        stepNumber: 3,
+        canonicalPracticeId: 'prac-tool-26-pleasure-predicting-mp-sheet',
+        legacyWebToolId: 'pleasure-predicting-mp-sheet',
+        legacyFlutterSlug: 'pleasure-predicting-sheet',
+        stageLabelVi: 'Bước 3 • Hiệu chỉnh Dự đoán Niềm vui',
+        stageLabelEn: 'Step 3 • Recalibrate Pleasure & Mastery',
+        titleVi: 'Bảng Dự Đoán Niềm Vui & Thành Tựu Nhỏ (M/P Sheet)',
+        titleEn: 'TEAM-CBT Pleasure-Predicting & Mastery Sheet',
+        rationaleVi:
+          'Trầm cảm thường khiến não dự đoán "làm gì cũng chẳng vui đâu", nhưng trải nghiệm thực tế thường dễ chịu hơn dự báo.',
+        rationaleEn:
+          'Tests anhedonic predictions ("nothing will help") against actual lived Mastery & Pleasure.',
+        microPromptVi: 'Ghi nhận mức độ dễ chịu/làm chủ thực tế (0–100%) sau khi bạn vừa làm xong 1 việc nhỏ:',
+        microPromptEn: 'Note your actual sense of ease or mastery (0–100%) after a small activity:',
+        durationMinutes: 5,
+      },
+      {
+        stepNumber: 4,
+        canonicalPracticeId: 'prac-tool-29-double-standard-friend-roleplay',
+        legacyWebToolId: 'double-standard-compassionate-friend',
+        legacyFlutterSlug: 'double-standard-compassionate-friend',
+        coreProtocolStepNumber: 3,
+        stageLabelVi: 'Bước 4 • Lòng Trắc ẩn Với Chính Mình',
+        stageLabelEn: 'Step 4 • Self-Compassion & Gentle Standard',
+        titleVi: 'Kỹ Thuật Tiêu Chuẩn Kép — Lời Dịu Dàng Dành Cho Bạn Thân',
+        titleEn: 'Double-Standard Compassionate Friend Technique',
+        rationaleVi:
+          'Thay thế giọng tự chỉ trích khắc nghiệt bằng chính sự ấm áp, công bằng mà bạn luôn dành cho người bạn thân yêu.',
+        rationaleEn:
+          'Replaces harsh self-criticism with the fair, warm voice you would offer a dear friend.',
+        microPromptVi: 'Viết 1 câu tử tế bạn sẽ nói với người bạn thân nếu họ cũng đang mệt như bạn hôm nay:',
+        microPromptEn: 'Write 1 kind sentence you would say to a close friend feeling tired today:',
+        durationMinutes: 4,
+      },
+    ],
+  },
+  RLLC: {
+    conditionCode: 'RLLC',
+    titleVi: 'Lộ trình 4 Bước Ổn Định Khí Sắc & Nhịp Sinh Học Lưỡng Cực (RLLC)',
+    titleEn: '4-Step Pathway for Bipolar Mood & Circadian Stability (RLLC)',
+    subtitleVi:
+      'Đồng hành cả khi đang bình ổn nhờ thuốc lẫn khi dao động: Neo giấc ngủ IPSRT ➔ Bảo vệ tuân thủ điều trị ➔ Khoang chờ 48h ➔ Phản biện hưng cảm nhẹ.',
+    subtitleEn:
+      'Supports medicated euthymia and mood shifts: IPSRT sleep anchor ➔ Treatment consistency ➔ 48h Impulse Vault ➔ Hypomania reality check.',
+    steps: [
+      {
+        stepNumber: 1,
+        canonicalPracticeId: 'prac-tool-20-cbti-sleep-efficiency-calculator',
+        legacyWebToolId: 'cbti-sleep-efficiency-guard',
+        legacyFlutterSlug: 'cbti-sleep-efficiency-calculator',
+        stageLabelVi: 'Bước 1 • Neo Giấc ngủ & Lá chắn Chống Hưng cảm',
+        stageLabelEn: 'Step 1 • Sleep Anchor & Mania Guard',
+        titleVi: 'Kiểm Tra Giấc Ngủ & Nhu Cầu Ngủ (Bảo Vệ Nhịp Sinh Học)',
+        titleEn: 'Sleep Window & Reduced-Sleep-Need Safety Check',
+        rationaleVi:
+          'Giấc ngủ là "nhiệt kế" nhạy nhất của Rối loạn Lưỡng cực. Ngủ ít (<5h) mà vẫn thấy khỏe re là tín hiệu cần hạ kích thích ngay.',
+        rationaleEn:
+          'Sleep is the primary circadian anchor in Bipolar Disorder; detects reduced need for sleep early.',
+        microPromptVi: 'Ghi lại số giờ ngủ đêm qua và cảm giác sáng nay (Đủ giấc bình ổn / Mệt thiếu ngủ / Ngủ ít vẫn dư năng lượng):',
+        microPromptEn: 'Log last night’s sleep hours and whether your need for sleep feels normal, exhausted, or reduced:',
+        durationMinutes: 4,
+      },
+      {
+        stepNumber: 2,
+        canonicalPracticeId: 'prac-tool-36-bipolar-medication-adherence-cost-benefit',
+        legacyWebToolId: 'medication-adherence-cba',
+        legacyFlutterSlug: 'bipolar-ipsrt-rhythm-medication-cba',
+        stageLabelVi: 'Bước 2 • Duy trì Bình ổn & 5 Mốc Nhịp Sinh hoạt IPSRT',
+        stageLabelEn: 'Step 2 • IPSRT 5 Anchors & Treatment Consistency',
+        titleVi: 'Neo 5 Mốc IPSRT & Góc Nhìn Bền Vững Về Điều Trị Duy Trì',
+        titleEn: 'IPSRT Daily Rhythm Anchors & Maintenance Adherence CBA',
+        rationaleVi:
+          'Khi đã bình ổn nhờ thuốc, não dễ nảy sinh ý nghĩ "mình khỏi hẳn rồi, tự ngưng thuốc thôi". Bước này giúp củng cố sự ổn định dài hạn và chuẩn bị câu hỏi cho bác sĩ.',
+        rationaleEn:
+          'Protects euthymic stability by anchoring daily routines and preventing abrupt self-discontinuation of prescribed treatment.',
+        microPromptVi: 'Xác nhận giờ thức dậy – giờ đi ngủ mục tiêu hôm nay (hoặc ghi chú thắc mắc để hỏi bác sĩ vào kỳ khám tới):',
+        microPromptEn: 'Confirm today’s target wake/bedtime anchors (or note a question for your psychiatrist):',
+        durationMinutes: 5,
+      },
+      {
+        stepNumber: 3,
+        canonicalPracticeId: 'prac-tool-35-bipolar-48h-impulse-pros-cons',
+        legacyWebToolId: 'impulse-vault-48h-lock',
+        legacyFlutterSlug: 'bipolar-48h-impulse-vault-crisis-pros-cons',
+        stageLabelVi: 'Bước 3 • Lá chắn Tài chính & Quyết định Lớn',
+        stageLabelEn: 'Step 3 • 48-Hour Impulse Protection',
+        titleVi: 'Khoang Trì Hoãn Quyết Định 48 Giờ & Bàn Cân 4 Ô',
+        titleEn: '48-Hour Impulse Vault & Crisis Pros/Cons',
+        rationaleVi:
+          'Khi năng lượng hoặc hưng phấn tăng cao, việc khóa các quyết định chi tiêu/công việc lớn qua 2 đêm ngủ đủ giấc giúp bảo vệ thành quả cuộc sống.',
+        rationaleEn:
+          'Pauses high-stakes financial, career, or relationship impulses for 48 hours and 2 full nights of sleep.',
+        microPromptVi: 'Có kế hoạch mua sắm, đầu tư hay quyết định gấp nào bạn muốn gửi tạm vào Khoang Chờ 48 Giờ không (hoặc ghi "Hôm nay bình ổn")?',
+        microPromptEn: 'Any urgent purchase or big decision to place in the 48h Vault today (or note "Steady today")?',
+        durationMinutes: 4,
+      },
+      {
+        stepNumber: 4,
+        canonicalPracticeId: 'prac-tool-34-bipolar-positive-distortion-devils-advocate',
+        legacyWebToolId: 'bipolar-positive-distortion-audit',
+        legacyFlutterSlug: 'bipolar-positive-distortion-devils-advocate',
+        stageLabelVi: 'Bước 4 • Cân bằng Hưng phấn & Phản biện Thực tế',
+        stageLabelEn: 'Step 4 • Positive Distortion & Reality Check',
+        titleVi: 'Phân Biệt Niềm Vui Lành Mạnh vs. Biến Dạng Dương Tính Hưng Cảm',
+        titleEn: 'Healthy Joy vs. Hypomanic Positive Distortion Check',
+        rationaleVi:
+          'Tôn vinh niềm vui bình thường, đồng thời nhận diện sớm 5 bẫy hưng cảm nhẹ ("rủi ro bằng 0", "không cần ngủ") bằng góc nhìn phản biện tỉnh táo.',
+        rationaleEn:
+          'Celebrates grounded happiness while catching "zero-risk / no-sleep-needed" hypomanic traps early.',
+        microPromptVi: 'Kiểm tra nhanh mức năng lượng hiện tại: Niềm vui thư thái có kiểm soát hay đang tăng tốc quá nhanh?',
+        microPromptEn: 'Quick check: Is your current energy grounded and steady, or racing faster than usual?',
+        durationMinutes: 5,
+      },
+    ],
+  },
+};
+
+export interface ProgressivePathwayEvaluation {
+  conditionCode: ClinicalConditionCode;
+  pathway: ConditionProgressivePathway;
+  completedSteps: Array<1 | 2 | 3 | 4>;
+  unlockedMaxStep: 1 | 2 | 3 | 4;
+  activeStep: ConditionProgressiveStepSpec;
+  isPathwayCompleted: boolean;
+  sosAlwaysUnlocked: true;
+}
+
+/**
+ * Computes the sequential unlock state for a condition pathway (`RLLA`, `TC`, `RLLC`).
+ * Step 2 is locked until Step 1 is completed; Step 3 until Step 2; Step 4 until Step 3.
+ */
+export function evaluateProgressivePathwayState(
+  conditionCode: ClinicalConditionCode,
+  completedStepNumbers: readonly number[],
+  requestedActiveStep?: number,
+): ProgressivePathwayEvaluation {
+  const pathway = PROGRESSIVE_CONDITION_PATHWAYS[conditionCode];
+  const validSet = new Set<1 | 2 | 3 | 4>();
+
+  // Enforce sequential contiguity: step k only counts towards unlocking k+1 if 1..k-1 are done
+  for (const s of [1, 2, 3, 4] as const) {
+    if (completedStepNumbers.includes(s) && (s === 1 || validSet.has((s - 1) as 1 | 2 | 3))) {
+      validSet.add(s);
+    }
+  }
+
+  const completedSteps = Array.from(validSet).sort((a, b) => a - b);
+  const unlockedMaxStep = Math.min(4, completedSteps.length + 1) as 1 | 2 | 3 | 4;
+  const isPathwayCompleted = completedSteps.length === 4;
+
+  const targetStepNum =
+    typeof requestedActiveStep === 'number' &&
+    requestedActiveStep >= 1 &&
+    requestedActiveStep <= unlockedMaxStep
+      ? (requestedActiveStep as 1 | 2 | 3 | 4)
+      : unlockedMaxStep;
+
+  const activeStep = pathway.steps[targetStepNum - 1]!;
+
+  return {
+    conditionCode,
+    pathway,
+    completedSteps,
+    unlockedMaxStep,
+    activeStep,
+    isPathwayCompleted,
+    sosAlwaysUnlocked: true,
+  };
+}
+
+export function completeProgressivePathwayStep(
+  conditionCode: ClinicalConditionCode,
+  currentCompletedSteps: readonly number[],
+  stepToComplete: 1 | 2 | 3 | 4,
+): ValidationResult<ProgressivePathwayEvaluation> {
+  const currentState = evaluateProgressivePathwayState(conditionCode, currentCompletedSteps);
+  if (stepToComplete > currentState.unlockedMaxStep) {
+    return {
+      valid: false,
+      errors: [
+        `Vui lòng hoàn thành Bước ${currentState.unlockedMaxStep} trước khi mở khóa Bước ${stepToComplete}.`,
+      ],
+    };
+  }
+  const nextCompleted = Array.from(new Set([...currentState.completedSteps, stepToComplete]));
+  const nextEval = evaluateProgressivePathwayState(conditionCode, nextCompleted);
+  return {
+    valid: true,
+    errors: [],
+    data: nextEval,
   };
 }

@@ -461,15 +461,52 @@ export function generateMoodPaletteFromText(text: string): {
     };
   }
 
+  // Elevated / Joyful / Hypomanic-Spectrum Detection
+  if (
+    /(hưng phấn|phấn chấn|tràn trề năng lượng|hào hứng|nhiều ý tưởng|vui vẻ|yêu đời|không cần ngủ|thức trắng|ý tưởng thiên tài|\benergized\b|\beuphoric\b|\bexcited\b|\bjoyful\b|full of ideas|no need for sleep)/i.test(
+      text
+    )
+  ) {
+    const hasHypomanicSignal =
+      /(không cần ngủ|thức trắng|ý tưởng thiên tài|chắc chắn thắng 100%|mua sắm hết|no need for sleep|sleepless|zero risk)/i.test(
+        text
+      );
+    return {
+      palette: {
+        dominantEmotion: 'Elevated',
+        colors: ['#92400e', '#f59e0b', '#fef3c7'],
+        gradientCss: 'linear-gradient(135deg, #92400e 0%, #f59e0b 55%, #fef3c7 100%)',
+        summaryVi: hasHypomanicSignal
+          ? 'Sắc Vàng Hổ phách — Năng lượng & Hưng phấn tăng cao kèm dấu hiệu giảm ngủ (Khuyến nghị kiểm tra Nhịp IPSRT & Khoang Chờ 48h cho RLLC)'
+          : 'Sắc Nắng Ấm — Vui vẻ, Hứng khởi & Năng lượng tích cực (Tận hưởng điều độ & giữ vững nhịp giấc ngủ)',
+        summaryEn: hasHypomanicSignal
+          ? 'Warm Gold Palette — Elevated Arousal with Reduced-Sleep Signal (Route to Hypomania Reality Check & IPSRT)'
+          : 'Sunlit Gold Palette — Healthy Positive Energy & Enthusiasm (Savor mindfully while keeping steady sleep anchors)',
+      },
+      detectedIntensity: hasHypomanicSignal ? 6 : 2,
+      suggestedTechnique: hasHypomanicSignal ? 'hypomania-devils-advocate' : 'behavioral-activation',
+    };
+  }
+
+  // Calm / Normal / Medicated Euthymia Detection
+  const isExplicitCalm =
+    /(bình thường|bình ổn|ổn định|thư thái|nhẹ nhàng|đã uống thuốc|ngủ ngon|an yên|\bcalm\b|\bnormal\b|\bstable\b|\bsteady\b|\bpeaceful\b)/i.test(
+      text
+    );
+
   return {
     palette: {
       dominantEmotion: 'Calm',
       colors: ['#115e59', '#14b8a6', '#ccfbf1'],
       gradientCss: 'linear-gradient(135deg, #115e59 0%, #14b8a6 55%, #ccfbf1 100%)',
-      summaryVi: 'Sắc Xanh Ngọc bích — Tâm trí tĩnh lặng, sẵn sàng mở rộng góc nhìn',
-      summaryEn: 'Serene Teal Palette — Reflective readiness (Route to CBT Thought Record / Wise Mind)',
+      summaryVi: isExplicitCalm
+        ? 'Sắc Xanh Ngọc bích — Trạng thái Bình ổn & Thư thái (Ghi nhận sự ổn định của điều trị và duy trì nhịp sinh hoạt)'
+        : 'Sắc Xanh Ngọc bích — Tâm trí tĩnh lặng, sẵn sàng mở rộng góc nhìn',
+      summaryEn: isExplicitCalm
+        ? 'Serene Teal Palette — Steady Euthymic Balance (Maintain healthy routines & sleep anchors)'
+        : 'Serene Teal Palette — Reflective readiness (Route to CBT Thought Record / Wise Mind)',
     },
-    detectedIntensity: 4,
+    detectedIntensity: isExplicitCalm ? 1 : 3,
     suggestedTechnique: 'thought-record',
   };
 }

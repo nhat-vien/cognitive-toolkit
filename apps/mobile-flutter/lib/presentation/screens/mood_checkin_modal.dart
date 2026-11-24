@@ -40,12 +40,13 @@ class _EmotionOption {
 }
 
 const List<_EmotionOption> _kEmotionOptions = [
-  _EmotionOption('Buồn', Color(0xFF7B93B4), -3, -2),
-  _EmotionOption('Lo lắng', Color(0xFF8368B8), -2, 1),
-  _EmotionOption('Căng thẳng', Color(0xFFC19A7B), -2, 2),
-  _EmotionOption('Tức giận', Color(0xFFC4553D), -3, 3),
-  _EmotionOption('Vui vẻ', Color(0xFFF3B5C8), 3, 2),
-  _EmotionOption('Bình thường', Color(0xFFC7C9CC), 0, 0),
+  _EmotionOption('Bình thường / Bình ổn', Color(0xFF5A8574), 0, 0),
+  _EmotionOption('Vui vẻ / Hưng phấn', Color(0xFFD97706), 3, 2),
+  _EmotionOption('Buồn bã / Trống rỗng', Color(0xFF7B93B4), -3, -2),
+  _EmotionOption('Lo lắng / Bồn chồn', Color(0xFF8368B8), -2, 1),
+  _EmotionOption('Căng thẳng / Quá tải', Color(0xFFC19A7B), -2, 2),
+  _EmotionOption('Tức giận / Bực bội', Color(0xFFC4553D), -3, 3),
+  _EmotionOption('Tự trách / Xấu hổ', Color(0xFF9E7D8A), -3, -1),
 ];
 
 const List<String> _kFactorChips = [
@@ -89,7 +90,7 @@ class MoodCheckInModal extends StatefulWidget {
 }
 
 class _MoodCheckInModalState extends State<MoodCheckInModal> {
-  int _selectedEmotionIdx = 5; // Bình thường
+  int _selectedEmotionIdx = 0; // Mặc định: Bình thường / Bình ổn (đã ổn định hoặc sau khi uống thuốc)
   int _intensity = 5;
   late double _sleepHours;
   final Set<String> _selectedFactors = {};

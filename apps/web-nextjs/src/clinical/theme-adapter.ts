@@ -61,6 +61,71 @@ export const FIVE_FAMILY_AFFECT_CARDS: AffectLabelCard[] = [
   },
 ];
 
+export type FullSpectrumAffectKey = 'Calm' | 'Elevated' | AffectLabelCard['family'];
+
+export interface FullSpectrumAffectCard {
+  id: string;
+  key: FullSpectrumAffectKey;
+  valence: 'euthymic' | 'elevated' | 'distress';
+  icon: string;
+  labelVi: string;
+  labelEn: string;
+  clinicalNoteVi: string;
+  clinicalNoteEn: string;
+}
+
+/**
+ * Full-Spectrum Natural Affect Cards (7 States):
+ * Places Euthymic/Medicated Stability ('Calm' — Default) and Joy/Elevated Energy ('Elevated')
+ * first so stabilized patients on maintenance treatment never feel forced into negative-only labels,
+ * followed by the 5 classic difficult affect families (with Shame vs. Guilt distinction).
+ */
+export const FULL_SPECTRUM_AFFECT_CARDS: readonly FullSpectrumAffectCard[] = [
+  {
+    id: 'affect-calm-euthymic',
+    key: 'Calm',
+    valence: 'euthymic',
+    icon: '🌿',
+    labelVi: 'Bình ổn • Thư thái • Đáp ứng tốt điều trị',
+    labelEn: 'Calm • Steady • Euthymic Balance',
+    clinicalNoteVi:
+      'Trạng thái cân bằng tự nhiên (rất phổ biến khi bạn đã uống thuốc đều đặn và giữ nhịp ngủ ổn định). Hãy ghi nhận và duy trì nhịp sinh hoạt lành mạnh.',
+    clinicalNoteEn:
+      'Natural steady baseline (common when treatment and sleep rhythms are consistent). Acknowledge and gently maintain your routine.',
+  },
+  {
+    id: 'affect-elevated-joy',
+    key: 'Elevated',
+    valence: 'elevated',
+    icon: '✨',
+    labelVi: 'Vui vẻ • Hứng khởi • Hưng phấn năng lượng',
+    labelEn: 'Joyful • Energized • Elevated Mood',
+    clinicalNoteVi:
+      'Năng lượng tích cực và nhiệt huyết đáng trân trọng. Lưu ý nhỏ cho nhóm RLLC: nếu thấy hưng phấn tăng nhanh kèm giảm nhu cầu ngủ đêm, hãy ưu tiên giữ mốc giờ đi ngủ IPSRT.',
+    clinicalNoteEn:
+      'Healthy enthusiasm and positive energy. Note for Bipolar (RLLC): if paired with reduced need for sleep or racing plans, protect your IPSRT bedtime anchor.',
+  },
+  ...FIVE_FAMILY_AFFECT_CARDS.map((card) => ({
+    id: card.id,
+    key: card.family as FullSpectrumAffectKey,
+    valence: 'distress' as const,
+    icon:
+      card.family === 'Sadness'
+        ? '🌧️'
+        : card.family === 'Anxiety'
+          ? '🌊'
+          : card.family === 'Anger'
+            ? '🔥'
+            : card.family === 'Shame'
+              ? '🥀'
+              : '🌱',
+    labelVi: card.labelVi,
+    labelEn: card.labelEn,
+    clinicalNoteVi: card.clinicalNoteVi,
+    clinicalNoteEn: card.clinicalNoteEn,
+  })),
+];
+
 /**
  * V2 Official Design Tokens & Information Architecture Contract (T05 & T06 — `UI_UX_V2_DESIGN_SPEC.md` & `INFORMATION_ARCHITECTURE.md`):
  * - Light Tokens:

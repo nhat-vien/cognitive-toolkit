@@ -150,12 +150,12 @@ export interface QuickDemoProfilePreset {
 export const QUICK_DEMO_PROFILES: QuickDemoProfilePreset[] = [
   {
     id: 'anxiety-calm',
-    badgeVi: 'Làm dịu thần kinh (Chế độ Xem thử)',
-    badgeEn: 'Nervous System Calming (Demo Mode)',
-    displayNameVi: 'Bạn (Không gian Lo Âu • Xem thử)',
-    displayNameEn: 'You (Anxiety Relief Space • Demo)',
-    descriptionVi: 'Tập trung làm dịu bồn chồn, Chiếc hộp gác lại âu lo, Thở điều hòa 4-7-8 & Thang bước nhỏ đối diện nỗi sợ.',
-    descriptionEn: 'Focused on nervous system calming, Worry Box postponement, 4-7-8 breathing, and gentle exposure steps.',
+    badgeVi: 'RLLA • Làm dịu thần kinh (Xem thử)',
+    badgeEn: 'RLLA • Nervous System Calming (Demo)',
+    displayNameVi: 'Bạn (Không gian RLLA • Lo Âu)',
+    displayNameEn: 'You (Anxiety Relief RLLA • Demo)',
+    descriptionVi: 'Phù hợp cho Rối loạn Lo âu (RLLA) hoặc căng thẳng: Lộ trình từng bước từ Thở 4-6 ➔ Hộp gác âu lo ➔ Nhật ký suy nghĩ ➔ Tiếp xúc bước nhỏ.',
+    descriptionEn: 'Tailored for Anxiety Disorders (RLLA) & stress: Step-by-step from 4-6 breathing to Worry Box, Thought Record, and gentle exposure.',
     email: 'anxiety.demo@sandbox.local',
     avatarMoodColor: '#797298',
     disorderFocus: 'anxiety',
@@ -166,12 +166,12 @@ export const QUICK_DEMO_PROFILES: QuickDemoProfilePreset[] = [
   },
   {
     id: 'depression-gentle',
-    badgeVi: 'Năng lượng thấp & Bước nhỏ (Chế độ Xem thử)',
-    badgeEn: 'Low Energy & Small Steps (Demo Mode)',
-    displayNameVi: 'Bạn (Không gian Trầm Cảm • Xem thử)',
-    displayNameEn: 'You (Gentle Depression Recovery • Demo)',
-    descriptionVi: 'Giao diện ấm áp, không áp lực chuỗi ngày, ưu tiên từng bước nhỏ dịu dàng để khôi phục niềm vui sống.',
-    descriptionEn: 'Low-energy warm oatmeal sanctuary, zero broken streaks, one gentle small step at a time.',
+    badgeVi: 'TC • Bước nhỏ phục hồi (Xem thử)',
+    badgeEn: 'TC • Low Energy & Small Steps (Demo)',
+    displayNameVi: 'Bạn (Không gian TC • Trầm Cảm)',
+    displayNameEn: 'You (Depression Recovery TC • Demo)',
+    descriptionVi: 'Phù hợp cho Trầm cảm (TC) & kiệt sức: Lộ trình từng bước từ Nghỉ ngơi không áy náy ➔ Khởi động 5 phút ➔ Dự đoán niềm vui ➔ Tự trắc ẩn.',
+    descriptionEn: 'Tailored for Depression (TC) & burnout: Step-by-step from Guilt-Free Rest Check to 5-Minute Start and self-compassion.',
     email: 'depression.demo@sandbox.local',
     avatarMoodColor: '#6AA882',
     disorderFocus: 'depression',
@@ -182,17 +182,17 @@ export const QUICK_DEMO_PROFILES: QuickDemoProfilePreset[] = [
   },
   {
     id: 'bipolar-balance',
-    badgeVi: 'Nhịp sinh học & Khí sắc (Chế độ Xem thử)',
-    badgeEn: 'Circadian Rhythm & Mood (Demo Mode)',
-    displayNameVi: 'Bạn (Cân bằng Cảm xúc • Xem thử)',
-    displayNameEn: 'You (Mood & Rhythm Balance • Demo)',
-    descriptionVi: 'Theo dõi khí sắc hai cực, 5 mốc nhịp sinh học IPSRT, Khoang chờ 48 giờ và Kế hoạch chăm sóc bản thân.',
-    descriptionEn: 'Dual-pole mood tracking, 5 IPSRT circadian anchors, 48h Impulse Vault, and Ulysses Care Plan.',
+    badgeVi: 'RLLC • Lưỡng cực & Nhịp IPSRT (Xem thử)',
+    badgeEn: 'RLLC • Bipolar & IPSRT Rhythm (Demo)',
+    displayNameVi: 'Bạn (Không gian RLLC • Lưỡng Cực)',
+    displayNameEn: 'You (Bipolar & Rhythm RLLC • Demo)',
+    descriptionVi: 'Phù hợp cho Rối loạn Lưỡng cực (RLLC) & ổn định giấc ngủ: Lộ trình từng bước từ Neo giấc ngủ IPSRT ➔ Duy trì thuốc ➔ Khoang chờ 48h ➔ Phản biện hưng cảm.',
+    descriptionEn: 'Tailored for Bipolar Disorder (RLLC) & circadian balance: IPSRT sleep anchors, maintenance consistency, 48h Impulse Vault, and hypomania guard.',
     email: 'bipolar.demo@sandbox.local',
     avatarMoodColor: '#D97706',
     disorderFocus: 'bipolar',
     preferredPushbackLevel: 'moderate',
-    defaultMoodPolarity: 1,
+    defaultMoodPolarity: 0,
     emergencyContactName: '',
     emergencyContactPhone: '',
   },
@@ -479,8 +479,8 @@ export function restoreAccountSessionFromStorage(serialized?: string | null): Us
       serialized ??
       (typeof window !== 'undefined' && window.localStorage
         ? window.localStorage.getItem(ACCOUNT_STORAGE_KEY) ||
-          window.localStorage.getItem(GUEST_STORAGE_KEY) ||
-          window.localStorage.getItem(DEMO_STORAGE_KEY)
+        window.localStorage.getItem(GUEST_STORAGE_KEY) ||
+        window.localStorage.getItem(DEMO_STORAGE_KEY)
         : null);
     if (!raw) return clientCurrentSession;
     const parsed = JSON.parse(raw) as UserAccountSession;

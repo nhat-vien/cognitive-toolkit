@@ -108,8 +108,8 @@ class HavenSanctuaryPreset {
 const List<HavenSanctuaryPreset> kHavenSanctuaryPresets = [
   HavenSanctuaryPreset(
     id: 'anxiety-calm',
-    titleVi: 'Hỗ Trợ Lo Âu & Căng Thẳng',
-    badgeVi: 'Làm dịu thần kinh',
+    titleVi: 'Hỗ Trợ Lo Âu & Căng Thẳng [RLLA]',
+    badgeVi: 'RLLA • Làm dịu thần kinh',
     descriptionVi:
         'Tập trung làm dịu bồn chồn, Chiếc hộp gác lại âu lo, Thở điều hòa 4-6 & Thang bước nhỏ đối diện nỗi sợ.',
     disorderFocus: DisorderFocus.anxiety,
@@ -119,8 +119,8 @@ const List<HavenSanctuaryPreset> kHavenSanctuaryPresets = [
   ),
   HavenSanctuaryPreset(
     id: 'depression-gentle',
-    titleVi: 'Hỗ Trợ Vượt Qua Trầm Cảm',
-    badgeVi: 'Một bước nhỏ dịu dàng',
+    titleVi: 'Hỗ Trợ Vượt Qua Trầm Cảm [TC]',
+    badgeVi: 'TC • Một bước nhỏ dịu dàng',
     descriptionVi:
         'Giao diện dịu nhẹ năng lượng thấp, không áp lực đếm chuỗi ngày đứt, ưu tiên một bước nhỏ vừa sức mỗi ngày.',
     disorderFocus: DisorderFocus.depression,
@@ -130,8 +130,8 @@ const List<HavenSanctuaryPreset> kHavenSanctuaryPresets = [
   ),
   HavenSanctuaryPreset(
     id: 'bipolar-balance',
-    titleVi: 'Cân Bằng Cảm Xúc & Giấc Ngủ',
-    badgeVi: 'Nhịp sinh học IPSRT',
+    titleVi: 'Cân Bằng Cảm Xúc & Giấc Ngủ [RLLC]',
+    badgeVi: 'RLLC • Nhịp sinh học IPSRT',
     descriptionVi:
         'Theo dõi khí sắc hai cực, 5 mốc nhịp sinh học IPSRT, Khoang chờ 48 giờ và Kế hoạch Ulysses bảo vệ giấc ngủ.',
     disorderFocus: DisorderFocus.bipolar1,
@@ -141,7 +141,7 @@ const List<HavenSanctuaryPreset> kHavenSanctuaryPresets = [
   ),
   HavenSanctuaryPreset(
     id: 'guest-local-only',
-    titleVi: 'Trải Nghiệm Ẩn Danh Tại Chỗ',
+    titleVi: 'Trải Nghiệm Ẩn Danh Tại Chỗ [RLLA/TC/RLLC]',
     badgeVi: 'Bảo mật ngoại tuyến',
     descriptionVi:
         'Không cần email hay tài khoản đám mây. Toàn bộ nhật ký được mã hóa phần cứng ngay trên điện thoại của bạn.',

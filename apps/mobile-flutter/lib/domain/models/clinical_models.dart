@@ -4,15 +4,28 @@
 import 'dart:convert';
 
 enum DisorderFocus {
-  anxiety('anxiety', 'Rối loạn Lo âu (GAD / Panic / Social / OCD)'),
-  depression('depression', 'Rối loạn Trầm cảm (MDD / Burnout)'),
-  bipolar1('bipolar_1', 'Rối loạn Lưỡng cực I (Bipolar I)'),
-  bipolar2('bipolar_2', 'Rối loạn Lưỡng cực II (Bipolar II)'),
-  cyclothymia('cyclothymia', 'Khí sắc Chu kỳ (Cyclothymia)');
+  anxiety('anxiety', 'Rối loạn Lo âu (RLLA / GAD / Panic / Social / OCD)'),
+  depression('depression', 'Rối loạn Trầm cảm (TC / MDD / Burnout)'),
+  bipolar1('bipolar_1', 'Rối loạn Lưỡng cực I (RLLC I / Bipolar I)'),
+  bipolar2('bipolar_2', 'Rối loạn Lưỡng cực II (RLLC II / Bipolar II)'),
+  cyclothymia('cyclothymia', 'Khí sắc Chu kỳ (RLLC Chu kỳ / Cyclothymia)');
 
   final String code;
   final String labelVi;
   const DisorderFocus(this.code, this.labelVi);
+
+  String get conditionCode {
+    switch (this) {
+      case DisorderFocus.anxiety:
+        return 'RLLA';
+      case DisorderFocus.depression:
+        return 'TC';
+      case DisorderFocus.bipolar1:
+      case DisorderFocus.bipolar2:
+      case DisorderFocus.cyclothymia:
+        return 'RLLC';
+    }
+  }
 
   static DisorderFocus fromCode(String code) {
     return DisorderFocus.values.firstWhere(
