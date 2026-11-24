@@ -11,9 +11,9 @@ import {
  */
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  const resolvedParams = await Promise.resolve(context.params);
+  const resolvedParams = await context.params;
   const rawId = resolvedParams.id || '';
   const canonicalId = resolveCanonicalPracticeId(rawId);
 

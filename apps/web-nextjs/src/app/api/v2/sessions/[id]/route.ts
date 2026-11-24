@@ -13,7 +13,7 @@ import {
  */
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> | { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   const authHeader = request.headers.get('authorization') || undefined;
   const verified = verifyServerSessionToken(authHeader);
@@ -28,7 +28,7 @@ export async function PATCH(
     );
   }
 
-  const resolvedParams = await Promise.resolve(context.params);
+  const resolvedParams = await context.params;
   const sessionId = resolvedParams.id || '';
 
   const body = (await request.json()) as {
